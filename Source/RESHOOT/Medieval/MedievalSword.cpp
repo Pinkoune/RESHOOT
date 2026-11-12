@@ -7,6 +7,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/Engine.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -19,16 +20,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
-
-namespace
-{
-	// Arc en boîte grise : tenu à gauche, incliné, partiellement hors champ (relatif à la racine de l'arme).
-	const FVector BowRestLocation(20.f, -37.f, 5.f);
-	const FRotator BowRestRotation(0.f, 0.f, -30.f);
-	const FVector BowDrawLocation(10.f, -32.f, 5.f);
-	const FRotator BowDrawRotation(0.f, 0.f, -40.f);
-	const FVector BowScale(0.03f, 0.03f, 0.5f);
-}
 
 AMedievalSword::AMedievalSword()
 {
@@ -77,16 +68,30 @@ void AMedievalSword::BeginPlay()
 {
 	Super::BeginPlay();
 	SwordRestTransform = Mesh->GetRelativeTransform();
-	BowMesh->SetRelativeLocationAndRotation(BowRestLocation, BowRestRotation);
-	BowMesh->SetRelativeScale3D(BowScale);
+	BowMesh->SetRelativeTransform(BowRestTransform);
 	UpdateVisuals();
 	TrySetupInput();
+
+	// Être blessé casse le combo.
+	if (AReshootCharacter* Character = GetOwnerCharacter())
+	{
+		BoundOwnerHealth = Character->GetHealth();
+		if (BoundOwnerHealth)
+		{
+			BoundOwnerHealth->OnHealthChanged.AddDynamic(this, &AMedievalSword::HandleOwnerHealthChanged);
+		}
+	}
 }
 
 void AMedievalSword::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	RaiseShield(false);
 	GetWorldTimerManager().ClearAllTimersForObject(this);
+	if (BoundOwnerHealth)
+	{
+		BoundOwnerHealth->OnHealthChanged.RemoveDynamic(this, &AMedievalSword::HandleOwnerHealthChanged);
+		BoundOwnerHealth = nullptr;
+	}
 
 	if (InputController)
 	{
@@ -166,6 +171,19 @@ void AMedievalSword::SetEnabled(bool bInEnabled)
 		bCharging = false;
 	}
 	Super::SetEnabled(bInEnabled);
+
+	// Pendant le gel (CUT!), le combo ne s'écoule pas.
+	if (GetWorldTimerManager().TimerExists(ComboTimer))
+	{
+		if (bInEnabled)
+		{
+			GetWorldTimerManager().UnPauseTimer(ComboTimer);
+		}
+		else
+		{
+			GetWorldTimerManager().PauseTimer(ComboTimer);
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +251,16 @@ void AMedievalSword::UpdateVisuals()
 	ShieldMesh->SetVisibility(bSword && bShieldAllowed);
 	BowMesh->SetVisibility(!bSword);
 
-	ShieldMesh->SetRelativeLocation(bShieldRaised ? FVector(20.f, -5.f, -5.f) : FVector(0.f, -35.f, -15.f));
+	// Bouclier levé : devant, à gauche du centre, sans croiser la lame. Épée baissée sur le côté pendant la garde.
+	ShieldMesh->SetRelativeLocation(bShieldRaised ? ShieldRaisedLocation : ShieldLoweredLocation);
+	if (bShieldRaised)
+	{
+		Mesh->SetRelativeTransform(SwordGuardTransform);
+	}
+	else if (!GetWorldTimerManager().IsTimerActive(SwingPoseTimer))
+	{
+		Mesh->SetRelativeTransform(SwordRestTransform);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -329,6 +356,7 @@ void AMedievalSword::SwordSwing()
 		if (DealDamage(Target, SwordDamage, false, true) > 0.f)
 		{
 			++HitCount;
+			RegisterHit(Health->IsDead(), false, true);
 		}
 	}
 
@@ -347,7 +375,87 @@ void AMedievalSword::SwordSwing()
 
 void AMedievalSword::ResetSwingPose()
 {
-	Mesh->SetRelativeTransform(SwordRestTransform);
+	Mesh->SetRelativeTransform(bShieldRaised ? SwordGuardTransform : SwordRestTransform);
+}
+
+// ---------------------------------------------------------------------------
+// Combos : chaque coup qui touche prolonge le combo ; tous les HitsPerMultiplierStep coups,
+// le multiplicateur monte d'un cran. Une pause de ComboWindow secondes ou une blessure casse le combo.
+
+int32 AMedievalSword::GetComboMultiplier() const
+{
+	return FMath::Clamp(1 + Combo / FMath::Max(HitsPerMultiplierStep, 1), 1, FMath::Max(MaxComboMultiplier, 1));
+}
+
+float AMedievalSword::GetComboTimeLeftPct() const
+{
+	if (Combo <= 0 || ComboWindow <= 0.f)
+	{
+		return 0.f;
+	}
+	return FMath::Clamp(GetWorldTimerManager().GetTimerRemaining(ComboTimer) / ComboWindow, 0.f, 1.f);
+}
+
+void AMedievalSword::RegisterHit(bool bKilled, bool bHeadshot, bool bMelee)
+{
+	++Combo;
+	const int32 Multiplier = GetComboMultiplier();
+	const int32 BasePoints = PointsPerHit + (bKilled ? PointsPerKill : 0) + (bHeadshot ? HeadshotBonusPoints : 0);
+	const int32 Gained = BasePoints * Multiplier;
+	ComboScore += Gained;
+
+	GetWorldTimerManager().SetTimer(ComboTimer, this, &AMedievalSword::ResetCombo, ComboWindow, false);
+	if (!IsEnabled())
+	{
+		GetWorldTimerManager().PauseTimer(ComboTimer);
+	}
+
+	UE_LOG(LogReshoot, Verbose, TEXT("Medieval combo %d (x%d) +%d -> %d"), Combo, Multiplier, Gained, ComboScore);
+	OnComboChanged.Broadcast(Combo, Multiplier, ComboScore, Gained);
+	ShowComboOnScreen(Gained);
+}
+
+void AMedievalSword::ResetCombo()
+{
+	GetWorldTimerManager().ClearTimer(ComboTimer);
+	if (Combo == 0)
+	{
+		return;
+	}
+	Combo = 0;
+	OnComboChanged.Broadcast(0, 1, ComboScore, 0);
+	ShowComboOnScreen(0);
+}
+
+void AMedievalSword::HandleOwnerHealthChanged(UHealthComponent* HealthComponent, float NewHealth, float Delta)
+{
+	if (bDamageBreaksCombo && Delta < 0.f)
+	{
+		ResetCombo();
+	}
+}
+
+void AMedievalSword::ShowComboOnScreen(int32 PointsGained) const
+{
+	if (!bShowComboOnScreen || !GEngine)
+	{
+		return;
+	}
+	// Clés fixes : les lignes se mettent à jour au lieu de s'empiler.
+	const uint64 ScoreKey = 0x4D454449;
+	const uint64 ComboKey = ScoreKey + 1;
+	GEngine->AddOnScreenDebugMessage(ScoreKey, 600.f, FColor(255, 215, 90), FString::Printf(TEXT("SCORE  %d"), ComboScore), true, FVector2D(1.6f, 1.6f));
+	if (Combo > 0)
+	{
+		const int32 Multiplier = GetComboMultiplier();
+		const FColor Color = Multiplier >= 4 ? FColor(255, 70, 40) : (Multiplier >= 2 ? FColor(255, 160, 40) : FColor::White);
+		GEngine->AddOnScreenDebugMessage(ComboKey, ComboWindow, Color,
+			FString::Printf(TEXT("COMBO %d   x%d   +%d"), Combo, Multiplier, PointsGained), true, FVector2D(1.4f, 1.4f));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(ComboKey, 1.f, FColor(150, 150, 150), TEXT("combo perdu"), true, FVector2D(1.2f, 1.2f));
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -436,14 +544,14 @@ void AMedievalSword::StartBowCharge()
 	}
 	bCharging = true;
 	ChargeStartTime = Now;
-	BowMesh->SetRelativeLocationAndRotation(BowDrawLocation, BowDrawRotation);
+	BowMesh->SetRelativeTransform(BowDrawTransform);
 }
 
 void AMedievalSword::ReleaseBow()
 {
 	const float Charge = GetBowCharge();
 	bCharging = false;
-	BowMesh->SetRelativeLocationAndRotation(BowRestLocation, BowRestRotation);
+	BowMesh->SetRelativeTransform(BowRestTransform);
 
 	if (!IsEnabled() || !ArrowClass)
 	{

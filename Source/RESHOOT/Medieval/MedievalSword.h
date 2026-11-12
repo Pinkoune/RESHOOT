@@ -25,6 +25,9 @@ enum class EMedievalWeaponMode : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMedievalModeChanged, EMedievalWeaponMode, NewMode);
 
+/** Combo mis à jour. Combo = 0 : combo cassé. PointsGained = points du dernier coup (0 à la casse). */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnMedievalComboChanged, int32, Combo, int32, Multiplier, int32, Score, int32, PointsGained);
+
 UCLASS(Blueprintable)
 class RESHOOT_API AMedievalSword : public AReshootWeapon
 {
@@ -54,6 +57,30 @@ public:
 	/** Charge de l'arc entre 0 et 1 (0 si on ne bande pas). Pour le HUD. */
 	UFUNCTION(BlueprintPure, Category = "Medieval")
 	float GetBowCharge() const;
+
+	// --- Combos de points (pour le HUD : getters + OnComboChanged) ---
+
+	/** Un coup a touché (épée ou flèche du joueur). Appelé par l'arme et par AMedievalArrow. */
+	UFUNCTION(BlueprintCallable, Category = "Medieval|Combo")
+	void RegisterHit(bool bKilled, bool bHeadshot, bool bMelee);
+
+	/** Coups enchaînés sans pause ni blessure. */
+	UFUNCTION(BlueprintPure, Category = "Medieval|Combo")
+	int32 GetCombo() const { return Combo; }
+
+	UFUNCTION(BlueprintPure, Category = "Medieval|Combo")
+	int32 GetComboMultiplier() const;
+
+	/** Points marqués depuis que l'arme est en main. */
+	UFUNCTION(BlueprintPure, Category = "Medieval|Combo")
+	int32 GetComboScore() const { return ComboScore; }
+
+	/** Temps restant avant que le combo retombe, entre 0 et 1 (jauge du HUD). */
+	UFUNCTION(BlueprintPure, Category = "Medieval|Combo")
+	float GetComboTimeLeftPct() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Medieval|Combo")
+	FOnMedievalComboChanged OnComboChanged;
 
 	/** Directive « Sans le bouclier ! ». */
 	UFUNCTION(BlueprintCallable, Category = "Medieval")
@@ -125,6 +152,54 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Bow", meta = (ClampMin = "0"))
 	float BowCooldown = 0.25f;
 
+	// --- Combos ---
+
+	/** Secondes sans toucher avant que le combo retombe. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "0.1"))
+	float ComboWindow = 2.5f;
+
+	/** Nombre de coups pour gagner un cran de multiplicateur (3 = x2 au 3e coup, x3 au 6e…). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "1"))
+	int32 HitsPerMultiplierStep = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "1"))
+	int32 MaxComboMultiplier = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "0"))
+	int32 PointsPerHit = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "0"))
+	int32 PointsPerKill = 50;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo", meta = (ClampMin = "0"))
+	int32 HeadshotBonusPoints = 25;
+
+	/** Être blessé casse le combo. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo")
+	bool bDamageBreaksCombo = true;
+
+	/** Affichage provisoire en haut de l'écran, en attendant le HUD de l'équipe Interface. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Combo")
+	bool bShowComboOnScreen = true;
+
+	// --- Positions en boîte grise (relatives à l'arme), réglables sans recompiler ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector ShieldLoweredLocation = FVector(0.f, -35.f, -15.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector ShieldRaisedLocation = FVector(40.f, -40.f, -8.f);
+
+	/** Épée baissée sur le côté pendant la garde au bouclier. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FTransform SwordGuardTransform = FTransform(FRotator(-60.f, 15.f, 0.f), FVector(10.f, 15.f, -22.f), FVector(0.9f, 0.04f, 0.08f));
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FTransform BowRestTransform = FTransform(FRotator(0.f, 0.f, -30.f), FVector(20.f, -37.f, 5.f), FVector(0.03f, 0.03f, 0.5f));
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FTransform BowDrawTransform = FTransform(FRotator(0.f, 0.f, -40.f), FVector(10.f, -32.f, 5.f), FVector(0.03f, 0.03f, 0.5f));
+
 	// --- Debug et audio ---
 
 	/** Dessine le cône de l'épée à chaque coup (boîtes grises). */
@@ -184,6 +259,12 @@ private:
 	void ReleaseBow();
 	void UpdateVisuals();
 
+	void ResetCombo();
+	void ShowComboOnScreen(int32 PointsGained) const;
+
+	UFUNCTION()
+	void HandleOwnerHealthChanged(UHealthComponent* HealthComponent, float NewHealth, float Delta);
+
 	void TrySetupInput();
 	void CreateDefaultInput();
 	void OnSelectSword();
@@ -203,6 +284,13 @@ private:
 	FTimerHandle SwingPoseTimer;
 	FTimerHandle ShieldSpeedTimer;
 	FTimerHandle InputSetupTimer;
+	FTimerHandle ComboTimer;
+
+	int32 Combo = 0;
+	int32 ComboScore = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHealthComponent> BoundOwnerHealth;
 
 	UPROPERTY(Transient)
 	TObjectPtr<APlayerController> InputController;

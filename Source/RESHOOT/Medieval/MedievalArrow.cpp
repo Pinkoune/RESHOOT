@@ -1,4 +1,5 @@
 #include "Medieval/MedievalArrow.h"
+#include "Medieval/MedievalSword.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
 #include "Core/ReshootEnemy.h"
@@ -165,7 +166,19 @@ void AMedievalArrow::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 
 	if (UHealthComponent* Health = OtherActor->FindComponentByClass<UHealthComponent>())
 	{
-		Health->ApplyDamage(Damage, GetInstigator() ? static_cast<AActor*>(GetInstigator()) : GetOwner(), bHeadshot, false);
+		const float Applied = Health->ApplyDamage(Damage, GetInstigator() ? static_cast<AActor*>(GetInstigator()) : GetOwner(), bHeadshot, false);
+
+		// Flèche du joueur qui touche : prolonge son combo médiéval.
+		if (Applied > 0.f)
+		{
+			if (const AReshootCharacter* Shooter = Cast<AReshootCharacter>(GetInstigator()))
+			{
+				if (AMedievalSword* Sword = Cast<AMedievalSword>(Shooter->GetCurrentWeapon()))
+				{
+					Sword->RegisterHit(Health->IsDead(), bHeadshot, false);
+				}
+			}
+		}
 	}
 	if (ImpactSound)
 	{
