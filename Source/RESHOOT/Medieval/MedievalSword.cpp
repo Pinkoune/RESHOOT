@@ -13,6 +13,7 @@
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "InputAction.h"
@@ -62,6 +63,24 @@ AMedievalSword::AMedievalSword()
 	BowMesh->SetRelativeLocation(FVector(10.f, -15.f, 5.f));
 	BowMesh->SetRelativeScale3D(FVector(0.05f, 0.05f, 1.1f));
 	BowMesh->SetVisibility(false);
+
+	// Poings : deux petits cubes, cachés hors du mode poings.
+	auto MakeFist = [&](const TCHAR* Name)
+	{
+		UStaticMeshComponent* Fist = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Fist->SetupAttachment(Root);
+		if (CubeMesh.Succeeded())
+		{
+			Fist->SetStaticMesh(CubeMesh.Object);
+		}
+		Fist->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Fist->SetCastShadow(false);
+		Fist->SetRelativeScale3D(FVector(0.12f, 0.1f, 0.1f));
+		Fist->SetVisibility(false);
+		return Fist;
+	};
+	FistLeftMesh = MakeFist(TEXT("FistLeftMesh"));
+	FistRightMesh = MakeFist(TEXT("FistRightMesh"));
 }
 
 void AMedievalSword::BeginPlay()
@@ -131,6 +150,11 @@ void AMedievalSword::StartPrimary()
 			GetWorldTimerManager().SetTimer(SwingRepeatTimer, this, &AMedievalSword::SwordSwing, 1.f / SwordAttacksPerSecond, true);
 		}
 	}
+	else if (Mode == EMedievalWeaponMode::Fists)
+	{
+		Punch();
+		GetWorldTimerManager().SetTimer(SwingRepeatTimer, this, &AMedievalSword::Punch, 1.f / FistPunchesPerSecond, true);
+	}
 	else
 	{
 		StartBowCharge();
@@ -151,7 +175,7 @@ void AMedievalSword::StopPrimary()
 void AMedievalSword::StartSecondary()
 {
 	Super::StartSecondary();
-	if (IsEnabled() && Mode == EMedievalWeaponMode::Sword)
+	if (IsEnabled() && Mode != EMedievalWeaponMode::Bow)
 	{
 		RaiseShield(true);
 	}
@@ -206,15 +230,18 @@ void AMedievalSword::SetMode(EMedievalWeaponMode NewMode)
 	bCharging = false;
 
 	Mode = NewMode;
-	DisplayName = (Mode == EMedievalWeaponMode::Sword)
-		? NSLOCTEXT("Reshoot", "MedievalSwordName", "Épée et bouclier")
-		: NSLOCTEXT("Reshoot", "MedievalBowName", "Arc");
+	switch (Mode)
+	{
+	case EMedievalWeaponMode::Sword: DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Épée et bouclier"); break;
+	case EMedievalWeaponMode::Bow:   DisplayName = NSLOCTEXT("Reshoot", "MedievalBowName", "Arc"); break;
+	case EMedievalWeaponMode::Fists: DisplayName = NSLOCTEXT("Reshoot", "MedievalFistsName", "Poings"); break;
+	}
 
 	UpdateVisuals();
 	OnModeChanged.Broadcast(Mode);
 
-	// Clic droit toujours enfoncé en revenant à l'épée : le bouclier se relève.
-	if (Mode == EMedievalWeaponMode::Sword && bSecondaryHeld && IsEnabled())
+	// Clic droit toujours enfoncé : la garde (bouclier ou poings) se relève.
+	if (Mode != EMedievalWeaponMode::Bow && bSecondaryHeld && IsEnabled())
 	{
 		RaiseShield(true);
 	}
@@ -222,7 +249,13 @@ void AMedievalSword::SetMode(EMedievalWeaponMode NewMode)
 
 void AMedievalSword::ToggleMode()
 {
-	SetMode(Mode == EMedievalWeaponMode::Sword ? EMedievalWeaponMode::Bow : EMedievalWeaponMode::Sword);
+	// Cycle épée -> arc -> poings -> épée (l'arc est sauté s'il est interdit).
+	switch (Mode)
+	{
+	case EMedievalWeaponMode::Sword: SetMode(bBowAllowed ? EMedievalWeaponMode::Bow : EMedievalWeaponMode::Fists); break;
+	case EMedievalWeaponMode::Bow:   SetMode(EMedievalWeaponMode::Fists); break;
+	case EMedievalWeaponMode::Fists: SetMode(EMedievalWeaponMode::Sword); break;
+	}
 }
 
 void AMedievalSword::SetShieldAllowed(bool bAllowed)
@@ -247,19 +280,27 @@ void AMedievalSword::SetBowAllowed(bool bAllowed)
 void AMedievalSword::UpdateVisuals()
 {
 	const bool bSword = (Mode == EMedievalWeaponMode::Sword);
+	const bool bFists = (Mode == EMedievalWeaponMode::Fists);
 	Mesh->SetVisibility(bSword);
 	ShieldMesh->SetVisibility(bSword && bShieldAllowed);
-	BowMesh->SetVisibility(!bSword);
+	BowMesh->SetVisibility(Mode == EMedievalWeaponMode::Bow);
+	FistLeftMesh->SetVisibility(bFists);
+	FistRightMesh->SetVisibility(bFists);
 
-	// Bouclier levé : devant, à gauche du centre, sans croiser la lame. Épée baissée sur le côté pendant la garde.
-	ShieldMesh->SetRelativeLocation(bShieldRaised ? ShieldRaisedLocation : ShieldLoweredLocation);
-	if (bShieldRaised)
+	// Bouclier levé : devant, au centre, sans croiser la lame. Épée baissée sur le côté pendant la garde.
+	ShieldMesh->SetRelativeLocation(bShieldRaised && bSword ? ShieldRaisedLocation : ShieldLoweredLocation);
+	if (bShieldRaised && bSword)
 	{
 		Mesh->SetRelativeTransform(SwordGuardTransform);
 	}
 	else if (!GetWorldTimerManager().IsTimerActive(SwingPoseTimer))
 	{
 		Mesh->SetRelativeTransform(SwordRestTransform);
+	}
+
+	if (!GetWorldTimerManager().IsTimerActive(PunchPoseTimer))
+	{
+		ResetPunchPose();
 	}
 }
 
@@ -293,16 +334,29 @@ void AMedievalSword::SwordSwing()
 	Mesh->SetRelativeRotation(FRotator(-35.f, -25.f, 0.f));
 	GetWorldTimerManager().SetTimer(SwingPoseTimer, this, &AMedievalSword::ResetSwingPose, 0.15f, false);
 
+	const int32 HitCount = MeleeSweep(SwordRange, SwordHalfAngle, SwordDamage, 0.f);
+
+	if (HitCount > 0 && SwordHitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+	}
+}
+
+int32 AMedievalSword::MeleeSweep(float Range, float HalfAngle, float Damage, float Knockback)
+{
+	FVector Start, Direction;
+	GetAim(Start, Direction);
+
 	// Tous les pions dans la sphère de portée, puis filtre par angle.
 	TArray<FOverlapResult> Overlaps;
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(MedievalSwordSwing), false, this);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MedievalMeleeSweep), false, this);
 	Params.AddIgnoredActor(GetOwner());
 	FCollisionObjectQueryParams ObjectParams;
 	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectParams.AddObjectTypesToQuery(ECC_PhysicsBody);
-	GetWorld()->OverlapMultiByObjectType(Overlaps, Start, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(SwordRange), Params);
+	GetWorld()->OverlapMultiByObjectType(Overlaps, Start, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Range), Params);
 
-	const float CosHalfAngle = FMath::Cos(FMath::DegreesToRadians(SwordHalfAngle));
+	const float CosHalfAngle = FMath::Cos(FMath::DegreesToRadians(HalfAngle));
 	TSet<AActor*> AlreadyHit;
 	int32 HitCount = 0;
 
@@ -331,9 +385,9 @@ void AMedievalSword::SwordSwing()
 				Closest = OnBody;
 			}
 		}
-		FVector ToTarget = Closest - Start;
+		const FVector ToTarget = Closest - Start;
 		const float Distance = ToTarget.Size();
-		if (Distance > SwordRange)
+		if (Distance > Range)
 		{
 			continue;
 		}
@@ -345,7 +399,7 @@ void AMedievalSword::SwordSwing()
 
 		// Pas à travers les murs (seul le décor statique bloque : un coup peut toucher plusieurs figurants).
 		FHitResult WallHit;
-		FCollisionQueryParams SightParams(SCENE_QUERY_STAT(MedievalSwordSight), false, this);
+		FCollisionQueryParams SightParams(SCENE_QUERY_STAT(MedievalMeleeSight), false, this);
 		SightParams.AddIgnoredActor(GetOwner());
 		SightParams.AddIgnoredActor(Target);
 		if (GetWorld()->LineTraceSingleByObjectType(WallHit, Start, Closest, FCollisionObjectQueryParams(ECC_WorldStatic), SightParams))
@@ -353,24 +407,73 @@ void AMedievalSword::SwordSwing()
 			continue;
 		}
 
-		if (DealDamage(Target, SwordDamage, false, true) > 0.f)
+		if (DealDamage(Target, Damage, false, true) > 0.f)
 		{
 			++HitCount;
 			RegisterHit(Health->IsDead(), false, true);
-		}
-	}
 
-	if (HitCount > 0 && SwordHitSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+			// Recul : le figurant vivant est repoussé (bagarre).
+			ACharacter* HitCharacter = Cast<ACharacter>(Target);
+			const AReshootEnemy* HitEnemy = Cast<AReshootEnemy>(Target);
+			if (Knockback > 0.f && HitCharacter && !Health->IsDead() && !(HitEnemy && HitEnemy->IsFrozen()))
+			{
+				FVector Push = Target->GetActorLocation() - GetOwner()->GetActorLocation();
+				Push.Z = 0.f;
+				HitCharacter->LaunchCharacter(Push.GetSafeNormal() * Knockback + FVector(0.f, 0.f, Knockback * 0.35f), true, true);
+			}
+		}
 	}
 
 	if (bDrawDebug)
 	{
 		const FColor Color = HitCount > 0 ? FColor::Red : FColor::Yellow;
-		DrawDebugCone(GetWorld(), Start, Direction, SwordRange, FMath::DegreesToRadians(SwordHalfAngle),
-			FMath::DegreesToRadians(SwordHalfAngle * 0.5f), 12, Color, false, 0.2f, 0, 1.f);
+		DrawDebugCone(GetWorld(), Start, Direction, Range, FMath::DegreesToRadians(HalfAngle),
+			FMath::DegreesToRadians(HalfAngle * 0.5f), 12, Color, false, 0.2f, 0, 1.f);
 	}
+	return HitCount;
+}
+
+// ---------------------------------------------------------------------------
+// Poings
+
+void AMedievalSword::Punch()
+{
+	if (!IsEnabled() || bShieldRaised || Mode != EMedievalWeaponMode::Fists)
+	{
+		return;
+	}
+
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastPunchTime < (1.f / FistPunchesPerSecond) - 0.02)
+	{
+		return;
+	}
+	LastPunchTime = Now;
+
+	// Gauche, droite, gauche… : le poing part en avant puis revient.
+	UStaticMeshComponent* Fist = bNextPunchLeft ? FistLeftMesh : FistRightMesh;
+	const FVector Rest = bNextPunchLeft ? FistLeftRestLocation : FistRightRestLocation;
+	bNextPunchLeft = !bNextPunchLeft;
+	Fist->SetRelativeLocation(Rest + FVector(FistPunchReach, Rest.Y < -15.f ? 12.f : -8.f, 10.f));
+	GetWorldTimerManager().SetTimer(PunchPoseTimer, this, &AMedievalSword::ResetPunchPose, 0.1f, false);
+
+	if (SwingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SwingSound, GetActorLocation(), 0.6f, 1.4f);
+	}
+
+	const int32 HitCount = MeleeSweep(FistRange, FistHalfAngle, FistDamage, FistKnockback);
+	if (HitCount > 0 && SwordHitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, GetActorLocation(), 0.8f, 0.7f);
+	}
+}
+
+void AMedievalSword::ResetPunchPose()
+{
+	const bool bGuard = bShieldRaised && Mode == EMedievalWeaponMode::Fists;
+	FistLeftMesh->SetRelativeLocation(bGuard ? FistLeftGuardLocation : FistLeftRestLocation);
+	FistRightMesh->SetRelativeLocation(bGuard ? FistRightGuardLocation : FistRightRestLocation);
 }
 
 void AMedievalSword::ResetSwingPose()
@@ -463,7 +566,9 @@ void AMedievalSword::ShowComboOnScreen(int32 PointsGained) const
 
 void AMedievalSword::RaiseShield(bool bRaise)
 {
-	if (bRaise && (!bShieldAllowed || !IsEnabled()))
+	// Garde : bouclier en mode épée (interdit par « Sans le bouclier ! »), poings levés en mode poings.
+	const bool bFistGuard = (Mode == EMedievalWeaponMode::Fists);
+	if (bRaise && (!IsEnabled() || Mode == EMedievalWeaponMode::Bow || (!bFistGuard && !bShieldAllowed)))
 	{
 		return;
 	}
@@ -476,7 +581,7 @@ void AMedievalSword::RaiseShield(bool bRaise)
 	AReshootCharacter* Character = GetOwnerCharacter();
 	if (UHealthComponent* Health = Character ? Character->GetHealth() : nullptr)
 	{
-		Health->SetFrontalBlock(bRaise, ShieldDamageMultiplier);
+		Health->SetFrontalBlock(bRaise, bFistGuard ? FistGuardDamageMultiplier : ShieldDamageMultiplier);
 	}
 
 	if (bRaise)
@@ -504,6 +609,10 @@ void AMedievalSword::RaiseShield(bool bRaise)
 		if (bPrimaryHeld && IsEnabled() && Mode == EMedievalWeaponMode::Sword && bSwordAutoRepeat)
 		{
 			GetWorldTimerManager().SetTimer(SwingRepeatTimer, this, &AMedievalSword::SwordSwing, 1.f / SwordAttacksPerSecond, true, 0.05f);
+		}
+		else if (bPrimaryHeld && IsEnabled() && Mode == EMedievalWeaponMode::Fists)
+		{
+			GetWorldTimerManager().SetTimer(SwingRepeatTimer, this, &AMedievalSword::Punch, 1.f / FistPunchesPerSecond, true, 0.05f);
 		}
 	}
 
@@ -629,6 +738,10 @@ void AMedievalSword::TrySetupInput()
 	{
 		Input->BindAction(SelectBowAction, ETriggerEvent::Started, this, &AMedievalSword::OnSelectBow);
 	}
+	if (SelectFistsAction)
+	{
+		Input->BindAction(SelectFistsAction, ETriggerEvent::Started, this, &AMedievalSword::OnSelectFists);
+	}
 	if (ToggleModeAction)
 	{
 		Input->BindAction(ToggleModeAction, ETriggerEvent::Started, this, &AMedievalSword::OnToggleMode);
@@ -650,11 +763,13 @@ void AMedievalSword::CreateDefaultInput()
 
 	SelectSwordAction = MakeAction(TEXT("IA_MedievalSword_Runtime"));
 	SelectBowAction = MakeAction(TEXT("IA_MedievalBow_Runtime"));
+	SelectFistsAction = MakeAction(TEXT("IA_MedievalFists_Runtime"));
 	ToggleModeAction = MakeAction(TEXT("IA_MedievalToggle_Runtime"));
 
 	MedievalMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Medieval_Runtime"));
 	MedievalMappingContext->MapKey(SelectSwordAction, EKeys::One);
 	MedievalMappingContext->MapKey(SelectBowAction, EKeys::Two);
+	MedievalMappingContext->MapKey(SelectFistsAction, EKeys::Three);
 	MedievalMappingContext->MapKey(ToggleModeAction, EKeys::MouseScrollUp);
 	MedievalMappingContext->MapKey(ToggleModeAction, EKeys::MouseScrollDown);
 }
@@ -672,6 +787,14 @@ void AMedievalSword::OnSelectBow()
 	if (IsEnabled())
 	{
 		SetMode(EMedievalWeaponMode::Bow);
+	}
+}
+
+void AMedievalSword::OnSelectFists()
+{
+	if (IsEnabled())
+	{
+		SetMode(EMedievalWeaponMode::Fists);
 	}
 }
 
