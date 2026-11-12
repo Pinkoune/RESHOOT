@@ -88,6 +88,7 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Qui : Enzo + Claude (Claude Code, Opus 5.5)
 - Fait : la prise démarre sans directive ; 20 à 40 s après « Action! », « CUT! » : gel, commentaire tiré au hasard (`Cut_01`…`Cut_08`), annonce d'une directive (celle de la prise, sinon tirée dans `RandomDirectives` sans répéter la précédente), « Action! ». Audimat du GDD : kill +10, +25 si la directive est respectée, +5 sinon, +40 par prise terminée, −60 à la mort. Vérifié en PIE (CUT! réglé à 4–5 s pour le test) : « ne t'arrête jamais » puis « joue-la blessé » tirées au hasard, kills d'un joueur immobile et en pleine forme à +5, dernier kill de prise à +45, mort 100 → 40.
 - Comment : écart relevé par l'IA en relisant le GDD : le « CUT! » n'arrivait qu'en fin de prise et la directive était annoncée avant l'action, ce qui retirait l'interruption au cœur du concept. Réglages ajoutés au `UShootScript` (un seul lot de headers, une recompilation complète). Reste hors GDD : le gel dure le temps des deux répliques (~6 s au lieu de 4 s max), à revoir avec les vraies voix.
+- Capture : aucune
 
 ### 2026-11-12 22:30 — Médiéval : compilé, carte de test, jouable
 - Qui : Ileana + Claude (Claude Code, Opus 5.5)
@@ -123,4 +124,10 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Qui : Ileana + Claude (Claude Code, Opus 5.5)
 - Fait : combos sur `AMedievalSword` : chaque coup d'épée ou flèche du joueur qui touche prolonge le combo, multiplicateur +1 tous les 3 coups (max x5), 10 points par coup, +50 par kill, +25 par tir à la tête. Le combo retombe après 2,5 s sans toucher ou dès que le joueur est blessé, et se fige pendant le CUT!. Affichage provisoire en haut de l'écran ; pour le HUD : `OnComboChanged`, `GetCombo`, `GetComboMultiplier`, `GetComboScore`, `GetComboTimeLeftPct`. Bouclier levé : plaque en bas à gauche, épée baissée sur le côté, plus de lame qui traverse le bouclier. Positions de l'arc, du bouclier et de l'épée en garde désormais réglables dans l'éditeur.
 - Comment : correction du bouclier en Live Coding lancé par l'IA via le MCP, sans redémarrage. Les combos demandaient un header : un seul build complet, avec tous les changements de header regroupés. Test en PIE : 1er coup sur 3 chevaliers = combo 3, x2, 40 pts ; 2e coup qui les tue = combo 6, x3, 460 pts ; 3 archers abattus à l'arc = +60, +60, +120. Piège de test : le temps de jeu avance moins vite que le script Python quand l'éditeur n'a pas le focus, il faut attendre en temps de jeu (`GetTimeSeconds`).
+- Capture : aucune
+
+### 2026-11-13 00:00 — Réalisateur : Médiéval branché, partie complète Médiéval → Noir → final
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : branche `medieval` fusionnée, `L_Medieval` en sous-niveau de `L_Stage`, scène Médiéval en tête de `SS_Main` (2 prises, « corps-à-corps » imposée sur la deuxième), final qui alterne Médiéval et Noir. Vérifié en PIE de bout en bout : épée et gravité 1,5 puis revolver et noir et blanc, sous-niveaux qui se remplacent, CUT! et directives à chaque prise, final qui bascule, écran de fin (665 d'audimat). Final corrigé : ses vagues tournent en boucle (56 figurants en 30 s au test), une mort pendant le final renvoie au départ sans relancer de prise, plus de vague relancée par la fin de partie.
+- Comment : les trous du final sont sortis en suivant le test à la trace (univers, arme, sous-niveaux visibles, gravité). Raté de l'IA : pour tester vite, elle a modifié `SS_Main` en mémoire et sa « sauvegarde » Python n'était qu'une référence vers le même tableau ; le script a été reconstruit à l'identique. Les tests suivants passent par un script transitoire jamais sauvegardé.
 - Capture : aucune

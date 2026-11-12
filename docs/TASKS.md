@@ -62,8 +62,8 @@ Film noir + audio
 
 Socle
 - [x] Directives (6 à 8) et `UAudienceRating` (8 directives dans `Content/RESHOOT/Director/Directives`, testées en PIE)
-- [ ] Final : bascule d'univers toutes les 20 s
-- [ ] Intégration des trois univers dans `UShootScript`
+- [x] Final : bascule d'univers toutes les 20 s (Médiéval ⇄ Noir testé dans `L_Stage`, vagues en boucle)
+- [ ] Intégration des trois univers dans `UShootScript` (Médiéval et Noir faits dans `SS_Main`, Spatial en attente)
 
 Univers
 - [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire

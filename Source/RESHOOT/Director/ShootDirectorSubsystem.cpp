@@ -444,6 +444,12 @@ void UShootDirectorSubsystem::HandleWaveCleared(AWaveSpawner* ClearedSpawner)
 	{
 		StartNextWave();
 	}
+	else if (Phase == EShootPhase::Finale && Script && Script->FinaleWaves.Num() > 0)
+	{
+		// Le final ne s'arrête qu'au bout de FinaleDuration : ses vagues tournent en boucle.
+		WaveIndex = (WaveIndex + 1) % Script->FinaleWaves.Num();
+		ClearedSpawner->SpawnWave(Script->FinaleWaves[WaveIndex]);
+	}
 }
 
 void UShootDirectorSubsystem::EndTake()
@@ -512,7 +518,9 @@ void UShootDirectorSubsystem::NotifyPlayerDeath()
 
 void UShootDirectorSubsystem::RestartTake()
 {
-	if (AWaveSpawner* WaveSpawner = FindSpawner())
+	// Pendant le final, pas de prise à rejouer : le joueur repart du départ et le final continue.
+	const bool bInFinale = Phase == EShootPhase::Finale;
+	if (AWaveSpawner* WaveSpawner = bInFinale ? nullptr : FindSpawner())
 	{
 		WaveSpawner->KillAll();
 	}
@@ -537,7 +545,7 @@ void UShootDirectorSubsystem::RestartTake()
 		}
 	}
 	// La prise repart du clap : BeginTake retire la directive, un nouveau « CUT! » en imposera une.
-	if (TakeIndex != INDEX_NONE)
+	if (!bInFinale && TakeIndex != INDEX_NONE)
 	{
 		BeginTake(TakeIndex);
 	}
@@ -547,6 +555,8 @@ void UShootDirectorSubsystem::BeginFinale()
 {
 	SetPhase(EShootPhase::Finale);
 	SetDirective(nullptr);
+	// On peut arriver ici depuis une intro de scène (gelée) si la scène n'a aucune prise.
+	FreezeAll(false);
 	FinaleUniverseIndex = 0;
 	FinaleSwitchUniverse();
 
@@ -554,6 +564,7 @@ void UShootDirectorSubsystem::BeginFinale()
 	{
 		if (AWaveSpawner* WaveSpawner = FindSpawner())
 		{
+			WaveIndex = 0;
 			WaveSpawner->SpawnWave(Script->FinaleWaves[0]);
 		}
 	}
@@ -587,6 +598,8 @@ void UShootDirectorSubsystem::Wrap()
 {
 	GetWorld()->GetTimerManager().ClearTimer(FinaleSwitchTimer);
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
+	// Phase d'abord : KillAll vide la vague, et une vague vidée pendant le final en relancerait une.
+	SetPhase(EShootPhase::Wrap);
 	if (AWaveSpawner* WaveSpawner = FindSpawner())
 	{
 		WaveSpawner->KillAll();
@@ -594,5 +607,4 @@ void UShootDirectorSubsystem::Wrap()
 	SetDirective(nullptr);
 	PlayLine(Script ? Script->WrapLineId : NAME_None);
 	FreezeAll(true);
-	SetPhase(EShootPhase::Wrap);
 }
