@@ -3,15 +3,56 @@
 #include "Core/ReshootCharacter.h"
 #include "RESHOOT.h"
 
+#include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+	/** Forme simple attachée à la capsule. Bloque seulement le canal Visibility si bShootable. */
+	UStaticMeshComponent* MakePart(ANoirGangster* Owner, USceneComponent* Parent, FName Name, UStaticMesh* Mesh,
+		const FVector& Location, const FVector& Scale, bool bShootable)
+	{
+		UStaticMeshComponent* Part = Owner->CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Part->SetupAttachment(Parent);
+		Part->SetStaticMesh(Mesh);
+		Part->SetRelativeLocation(Location);
+		Part->SetRelativeScale3D(Scale);
+		Part->SetCanEverAffectNavigation(false);
+		if (bShootable)
+		{
+			Part->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			Part->SetCollisionResponseToAllChannels(ECR_Ignore);
+			Part->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		}
+		else
+		{
+			Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		return Part;
+	}
+}
 
 ANoirGangster::ANoirGangster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	Universe = EUniverse::Noir;
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+
+	// Capsule de 176 cm (demi-hauteur 88). Formes de base : 100 cm de diamètre et de haut, pivot au centre.
+	USceneComponent* Root = GetCapsuleComponent();
+	Body = MakePart(this, Root, TEXT("Body"), CylinderMesh.Object, FVector(0.f, 0.f, -20.f), FVector(0.6f, 0.6f, 1.36f), true);
+	Head = MakePart(this, Root, TEXT("Head"), SphereMesh.Object, FVector(0.f, 0.f, 66.f), FVector(0.4f), true);
+	Head->ComponentTags.Add(TEXT("head"));
+	HatBrim = MakePart(this, Root, TEXT("HatBrim"), CylinderMesh.Object, FVector(0.f, 0.f, 82.f), FVector(0.7f, 0.7f, 0.04f), false);
+	HatCrown = MakePart(this, Root, TEXT("HatCrown"), CylinderMesh.Object, FVector(0.f, 0.f, 92.f), FVector(0.38f, 0.38f, 0.2f), false);
 }
 
 void ANoirGangster::BeginPlay()
@@ -45,6 +86,9 @@ void ANoirGangster::OnFreezeChanged(bool bFreeze)
 void ANoirGangster::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 {
 	GetWorldTimerManager().ClearTimer(FireTimer);
+	// Le corps ne doit plus arrêter les balles pendant qu'il disparaît.
+	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Super::OnDeath(Killer, bHeadshot, bMelee);
 }
 

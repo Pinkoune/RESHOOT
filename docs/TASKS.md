@@ -28,7 +28,7 @@ Spatial
 - [ ] Déplacement en apesanteur avec inertie, laser hitscan
 
 Film noir + audio
-- [x] Revolver hitscan avec chargeur (code fait, pas encore testé en PIE)
+- [x] Revolver hitscan avec chargeur (testé en PIE sur `L_NoirTest` : 40 dégâts, x2 à la tête, recharge auto)
 - [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte fait : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix en attente des crédits fal
 
 Tous
@@ -51,9 +51,9 @@ Spatial
 - [ ] `UUniverseDefinition` + sous-niveau `L_Space`
 
 Film noir + audio
-- [ ] Gangster à couvert (code fait, pas testé), post-process noir et blanc (`M_PP_Noir` fait, à appliquer par le réalisateur via `DA_Noir`)
+- [x] Gangster à couvert, post-process noir et blanc (testés sur `L_NoirTest` ; `M_PP_Noir` reste à appliquer par le réalisateur via `DA_Noir`)
 - [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
-- [ ] Répliques générées, `DT_DirectorLines` remplie
+- [ ] Répliques générées, `DT_DirectorLines` remplie — table créée (`Content/RESHOOT/Audio/DT_DirectorLines`, 40 lignes, sous-titres seulement), sons en attente des crédits fal
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
 
@@ -86,3 +86,5 @@ Interface
 ## Demandes au socle
 
 Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison>`
+- [ ] Jules : `AReshootWeapon::TraceFromAim` trace sur `ECC_Visibility`, que le profil de collision Pawn ignore : les balles traversent les capsules des ennemis (vérifié en PIE). Contourné côté Noir (corps et tête du gangster bloquent Visibility). Médiéval et Spatial auront le même souci : faire bloquer Visibility à la capsule de `AReshootEnemy`, ou tracer sur un autre canal.
+- [ ] Jules : `AReshootEnemy` n'a aucun mesh, un figurant est invisible en jeu. Le gangster ajoute ses propres formes (cylindre, sphère, chapeau) ; prévenir Médiéval et Spatial.

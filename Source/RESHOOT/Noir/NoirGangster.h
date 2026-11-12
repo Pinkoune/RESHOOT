@@ -8,6 +8,7 @@
 #include "NoirGangster.generated.h"
 
 class USoundBase;
+class UStaticMeshComponent;
 
 UCLASS(Blueprintable)
 class RESHOOT_API ANoirGangster : public AReshootEnemy
@@ -42,6 +43,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Audio")
 	TObjectPtr<USoundBase> FireSound;
+
+	// --- Corps en boîtes grises (remplaçables dans un Blueprint) ---
+	// Le corps et la tête bloquent le canal Visibility (tirs du joueur) ; la tête porte le tag "head" (tir à la tête).
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UStaticMeshComponent> Body;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UStaticMeshComponent> Head;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UStaticMeshComponent> HatBrim;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UStaticMeshComponent> HatCrown;
 
 protected:
 	virtual void BeginPlay() override;
