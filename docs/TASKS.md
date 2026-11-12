@@ -28,8 +28,8 @@ Spatial
 - [ ] Déplacement en apesanteur avec inertie, laser hitscan
 
 Film noir + audio
-- [ ] Revolver hitscan avec chargeur
-- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix
+- [x] Revolver hitscan avec chargeur (code fait, pas encore testé en PIE)
+- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte fait : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix en attente des crédits fal
 
 Tous
 - [ ] Réclamer les crédits (SpaceXSI, Tripo, Hyper3D, fal, Diversion)
@@ -51,7 +51,7 @@ Spatial
 - [ ] `UUniverseDefinition` + sous-niveau `L_Space`
 
 Film noir + audio
-- [ ] Gangster à couvert, post-process noir et blanc
+- [ ] Gangster à couvert (code fait, pas testé), post-process noir et blanc
 - [ ] `UUniverseDefinition` + sous-niveau `L_Noir`
 - [ ] Répliques générées, `DT_DirectorLines` remplie
 

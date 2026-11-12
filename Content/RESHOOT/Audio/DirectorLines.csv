@@ -1,0 +1,41 @@
+﻿Name,Sound,Subtitle,SubtitleDuration
+Intro_Medieval,,"Scène un, le Moyen Âge ! Des chevaliers, de la boue, de l'honneur. Je veux sentir la sueur de l'armure !",4.5
+Intro_Space,,"Scène deux, l'espace ! Pas de gravité, pas de pitié. Et personne ne t'entend crier, sauf moi !",4.5
+Intro_Noir,,"Scène trois, film noir ! Il pleut, la ville est pourrie, et toi t'as un revolver. Noir et blanc, s'il vous plaît !",4.5
+Intro_Finale,,"Le grand final ! On mélange tout ! Le producteur va me tuer, mais on s'en fiche. ACTION !",4
+Action_01,,"Silence sur le plateau... Moteur... ACTION !",2.5
+Action_02,,"Et... ACTION !",1.5
+Action_03,,"On tourne ! Allez, allez, allez !",2
+Action_04,,"Prise suivante. Concentre-toi. ACTION !",2.5
+Action_05,,"Les caméras tournent, mon chéri, ACTION !",2.5
+Cut_01,,"CUT ! CUT ! C'était quoi ça ?!",2.5
+Cut_02,,"CUT ! Non, non, non, j'y crois pas une seconde !",3
+Cut_03,,"CUT ! Tu joues comme un figurant de pub pour yaourt !",3
+Cut_04,,"CUT ! Arrête tout ! J'ai une idée géniale !",2.5
+Cut_05,,"CUT ! Le public s'endort, réveille-moi ça !",2.5
+Cut_06,,"CUT ! Ma grand-mère vise mieux que toi, et elle est aveugle !",3
+Cut_07,,"CUT ! Plus d'émotion ! Plus de chaos ! Plus de TOUT !",3
+Cut_08,,"CUT ! Bon. On respire. Et on change tout.",2.5
+Dir_Headshots,,"Je veux des tirs dans la tête ! Que des tirs dans la tête ! C'est artistique !",3.5
+Dir_KeepMoving,,"Tu bouges ! Tout le temps ! Une star ne reste jamais immobile !",3
+Dir_MeleeOnly,,"Au corps-à-corps ! Je veux voir le blanc de leurs yeux !",3
+Dir_NoDamage,,"Tu ne prends pas un seul coup, la maquilleuse a passé trois heures sur ton visage !",3.5
+Dir_Fast,,"Plus vite ! On a le plateau jusqu'à midi !",2.5
+Dir_LowHealth,,"Je veux de la souffrance ! Joue-la blessé, au bord de la mort !",3
+Dir_NoReload,,"Pas de recharge ! Les vrais héros ne rechargent jamais !",3
+Dir_Stylish,,"Du style ! Je veux des glissades, des sauts, du spectacle !",3
+Retake,,"On la refait ! Depuis le début ! Personne ne bouge !",2.5
+Retake_02,,"T'es mort ? T'es MORT ?! Ça n'était pas dans le script !",3
+Retake_03,,"Bon. Prise suivante. Et cette fois tu survis, d'accord ?",3
+Retake_04,,"Maquillage ! Remettez-lui du faux sang, on recommence !",3
+Retake_05,,"Magnifique mort. Totalement hors sujet. On la refait.",3
+Good_01,,"Oui ! OUI ! C'est ça le cinéma !",2
+Good_02,,"Je pleure. Je pleure de bonheur.",2
+Good_03,,"Ça, c'est un Oscar ! Gardez cette prise !",2.5
+Good_04,,"Le public adore ! Continue !",2
+Good_05,,"Tu vois quand tu veux ! Magnifique !",2
+Switch_01,,"Changement de décor ! Vite, vite, vite !",2
+Switch_02,,"On passe à autre chose ! Machinistes, bougez-vous !",2.5
+Switch_03,,"Nouveau décor, même héros, ACTION !",2
+Wrap,,"Et... c'est dans la boîte ! Merci à tous, on remballe !",3
+Wrap_Bad,,"C'est dans la boîte... Bon. On arrangera ça au montage.",3
