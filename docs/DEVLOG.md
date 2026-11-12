@@ -61,7 +61,7 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Capture : docs/devlog-media/2026-11-12-noir-coupure.jpg
 
 ### 2026-11-12 22:30 — Médiéval : compilé, carte de test, jouable
-- Qui : Iléana + Claude (Claude Code, Opus 5.5)
+- Qui : Ileana + Claude (Claude Code, Opus 5.5)
 - Fait : `DA_Medieval` (épée, chevalier, archer), carte `Content/RESHOOT/Medieval/Test/L_MedievalTest` (sol, mur, caisses, 3 chevaliers, archer sur une tour) avec un joueur et un GameMode de test qui donnent l'épée sans passer par le réalisateur. Épée, bouclier, arc, chevaliers et archer testés en PIE : tout marche.
 - Comment : Live Coding lancé par l'IA via le MCP a fait planter l'éditeur (nouvelles classes et nouvelles `UPROPERTY` : « VTable did not change »), il a fallu un build complet. Ensuite, deux éditeurs ouverts se disputaient le port 8000 du MCP ; relancé sans redémarrer avec la commande console `ModelContextProtocol.StartServer`. Leçon : nouvelles classes = build complet éditeur fermé, corps de fonctions = Live Coding.
 - Capture : aucune
@@ -72,3 +72,8 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Comment : conflit repéré entre le GDD (deux armes médiévales) et l'architecture (une `WeaponClass` par univers) : résolu sans toucher au socle avec une seule arme à deux modes, qui ajoute elle-même son contexte Enhanced Input (1, 2, molette). Le déplacement du socle est réutilisé tel quel ; seul manque une API pour bloquer le sprint bouclier levé, demandée au socle.
 - Capture : aucune
 - 
+### 2026-11-12 23:30 — Médiéval : sous-niveau L_Medieval, combat à l'arc
+- Qui : Ileana + Claude (Claude Code, Opus 5.5)
+- Fait : `L_Medieval` (71 éléments en formes de base, 5 matériaux de couleur) : rempart en panneau peint avec créneaux, étais visibles derrière, porte et bannières ; chemin de ronde à 4 m avec parapet, relié au sol par deux rampes de 11 m (glissade) ; deux tours inaccessibles ; 3 archers (centre du chemin de ronde, haut des tours) ; tonneaux, charrettes et bottes de paille comme couverts. Comme `L_Noir` : pas de sol ni de lumière, prévu pour être chargé dans `L_Stage`. Ajouté en sous-niveau de `L_MedievalTest`.
+- Comment : vérifié en PIE par l'IA via le MCP : chaque archer tombe en une flèche chargée tirée depuis le sol (il faut viser la tête au-dessus du parapet), et un chevalier monte la rampe pour rejoindre le joueur sur le chemin de ronde. Trois corrections après test : les créneaux avant des tours bloquaient les flèches (retirés), le parapet fermait le haut des rampes (ouvert), et le navmesh ne reliait pas la rampe au chemin de ronde tant que la reconstruction n'avait pas fini.
+- Capture : docs/devlog-media/2026-11-12-medieval-l-medieval.png

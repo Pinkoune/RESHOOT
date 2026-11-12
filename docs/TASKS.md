@@ -44,7 +44,7 @@ Socle
 
 Médiéval
 - [x] Figurant en armure (fonce au corps-à-corps), archer fixe (`AMedievalKnight`, `AMedievalArcher`, flèche `AMedievalArrow` ; testé en PIE sur `L_MedievalTest`)
-- [ ] `UUniverseDefinition` + sous-niveau `L_Medieval` — `DA_Medieval` fait (épée, chevalier, archer), sous-niveau `L_Medieval` à faire
+- [x] `UUniverseDefinition` + sous-niveau `L_Medieval` (`DA_Medieval` ; `L_Medieval` : rempart en panneau peint, chemin de ronde à 4 m accessible par deux longues rampes, deux tours, 3 archers, tonneaux, charrettes et bottes de paille ; sans sol ni lumière, testé dans `L_MedievalTest`)
 
 Spatial
 - [ ] Drone (ligne droite vers le joueur)
