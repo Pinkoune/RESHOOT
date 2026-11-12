@@ -20,6 +20,16 @@
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+	// Arc en boîte grise : tenu à gauche, incliné, partiellement hors champ (relatif à la racine de l'arme).
+	const FVector BowRestLocation(20.f, -37.f, 5.f);
+	const FRotator BowRestRotation(0.f, 0.f, -30.f);
+	const FVector BowDrawLocation(10.f, -32.f, 5.f);
+	const FRotator BowDrawRotation(0.f, 0.f, -40.f);
+	const FVector BowScale(0.03f, 0.03f, 0.5f);
+}
+
 AMedievalSword::AMedievalSword()
 {
 	DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Épée et bouclier");
@@ -67,6 +77,8 @@ void AMedievalSword::BeginPlay()
 {
 	Super::BeginPlay();
 	SwordRestTransform = Mesh->GetRelativeTransform();
+	BowMesh->SetRelativeLocationAndRotation(BowRestLocation, BowRestRotation);
+	BowMesh->SetRelativeScale3D(BowScale);
 	UpdateVisuals();
 	TrySetupInput();
 }
@@ -424,14 +436,14 @@ void AMedievalSword::StartBowCharge()
 	}
 	bCharging = true;
 	ChargeStartTime = Now;
-	BowMesh->SetRelativeRotation(FRotator(0.f, 0.f, -15.f));
+	BowMesh->SetRelativeLocationAndRotation(BowDrawLocation, BowDrawRotation);
 }
 
 void AMedievalSword::ReleaseBow()
 {
 	const float Charge = GetBowCharge();
 	bCharging = false;
-	BowMesh->SetRelativeRotation(FRotator::ZeroRotator);
+	BowMesh->SetRelativeLocationAndRotation(BowRestLocation, BowRestRotation);
 
 	if (!IsEnabled() || !ArrowClass)
 	{

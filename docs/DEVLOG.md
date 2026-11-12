@@ -77,3 +77,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : `L_Medieval` (71 éléments en formes de base, 5 matériaux de couleur) : rempart en panneau peint avec créneaux, étais visibles derrière, porte et bannières ; chemin de ronde à 4 m avec parapet, relié au sol par deux rampes de 11 m (glissade) ; deux tours inaccessibles ; 3 archers (centre du chemin de ronde, haut des tours) ; tonneaux, charrettes et bottes de paille comme couverts. Comme `L_Noir` : pas de sol ni de lumière, prévu pour être chargé dans `L_Stage`. Ajouté en sous-niveau de `L_MedievalTest`.
 - Comment : vérifié en PIE par l'IA via le MCP : chaque archer tombe en une flèche chargée tirée depuis le sol (il faut viser la tête au-dessus du parapet), et un chevalier monte la rampe pour rejoindre le joueur sur le chemin de ronde. Trois corrections après test : les créneaux avant des tours bloquaient les flèches (retirés), le parapet fermait le haut des rampes (ouvert), et le navmesh ne reliait pas la rampe au chemin de ronde tant que la reconstruction n'avait pas fini.
 - Capture : docs/devlog-media/2026-11-12-medieval-l-medieval.png
+
+### 2026-11-12 23:50 — Médiéval : gravité plus lourde, arc tenu à gauche
+- Qui : Ileana + Claude (Claude Code, Opus 5.5)
+- Fait : `DA_Medieval` passe à `GravityScale` 1,5 (saut de 1,96 m à 1,31 m, 0,84 s en l'air : on ne flotte plus, les couverts de 1 m restent franchissables). La carte de test lit enfin `DA_Medieval` via un petit script de tournage `SS_MedievalTest`. L'arc en boîte grise n'est plus un bâton vertical au centre de l'écran : 50 cm, tenu à gauche, incliné, recule quand on bande.
+- Comment : réglage par univers prévu par l'architecture, sans toucher au déplacement du socle. Piège : récupérer le travail des autres (rebase sur le Noir de Jules, qui ajoutait une classe) rend Live Coding dangereux ; il faut un build complet juste après un pull qui touche des headers.
+- Capture : aucune
