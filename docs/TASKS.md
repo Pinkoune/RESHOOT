@@ -22,7 +22,7 @@ Socle
 - [ ] Premier build packagé qui se lance
 
 Médiéval
-- [ ] Épée (cône), bouclier (réduction de face), arc (projectile chargé) en boîtes grises
+- [x] Épée (cône), bouclier (réduction de face), arc (projectile chargé) en boîtes grises (`AMedievalSword` à deux modes : 1 = épée, 2 = arc, molette = bascule ; testé en PIE sur `L_MedievalTest`)
 
 Spatial
 - [ ] Déplacement en apesanteur avec inertie, laser hitscan
@@ -44,8 +44,8 @@ Socle
 - [x] Changement d'univers : streaming du sous-niveau + post-process (testé avec Noir dans `L_Stage`)
 
 Médiéval
-- [ ] Figurant en armure (fonce au corps-à-corps), archer fixe
-- [ ] `UUniverseDefinition` + sous-niveau `L_Medieval`
+- [x] Figurant en armure (fonce au corps-à-corps), archer fixe (`AMedievalKnight`, `AMedievalArcher`, flèche `AMedievalArrow` ; testé en PIE sur `L_MedievalTest`)
+- [x] `UUniverseDefinition` + sous-niveau `L_Medieval` (`DA_Medieval` ; `L_Medieval` : rempart en panneau peint, chemin de ronde à 4 m accessible par deux longues rampes, deux tours, 3 archers, tonneaux, charrettes et bottes de paille ; sans sol ni lumière, testé dans `L_MedievalTest`)
 
 Spatial
 - [ ] Drone (ligne droite vers le joueur)
@@ -91,3 +91,5 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 - [ ] Jules : `AReshootEnemy` n'a aucun mesh, un figurant est invisible en jeu. Le gangster ajoute ses propres formes (cylindre, sphère, chapeau) ; prévenir Médiéval et Spatial.
 - [ ] Jules : `L_Stage` a besoin d'un `NavMeshBoundsVolume` qui couvre le plateau : les gangsters courent d'un couvert à l'autre par navmesh (sans navmesh, ils restent sur place). Les couverts sont les acteurs tagués `NoirCover` (caisses de `L_Noir`).
 - [ ] Jules : directive « Plan-séquence » (Noir) : `ANoirRevolver::SetReloadBlocked(true)` au début, `RefillMagazine()` à chaque élimination, `SetReloadBlocked(false)` à la fin. L'événement Noir se lance avec `StartEvent()` et s'arrête seul au bout de `Duration` (10 s).
+
+- [ ] @ileanasaintpaul : j'ai besoin de `AReshootCharacter::SetSprintBlocked(bool)` (ou d'un multiplicateur de vitesse) pour empêcher le sprint bouclier levé. En attendant, `AMedievalSword` rabaisse `MaxWalkSpeed` toutes les 0,05 s.
