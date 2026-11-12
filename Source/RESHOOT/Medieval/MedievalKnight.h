@@ -50,7 +50,7 @@ public:
 	float DeathImpulse = 600.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Knight")
-	bool bDrawDebug = true;
+	bool bDrawDebug = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Knight|Audio")
 	TObjectPtr<USoundBase> AttackSound;

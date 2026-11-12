@@ -245,7 +245,7 @@ public:
 
 	/** Dessine le cône de l'épée à chaque coup (boîtes grises). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Debug")
-	bool bDrawDebug = true;
+	bool bDrawDebug = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Audio")
 	TObjectPtr<USoundBase> SwingSound;
