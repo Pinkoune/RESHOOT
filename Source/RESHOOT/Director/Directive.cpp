@@ -12,11 +12,25 @@ void UDirective::OnBegin(UShootDirectorSubsystem* Director)
 
 void UDirective::OnEnd(UShootDirectorSubsystem* Director)
 {
+	// Les directives restrictives (bouclier, arc, recharge, laser) passent par le socle : on lève tout en sortant.
+	if (AReshootCharacter* Player = PlayerPtr.Get())
+	{
+		Player->ClearWeaponRestrictions();
+	}
 	PlayerPtr.Reset();
 	DirectorPtr.Reset();
 }
 
-float UDirective::EvaluateKill(const FKillInfo& Kill) const
+bool UDirective::IsKillRespected(const FKillInfo& Kill) const
 {
-	return 1.f;
+	return true;
+}
+
+void UDirective::OnKill(UShootDirectorSubsystem* Director, const FKillInfo& Kill)
+{
+}
+
+bool UDirective::IsAllowedIn(EUniverse Universe) const
+{
+	return AllowedUniverses.Num() == 0 || AllowedUniverses.Contains(Universe);
 }

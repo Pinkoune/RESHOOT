@@ -9,6 +9,7 @@
 #include "Core/ReshootGameState.h"
 #include "Core/HealthComponent.h"
 #include "Core/UniverseDefinition.h"
+#include "Core/UniverseEvent.h"
 #include "RESHOOT.h"
 
 #include "EngineUtils.h"
@@ -83,6 +84,8 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(PhaseTimer);
 		World->GetTimerManager().ClearTimer(FinaleSwitchTimer);
 		World->GetTimerManager().ClearTimer(FinaleEndTimer);
+		World->GetTimerManager().ClearTimer(CutTimer);
+		World->GetTimerManager().ClearTimer(EventTimer);
 	}
 	Super::Deinitialize();
 }
@@ -99,6 +102,11 @@ void UShootDirectorSubsystem::SetShootScript(UShootScript* InScript)
 UUniverseDefinition* UShootDirectorSubsystem::GetUniverseDefinition(EUniverse Universe) const
 {
 	return Script ? Script->FindUniverseDefinition(Universe) : nullptr;
+}
+
+AReshootCharacter* UShootDirectorSubsystem::GetPlayer() const
+{
+	return Cast<AReshootCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 }
 
 UAudienceRating* UShootDirectorSubsystem::GetAudienceRating() const
@@ -278,6 +286,21 @@ void UShootDirectorSubsystem::FreezeAll(bool bFreeze)
 // Déroulé
 // ---------------------------------------------------------------------------
 
+void UShootDirectorSubsystem::StartCasting()
+{
+	// TODO Enzo : placer le joueur au PlayerStart CastingPlayerStartTag (AReshootCharacter::ResetForTake).
+	SetPhase(EShootPhase::Casting);
+	PlayLine(Script ? Script->CastingIntroLineId : NAME_None);
+}
+
+void UShootDirectorSubsystem::FinishCasting()
+{
+	if (Phase == EShootPhase::Casting)
+	{
+		StartShoot();
+	}
+}
+
 void UShootDirectorSubsystem::StartShoot()
 {
 	if (!Script || Script->Scenes.Num() == 0)
@@ -361,8 +384,8 @@ void UShootDirectorSubsystem::StartTakeAction()
 void UShootDirectorSubsystem::ScheduleMidTakeCut()
 {
 	// PhaseTimer est libre pendant la prise : il sera remplacé si la prise se termine ou si le joueur meurt avant.
-	const float MinDelay = Script ? Script->MidTakeCutMinDelay : 20.f;
-	const float MaxDelay = Script ? FMath::Max(Script->MidTakeCutMaxDelay, MinDelay) : 40.f;
+	const float MinDelay = Script ? Script->CutDelayMin : 20.f;
+	const float MaxDelay = Script ? FMath::Max(Script->CutDelayMax, MinDelay) : 40.f;
 	const float Delay = FMath::Max(FMath::FRandRange(MinDelay, MaxDelay), 0.1f);
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::MidTakeCut, Delay, false);
 }
@@ -377,17 +400,17 @@ void UShootDirectorSubsystem::MidTakeCut()
 
 	// Directive imposée par la prise, sinon tirée au hasard (en évitant de répéter la précédente).
 	PendingDirective = Script->Scenes[SceneIndex].Takes[TakeIndex].Directive;
-	if (!PendingDirective && Script->RandomDirectives.Num() > 0)
+	if (!PendingDirective && Script->DirectivePool.Num() > 0)
 	{
 		TArray<UDirective*> Choices;
-		for (UDirective* Candidate : Script->RandomDirectives)
+		for (UDirective* Candidate : Script->DirectivePool)
 		{
-			if (Candidate && Candidate != LastDirective)
+			if (Candidate && Candidate != LastDirective && Candidate->IsAllowedIn(CurrentUniverse))
 			{
 				Choices.Add(Candidate);
 			}
 		}
-		if (Choices.Num() == 0 && LastDirective)
+		if (Choices.Num() == 0 && LastDirective && LastDirective->IsAllowedIn(CurrentUniverse))
 		{
 			Choices.Add(LastDirective);
 		}
@@ -463,7 +486,11 @@ void UShootDirectorSubsystem::EndTake()
 	// Fin de prise : bonus (une mort relance la prise, donc on arrive ici sans être mort), commentaire, prise suivante.
 	if (UAudienceRating* Rating = GetAudienceRating())
 	{
-		Rating->Add(Script ? Script->TakeClearedRating : 40.f);
+		Rating->Add(Script ? Script->TakeClearedBonus : 40.f);
+	}
+	if (AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>())
+	{
+		++GameState->GetMutableShootStats().CompletedTakes;
 	}
 	const FSceneDef* Scene = Script && Script->Scenes.IsValidIndex(SceneIndex) ? &Script->Scenes[SceneIndex] : nullptr;
 	if (Scene && Scene->Takes.IsValidIndex(TakeIndex))
@@ -503,20 +530,41 @@ void UShootDirectorSubsystem::CallAction()
 
 void UShootDirectorSubsystem::NotifyKill(const FKillInfo& Kill)
 {
-	const float Base = Script ? Script->BaseKillRating : 10.f;
-	const float Multiplier = CurrentDirective ? CurrentDirective->EvaluateKill(Kill) : 1.f;
+	bool bRespected = false;
+	float Points = Script ? Script->BaseKillRating : 10.f;
+	if (CurrentDirective)
+	{
+		bRespected = CurrentDirective->IsKillRespected(Kill);
+		Points = bRespected
+			? (Script ? Script->DirectiveKillRating : 25.f)
+			: (Script ? Script->IgnoredDirectiveKillRating : 5.f);
+		CurrentDirective->OnKill(this, Kill);
+	}
 	if (UAudienceRating* Rating = GetAudienceRating())
 	{
-		Rating->Add(Base * Multiplier);
+		Rating->Add(Points);
 	}
+	if (AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>())
+	{
+		FShootStats& Stats = GameState->GetMutableShootStats();
+		++Stats.Kills;
+		Stats.DirectiveKills += bRespected ? 1 : 0;
+		Stats.Headshots += Kill.bHeadshot ? 1 : 0;
+	}
+	OnKillScored.Broadcast(Kill, Points, bRespected);
 }
 
 void UShootDirectorSubsystem::NotifyPlayerDeath()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Player died: retake."));
+	bPlayerDiedThisTake = true;
 	if (UAudienceRating* Rating = GetAudienceRating())
 	{
-		Rating->Add(-(Script ? Script->PlayerDeathPenalty : 60.f));
+		Rating->Add(-(Script ? Script->DeathPenalty : 60.f));
+	}
+	if (AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>())
+	{
+		++GameState->GetMutableShootStats().FailedTakes;
 	}
 	const float Delay = FMath::Max(PlayLine(Script ? ReshootDirector::PickLine(Script->RetakeLineIds) : NAME_None), Script ? Script->RetakeDelay : 2.f);
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::RestartTake, FMath::Max(Delay, 0.1f), false);
@@ -530,26 +578,26 @@ void UShootDirectorSubsystem::RestartTake()
 	{
 		WaveSpawner->KillAll();
 	}
-	if (AReshootCharacter* Player = Cast<AReshootCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)))
+	if (AReshootCharacter* Player = GetPlayer())
 	{
-		if (UHealthComponent* Health = Player->GetHealth())
+		// Retour au départ : PlayerStart dont le Player Start Tag est le PlayerStartTag de la scène, sinon le nom
+		// de l'univers (« Noir », « Medieval », « Space »), sinon le PlayerStart où le joueur est apparu.
+		FString StartTag = StaticEnum<EUniverse>()->GetNameStringByValue(static_cast<int64>(CurrentUniverse));
+		if (!bInFinale && Script && Script->Scenes.IsValidIndex(SceneIndex) && !Script->Scenes[SceneIndex].PlayerStartTag.IsNone())
 		{
-			Health->ResetHealth();
+			StartTag = Script->Scenes[SceneIndex].PlayerStartTag.ToString();
 		}
-
-		// Retour au départ : PlayerStart dont le Player Start Tag est le nom de l'univers (« Noir »,
-		// « Medieval », « Space »), sinon le PlayerStart où le joueur est apparu.
 		AController* Controller = Player->GetController();
 		AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
-		const FString UniverseTag = StaticEnum<EUniverse>()->GetNameStringByValue(static_cast<int64>(CurrentUniverse));
-		if (AActor* Start = GameMode && Controller ? GameMode->FindPlayerStart(Controller, UniverseTag) : nullptr)
-		{
-			const FRotator StartYaw(0.f, Start->GetActorRotation().Yaw, 0.f);
-			Player->GetCharacterMovement()->StopMovementImmediately();
-			Player->SetActorLocationAndRotation(Start->GetActorLocation(), StartYaw, false, nullptr, ETeleportType::TeleportPhysics);
-			Controller->SetControlRotation(StartYaw);
-		}
+		const AActor* Start = GameMode && Controller ? GameMode->FindPlayerStart(Controller, StartTag) : nullptr;
+		const FTransform StartTransform = Start
+			? FTransform(FRotator(0.f, Start->GetActorRotation().Yaw, 0.f), Start->GetActorLocation())
+			: Player->GetActorTransform();
+		// Téléporte, vie pleine, arme rechargée (socle).
+		Player->ResetForTake(StartTransform);
+		Player->ClearWeaponRestrictions();
 	}
+	bPlayerDiedThisTake = false;
 	// La prise repart du clap : BeginTake retire la directive, un nouveau « CUT! » en imposera une.
 	if (!bInFinale && TakeIndex != INDEX_NONE)
 	{

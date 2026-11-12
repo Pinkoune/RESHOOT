@@ -1,6 +1,6 @@
 #include "Director/DirectiveKeepMoving.h"
 
-float UDirectiveKeepMoving::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveKeepMoving::IsKillRespected(const FKillInfo& Kill) const
 {
-	return Judge(Kill.bPlayerMoving);
+	return Kill.bPlayerMoving;
 }

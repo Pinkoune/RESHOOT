@@ -68,8 +68,17 @@ protected:
 	/** Construit le FKillInfo envoyé au réalisateur. */
 	virtual FKillInfo BuildKillInfo(AActor* Killer, bool bHeadshot, bool bMelee) const;
 
+	/**
+	 * Enregistre un timer (tir, attaque...) pour qu'il soit mis en pause au « CUT! » et repris à « ACTION! ».
+	 * CustomTimeDilation ne ralentit pas les timers du monde : sans ça, un figurant gelé continue de tirer.
+	 */
+	void TrackFreezableTimer(const FTimerHandle& Handle);
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy")
 	bool bFrozen = false;
+
+private:
+	TArray<FTimerHandle> FreezableTimers;
 
 private:
 	UFUNCTION()

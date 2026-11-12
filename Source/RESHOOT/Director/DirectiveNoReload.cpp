@@ -48,13 +48,13 @@ void UDirectiveNoReload::CheckAmmo()
 	LastAmmo = Ammo;
 }
 
-float UDirectiveNoReload::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveNoReload::IsKillRespected(const FKillInfo& Kill) const
 {
 	const AReshootCharacter* Player = GetPlayer();
 	const AReshootWeapon* Weapon = Player ? Player->GetCurrentWeapon() : nullptr;
 	if (!Weapon || Weapon->GetMaxAmmo() < 0)
 	{
-		return 1.f;
+		return true;
 	}
-	return Judge(!bReloaded);
+	return !bReloaded;
 }

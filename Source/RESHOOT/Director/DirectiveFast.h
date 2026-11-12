@@ -14,7 +14,7 @@ class RESHOOT_API UDirectiveFast : public UDirective
 public:
 	virtual void OnBegin(UShootDirectorSubsystem* Director) override;
 	virtual void OnEnd(UShootDirectorSubsystem* Director) override;
-	virtual float EvaluateKill(const FKillInfo& Kill) const override;
+	virtual bool IsKillRespected(const FKillInfo& Kill) const override;
 
 	/** Délai maximal, en secondes, entre deux kills (ou entre « Action! » et le premier kill). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive", meta = (ClampMin = "0.1"))

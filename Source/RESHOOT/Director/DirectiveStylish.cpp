@@ -2,17 +2,17 @@
 #include "Core/ReshootCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-float UDirectiveStylish::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveStylish::IsKillRespected(const FKillInfo& Kill) const
 {
 	// Glissade, en l'air, ou boost en apesanteur.
 	const AReshootCharacter* Player = GetPlayer();
 	if (!Player)
 	{
-		return 1.f;
+		return true;
 	}
 	const UCharacterMovementComponent* Move = Player->GetCharacterMovement();
 	const bool bStylish = Player->IsSliding()
 		|| Move->IsFalling()
 		|| (Move->IsFlying() && Player->IsSprinting());
-	return Judge(bStylish);
+	return bStylish;
 }

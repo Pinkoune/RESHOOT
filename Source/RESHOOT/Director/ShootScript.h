@@ -70,6 +70,18 @@ struct FSceneDef
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scene")
 	TArray<FTakeDef> Takes;
+
+	/** Tag du PlayerStart où le joueur est replacé à chaque prise. Vide = PlayerStart par défaut. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scene")
+	FName PlayerStartTag;
+
+	/** Prise (index) pendant laquelle l'événement d'univers se déclenche. -1 = aucun. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scene")
+	int32 EventTakeIndex = 1;
+
+	/** Délai après « ACTION! » avant l'annonce de l'événement. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scene", meta = (ClampMin = "0"))
+	float EventDelay = 15.f;
 };
 
 UCLASS(BlueprintType)
@@ -98,37 +110,55 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Finale")
 	TArray<FWaveDef> FinaleWaves;
 
-	/** Audimat de base gagné par kill, avant multiplicateur de directive. */
+	/** Audimat par élimination sans directive active. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
 	float BaseKillRating = 10.f;
 
-	/** Audimat gagné quand une prise se termine (une mort relance la prise, donc elle se finit toujours sans mourir). */
+	/** Audimat par élimination qui respecte la directive (et pour toute élimination sous une directive restrictive). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
-	float TakeClearedRating = 40.f;
+	float DirectiveKillRating = 25.f;
 
-	/** Audimat perdu à la mort du joueur. */
+	/** Audimat par élimination alors que la directive est ignorée. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
-	float PlayerDeathPenalty = 60.f;
+	float IgnoredDirectiveKillRating = 5.f;
 
-	/** Durée du gel « CUT! » avant « Action! » (fin de prise, ou CUT! sans réplique). */
+	/** Bonus de prise terminée sans mourir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float TakeClearedBonus = 40.f;
+
+	/** Perte d'audimat à la mort du joueur (valeur positive, retirée). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float DeathPenalty = 60.f;
+
+	/** Le « CUT! » tombe au hasard entre CutDelayMin et CutDelayMax secondes après le clap. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
+	float CutDelayMin = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
+	float CutDelayMax = 40.f;
+
+	/** Durée du gel « CUT! » avant « Action! » (GDD : 4 s au plus). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDuration = 3.f;
 
-	/** « CUT! » en pleine prise : délai minimal après « Action! », en secondes. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut", meta = (ClampMin = "0"))
-	float MidTakeCutMinDelay = 20.f;
-
-	/** « CUT! » en pleine prise : délai maximal après « Action! », en secondes. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut", meta = (ClampMin = "0"))
-	float MidTakeCutMaxDelay = 40.f;
-
 	/** Commentaires tirés au hasard au « CUT! » en pleine prise, avant l'annonce de la directive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing")
 	TArray<FName> MidTakeCutLineIds;
 
-	/** Directives tirées au hasard quand la prise n'en impose pas. Vide = CUT! sans directive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut")
-	TArray<TObjectPtr<UDirective>> RandomDirectives;
+	/** Délai entre l'annonce d'un événement d'univers et son déclenchement. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
+	float EventWarningTime = 3.f;
+
+	/** Directives tirées au « CUT! » quand la prise n'en impose pas (filtrées par univers). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directives")
+	TArray<TObjectPtr<UDirective>> DirectivePool;
+
+	/** Tag du PlayerStart de la zone de casting. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	FName CastingPlayerStartTag = TEXT("Casting");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	FName CastingIntroLineId = TEXT("CastingIntro");
 
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))

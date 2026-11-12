@@ -49,7 +49,11 @@ public:
 	void ToggleMode();
 
 	UFUNCTION(BlueprintPure, Category = "Medieval")
-	EMedievalWeaponMode GetMode() const { return Mode; }
+	EMedievalWeaponMode GetMedievalMode() const { return Mode; }
+
+	/** Mode pour le socle (FKillInfo::WeaponMode, directives) : 0 = épée, 1 = arc. */
+	virtual int32 GetMode() const override { return static_cast<int32>(Mode); }
+	virtual int32 GetModeCount() const override { return 2; }
 
 	UFUNCTION(BlueprintPure, Category = "Medieval")
 	bool IsShieldRaised() const { return bShieldRaised; }

@@ -23,9 +23,7 @@ public:
 	virtual void StartEvent() override;
 	virtual void StopEvent() override;
 
-	/** Durée de la coupure (secondes). 0 = jusqu'à StopEvent. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blackout", meta = (ClampMin = "0"))
-	float Duration = 10.f;
+	// Durée de la coupure : AUniverseEvent::Duration (socle, même défaut 10 s, 0 = jusqu'à StopEvent).
 
 	/** Multiplicateur appliqué à l'intensité de toutes les lumières pendant la coupure. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blackout", meta = (ClampMin = "0", ClampMax = "1"))

@@ -19,7 +19,14 @@ void AReshootGameMode::BeginPlay()
 		Director->SetShootScript(ShootScript);
 		if (bAutoStartShoot)
 		{
-			Director->StartShoot();
+			if (bSkipCasting)
+			{
+				Director->StartShoot();
+			}
+			else
+			{
+				Director->StartCasting();
+			}
 		}
 	}
 }

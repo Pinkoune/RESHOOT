@@ -1,6 +1,6 @@
 #include "Director/DirectiveHeadshots.h"
 
-float UDirectiveHeadshots::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveHeadshots::IsKillRespected(const FKillInfo& Kill) const
 {
-	return Judge(Kill.bHeadshot);
+	return Kill.bHeadshot;
 }

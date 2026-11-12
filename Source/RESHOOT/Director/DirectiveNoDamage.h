@@ -16,7 +16,7 @@ class RESHOOT_API UDirectiveNoDamage : public UDirective
 public:
 	virtual void OnBegin(UShootDirectorSubsystem* Director) override;
 	virtual void OnEnd(UShootDirectorSubsystem* Director) override;
-	virtual float EvaluateKill(const FKillInfo& Kill) const override;
+	virtual bool IsKillRespected(const FKillInfo& Kill) const override;
 
 private:
 	UFUNCTION()

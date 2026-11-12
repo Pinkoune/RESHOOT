@@ -1,6 +1,6 @@
 // RESHOOT — une contrainte du réalisateur (« que des tirs à la tête ! », « ne t'arrête jamais ! »).
 // Data Asset : une sous-classe C++ par type de directive, un asset par réglage. Pas de Tick.
-// Un kill qui respecte la directive vaut BonusMultiplier, sinon PenaltyMultiplier (Judge).
+// Les sous-classes disent si un kill respecte la directive (IsKillRespected) ; les points sont dans UShootScript.
 
 #pragma once
 
@@ -24,9 +24,22 @@ public:
 	/** Appelé quand la directive est remplacée ou que la partie se termine. */
 	virtual void OnEnd(UShootDirectorSubsystem* Director);
 
-	/** Multiplicateur d'audimat pour ce kill. 1 = neutre, 0 = kill qui ne rapporte rien. */
+	/**
+	 * Vrai si l'élimination respecte la directive (+ DirectiveKillRating), faux si elle l'ignore (+ IgnoredDirectiveKillRating).
+	 * Les directives restrictives (bouclier, arc, rechargement interdits) renvoient toujours vrai.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Directive")
-	virtual float EvaluateKill(const FKillInfo& Kill) const;
+	virtual bool IsKillRespected(const FKillInfo& Kill) const;
+
+	/** Appelé à chaque élimination tant que la directive est active (« Pas de coupure ! » : recharge l'arme). */
+	virtual void OnKill(UShootDirectorSubsystem* Director, const FKillInfo& Kill);
+
+	/** Univers où la directive peut être tirée. Vide = tous. */
+	UFUNCTION(BlueprintPure, Category = "Directive")
+	bool IsAllowedIn(EUniverse Universe) const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive")
+	TArray<EUniverse> AllowedUniverses;
 
 	/** Texte affiché par le HUD. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive")
@@ -36,17 +49,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive")
 	FName VoiceLineId;
 
-	/** Multiplicateur d'audimat d'un kill qui respecte la directive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive", meta = (ClampMin = "0"))
-	float BonusMultiplier = 2.5f;
-
-	/** Multiplicateur d'audimat d'un kill qui ne la respecte pas. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive", meta = (ClampMin = "0"))
-	float PenaltyMultiplier = 0.5f;
-
 protected:
-	float Judge(bool bRespected) const { return bRespected ? BonusMultiplier : PenaltyMultiplier; }
-
 	AReshootCharacter* GetPlayer() const { return PlayerPtr.Get(); }
 	UShootDirectorSubsystem* GetDirector() const { return DirectorPtr.Get(); }
 

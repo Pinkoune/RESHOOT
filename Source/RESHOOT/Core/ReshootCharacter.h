@@ -17,6 +17,7 @@ struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponChanged, AReshootWeapon*, NewWeapon);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerUniverseChanged, EUniverse, NewUniverse);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerWeaponEvent, AReshootWeapon*, Weapon, EWeaponEvent, Event);
 
 UCLASS(Blueprintable)
 class RESHOOT_API AReshootCharacter : public ACharacter
@@ -67,6 +68,53 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Reshoot|Movement")
 	bool IsMoving() const;
 
+	/** Vrai si le joueur est en l'air (saut, chute). Faux en apesanteur. */
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Movement")
+	bool IsInAir() const;
+
+	/** Début de prise ou reprise : téléporte, annule la vitesse, vie pleine, arme rechargée, glissade et zoom annulés. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot")
+	void ResetForTake(const FTransform& StartTransform);
+
+	// --- Restrictions du réalisateur (directives). Survivent au changement d'arme. ---
+
+	/** Interdit ou autorise une action d'arme. Interdire Secondary relâche le bouclier ; interdire SwitchMode force le mode 0. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Directives")
+	void SetWeaponActionAllowed(EWeaponAction Action, bool bAllowed);
+
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Directives")
+	bool IsWeaponActionAllowed(EWeaponAction Action) const;
+
+	/** Multiplicateur de coût des armes (surchauffe du laser). 1 = normal. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Directives")
+	void SetWeaponCostMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Directives")
+	float GetWeaponCostMultiplier() const { return WeaponCostMultiplier; }
+
+	/** Lève toutes les restrictions (fin de directive, reprise). */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Directives")
+	void ClearWeaponRestrictions();
+
+	// --- Visée (zoom léger du clic droit, utilisé par le laser et le revolver) ---
+
+	/** Interpole le champ de vision de la caméra vers TargetFOV. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Aim")
+	void SetAimFOV(float TargetFOV);
+
+	/** Revient au DefaultFOV. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Aim")
+	void ResetAimFOV();
+
+	// --- Apesanteur ---
+
+	/** Événement spatial « la gravité se rallume » : vrai = marche avec gravité, faux = retour au vol. Sans effet hors apesanteur. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Movement")
+	void SetSpaceGravity(bool bGravityOn);
+
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Movement")
+	bool IsSpaceGravityOn() const { return bSpaceGravityOn; }
+
 	/** Commande console de test : DebugUniverse 1 (Medieval), 2 (Space), 3 (Noir). */
 	UFUNCTION(Exec)
 	void DebugUniverse(int32 UniverseIndex);
@@ -76,6 +124,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Reshoot")
 	FOnPlayerUniverseChanged OnUniverseChanged;
+
+	/** Relais de AReshootWeapon::OnWeaponEvent de l'arme courante : on s'abonne une fois, ça survit aux changements d'arme. */
+	UPROPERTY(BlueprintAssignable, Category = "Reshoot")
+	FOnPlayerWeaponEvent OnPlayerWeaponEvent;
 
 	// --- Réglages : univers et arme ---
 
@@ -121,6 +173,27 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ReloadAction;
+
+	/** Touche 1 : mode 0 de l'arme (épée). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> Mode1Action;
+
+	/** Touche 2 : mode 1 de l'arme (arc). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> Mode2Action;
+
+	/** Molette : mode suivant / précédent (Axis1D). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> CycleModeAction;
+
+	// --- Réglages : caméra ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "30", ClampMax = "140"))
+	float DefaultFOV = 90.f;
+
+	/** Vitesse d'interpolation du zoom (FInterpTo). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0"))
+	float AimFOVInterpSpeed = 18.f;
 
 	// --- Réglages : déplacement au sol (Médiéval, Noir) ---
 
@@ -230,6 +303,14 @@ private:
 	void OnSecondaryStarted();
 	void OnSecondaryCompleted();
 	void OnReload();
+	void OnMode1();
+	void OnMode2();
+	void OnCycleMode(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void HandleWeaponEvent(AReshootWeapon* Weapon, EWeaponEvent Event);
+
+	void UpdateAimFOV();
 
 	/** Crée contexte et actions en mémoire si DefaultMappingContext n'est pas assigné. */
 	void EnsureDefaultInput();
@@ -259,4 +340,11 @@ private:
 	float LastSlideEndTime = -1000.f;
 	float CurrentWalkingBraking = 2048.f;
 	FTimerHandle SlideTimer;
+
+	/** Bits indexés par EWeaponAction : 1 = interdit. */
+	uint8 BlockedWeaponActions = 0;
+	float WeaponCostMultiplier = 1.f;
+	float TargetAimFOV = 90.f;
+	FTimerHandle AimFOVTimer;
+	bool bSpaceGravityOn = false;
 };

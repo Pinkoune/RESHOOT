@@ -1,6 +1,6 @@
 #include "Director/DirectiveMeleeOnly.h"
 
-float UDirectiveMeleeOnly::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveMeleeOnly::IsKillRespected(const FKillInfo& Kill) const
 {
-	return Judge(Kill.bMelee);
+	return Kill.bMelee;
 }

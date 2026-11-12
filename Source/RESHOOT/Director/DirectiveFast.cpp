@@ -35,10 +35,10 @@ double UDirectiveFast::Now() const
 	return World ? World->GetTimeSeconds() : 0.0;
 }
 
-float UDirectiveFast::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveFast::IsKillRespected(const FKillInfo& Kill) const
 {
 	const double Time = Now();
 	const bool bFastEnough = Time - LastKillTime <= MaxSecondsBetweenKills;
 	LastKillTime = Time;
-	return Judge(bFastEnough);
+	return bFastEnough;
 }

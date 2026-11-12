@@ -1,6 +1,7 @@
 #include "Core/ReshootEnemy.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
+#include "Core/ReshootWeapon.h"
 #include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
 
@@ -9,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 AReshootEnemy::AReshootEnemy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -70,7 +72,35 @@ void AReshootEnemy::Freeze(bool bFreeze)
 		}
 	}
 
+	// Les timers du monde ignorent CustomTimeDilation : on suspend ceux que la sous-classe a enregistrés.
+	FTimerManager& Timers = GetWorldTimerManager();
+	FreezableTimers.RemoveAll([&Timers](const FTimerHandle& Handle) { return !Timers.TimerExists(Handle); });
+	for (const FTimerHandle& Handle : FreezableTimers)
+	{
+		if (bFreeze)
+		{
+			Timers.PauseTimer(Handle);
+		}
+		else
+		{
+			Timers.UnPauseTimer(Handle);
+		}
+	}
+
 	OnFreezeChanged(bFreeze);
+}
+
+void AReshootEnemy::TrackFreezableTimer(const FTimerHandle& Handle)
+{
+	if (!Handle.IsValid())
+	{
+		return;
+	}
+	FreezableTimers.AddUnique(Handle);
+	if (bFrozen)
+	{
+		GetWorldTimerManager().PauseTimer(Handle);
+	}
 }
 
 void AReshootEnemy::OnFreezeChanged(bool bFreeze)
@@ -86,6 +116,12 @@ FKillInfo AReshootEnemy::BuildKillInfo(AActor* Killer, bool bHeadshot, bool bMel
 	if (const AReshootCharacter* Player = GetTargetPlayer())
 	{
 		Info.bPlayerMoving = Player->IsMoving();
+		Info.bPlayerSliding = Player->IsSliding();
+		Info.bPlayerInAir = Player->IsInAir();
+		if (const AReshootWeapon* Weapon = Player->GetCurrentWeapon())
+		{
+			Info.WeaponMode = Weapon->GetMode();
+		}
 		if (const UHealthComponent* PlayerHealth = Player->GetHealth())
 		{
 			Info.PlayerHealthPct = PlayerHealth->GetHealthPct();

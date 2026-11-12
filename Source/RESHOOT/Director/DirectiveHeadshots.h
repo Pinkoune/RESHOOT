@@ -12,5 +12,5 @@ class RESHOOT_API UDirectiveHeadshots : public UDirective
 	GENERATED_BODY()
 
 public:
-	virtual float EvaluateKill(const FKillInfo& Kill) const override;
+	virtual bool IsKillRespected(const FKillInfo& Kill) const override;
 };

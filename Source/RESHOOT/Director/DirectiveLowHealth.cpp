@@ -1,6 +1,6 @@
 #include "Director/DirectiveLowHealth.h"
 
-float UDirectiveLowHealth::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveLowHealth::IsKillRespected(const FKillInfo& Kill) const
 {
-	return Judge(Kill.PlayerHealthPct <= MaxHealthPct);
+	return Kill.PlayerHealthPct <= MaxHealthPct;
 }

@@ -35,7 +35,7 @@ void UDirectiveNoDamage::HandleHealthChanged(UHealthComponent* HealthComponent, 
 	}
 }
 
-float UDirectiveNoDamage::EvaluateKill(const FKillInfo& Kill) const
+bool UDirectiveNoDamage::IsKillRespected(const FKillInfo& Kill) const
 {
-	return Judge(!bHit);
+	return !bHit;
 }

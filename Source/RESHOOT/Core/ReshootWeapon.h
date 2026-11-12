@@ -5,12 +5,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/ReshootTypes.h"
 #include "ReshootWeapon.generated.h"
 
 class USceneComponent;
 class UStaticMeshComponent;
 class AReshootCharacter;
 class UHealthComponent;
+class AReshootWeapon;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponEvent, AReshootWeapon*, Weapon, EWeaponEvent, Event);
 
 UCLASS(Abstract, Blueprintable)
 class RESHOOT_API AReshootWeapon : public AActor
@@ -54,6 +58,48 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	AReshootCharacter* GetOwnerCharacter() const;
 
+	// --- Modes (Médiéval : 0 = épée, 1 = arc). Touches 1, 2 et molette, routées par AReshootCharacter. ---
+
+	/** Passe au mode Index s'il existe. Diffuse ModeChanged. Par défaut : un seul mode, ne fait rien. */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual void SelectMode(int32 Index);
+
+	/** Mode suivant (+1) ou précédent (-1), en boucle. */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void CycleMode(int32 Direction);
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	virtual int32 GetMode() const { return 0; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	virtual int32 GetModeCount() const { return 1; }
+
+	// --- Hooks pour les directives et le HUD ---
+
+	/** Remplit le chargeur sans animation (« Pas de coupure ! » : un chargeur plein à chaque élimination). */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual void Refill() {}
+
+	/** Jauge 0..1 affichée par le HUD (surchauffe du laser, charge de l'arc), -1 si aucune. */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	virtual float GetGaugePct() const { return -1.f; }
+
+	/** Vrai si l'arme empêche le sprint en ce moment (bouclier levé). Le personnage relit ça à chaque SecondaryStarted/Stopped. */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	virtual bool PreventsSprint() const { return false; }
+
+	/** Multiplicateur de coût (« Le laser coûte cher ! » = 2 : surchauffe deux fois plus vite). Lu chez le porteur. */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	float GetCostMultiplier() const;
+
+	/** Vrai si le réalisateur autorise cette action (lu chez le porteur ; vrai sans porteur). */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	bool IsActionAllowed(EWeaponAction Action) const;
+
+	/** Ce que fait l'arme : tir, coup, rechargement, bouclier, surchauffe, touche. Relayé par le porteur. */
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnWeaponEvent OnWeaponEvent;
+
 	/** Nom affiché par le HUD. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FText DisplayName;
@@ -80,9 +126,13 @@ protected:
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	virtual bool IsHeadshot(const FHitResult& Hit) const;
 
-	/** Inflige des dégâts à l'acteur s'il possède un UHealthComponent. Retourne les dégâts appliqués. */
+	/** Inflige des dégâts à l'acteur s'il possède un UHealthComponent. Retourne les dégâts appliqués. Diffuse HitConfirmed si > 0. */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	float DealDamage(AActor* Target, float Damage, bool bHeadshot, bool bMelee);
+
+	/** À appeler par les sous-classes : Fired à chaque tir, MeleeSwing à chaque coup, Reloaded, Overheated... */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void BroadcastWeaponEvent(EWeaponEvent Event);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<USceneComponent> Root;
