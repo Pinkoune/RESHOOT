@@ -39,6 +39,12 @@ namespace ReshootDirector
 		return ShortName.Equals(SubLevelName.ToString(), ESearchCase::IgnoreCase);
 	}
 
+	/** Une réplique au hasard (NAME_None si la liste est vide). */
+	static FName PickLine(const TArray<FName>& LineIds)
+	{
+		return LineIds.Num() > 0 ? LineIds[FMath::RandRange(0, LineIds.Num() - 1)] : NAME_None;
+	}
+
 	/** Tous les sous-niveaux d'univers cités par le script (scènes et final). */
 	static TSet<FName> CollectUniverseSubLevels(const UShootScript* Script)
 	{
@@ -512,7 +518,7 @@ void UShootDirectorSubsystem::NotifyPlayerDeath()
 	{
 		Rating->Add(-(Script ? Script->PlayerDeathPenalty : 60.f));
 	}
-	const float Delay = FMath::Max(PlayLine(Script ? Script->RetakeLineId : NAME_None), Script ? Script->RetakeDelay : 2.f);
+	const float Delay = FMath::Max(PlayLine(Script ? ReshootDirector::PickLine(Script->RetakeLineIds) : NAME_None), Script ? Script->RetakeDelay : 2.f);
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::RestartTake, FMath::Max(Delay, 0.1f), false);
 }
 
@@ -559,6 +565,7 @@ void UShootDirectorSubsystem::BeginFinale()
 	FreezeAll(false);
 	FinaleUniverseIndex = 0;
 	FinaleSwitchUniverse();
+	PlayLine(Script ? Script->FinaleIntroLineId : NAME_None);
 
 	if (Script && Script->FinaleWaves.Num() > 0)
 	{
@@ -582,12 +589,18 @@ void UShootDirectorSubsystem::FinaleSwitchUniverse()
 		return;
 	}
 	const UUniverseDefinition* Definition = Script->FinaleUniverses[FinaleUniverseIndex % Script->FinaleUniverses.Num()];
+	const bool bFirstSwitch = FinaleUniverseIndex == 0;
 	++FinaleUniverseIndex;
 	if (!Definition)
 	{
 		return;
 	}
 	SetUniverse(Definition->Universe);
+	// La première bascule a lieu à l'entrée du final, annoncée par FinaleIntroLineId.
+	if (!bFirstSwitch)
+	{
+		PlayLine(ReshootDirector::PickLine(Script->FinaleSwitchLineIds));
+	}
 	if (AWaveSpawner* WaveSpawner = FindSpawner())
 	{
 		WaveSpawner->ReplaceAllForUniverse(Definition->Universe);
@@ -605,6 +618,11 @@ void UShootDirectorSubsystem::Wrap()
 		WaveSpawner->KillAll();
 	}
 	SetDirective(nullptr);
-	PlayLine(Script ? Script->WrapLineId : NAME_None);
+	if (Script)
+	{
+		const UAudienceRating* Rating = GetAudienceRating();
+		const bool bBadShoot = Rating && Rating->GetStars() <= Script->WrapBadMaxStars;
+		PlayLine(bBadShoot ? Script->WrapBadLineId : Script->WrapLineId);
+	}
 	FreezeAll(true);
 }

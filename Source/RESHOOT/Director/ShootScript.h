@@ -134,9 +134,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float RetakeDelay = 2.f;
 
+	/** « On la refait » : une réplique tirée au hasard à chaque mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines")
-	FName RetakeLineId = TEXT("Retake");
+	TArray<FName> RetakeLineIds = { TEXT("Retake"), TEXT("Retake_02"), TEXT("Retake_03"), TEXT("Retake_04"), TEXT("Retake_05") };
 
+	/** Annonce du final. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines")
+	FName FinaleIntroLineId = TEXT("Intro_Finale");
+
+	/** Une réplique tirée au hasard à chaque bascule d'univers du final (pas à la première). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines")
+	TArray<FName> FinaleSwitchLineIds = { TEXT("Switch_01"), TEXT("Switch_02"), TEXT("Switch_03") };
+
+	/** Fin de partie réussie. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines")
 	FName WrapLineId = TEXT("Wrap");
+
+	/** Fin de partie ratée : jouée à la place de WrapLineId jusqu'à WrapBadMaxStars étoiles. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines")
+	FName WrapBadLineId = TEXT("Wrap_Bad");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lines", meta = (ClampMin = "0", ClampMax = "5"))
+	int32 WrapBadMaxStars = 2;
 };

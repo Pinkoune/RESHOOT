@@ -137,3 +137,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : `L_Stage` a 6 portes (2 au nord, 2 au sud, 2 à l'est de part et d'autre du rempart médiéval) avec un point d'apparition derrière chacune. Le `WaveSpawner` n'utilise plus une porte dans le dos du joueur à moins de 10 m (`MinDistanceBehindPlayer`). Étoiles recalées sur le GDD (200 / 400 / 600 / 800). Vérifié en PIE : joueur collé à 5 m de la porte nord-ouest, dos tourné, 20 figurants sortis par les 5 autres portes et aucun par celle-ci.
 - Comment : murs reconstruits en segments + linteaux par script Python dans l'éditeur. Pour ne plus faire fermer/compiler/relancer l'éditeur à la main à chaque header, l'IA a un script local (hors git) qui attend la fermeture, compile et relance l'éditeur, et lance Live Coding elle-même par MCP pour les `.cpp`.
 - Capture : aucune
+
+### 2026-11-13 00:50 — Réalisateur : répliques du final, des reprises et de la fin
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : le réalisateur joue `Intro_Finale` à l'entrée du final, une réplique `Switch_xx` à chaque bascule d'univers, une réplique `Retake_xx` différente à chaque mort, et `Wrap_Bad` au lieu de `Wrap` quand la partie finit à 2 étoiles ou moins. Listes et seuil réglables dans `UShootScript`. Vérifié en PIE en écoutant `OnSubtitle` : Switch_01/03 aux bascules, Retake/Retake_02/05/03 aux morts, Wrap_Bad à 1 étoile.
+- Comment : première recompilation complète faite entièrement par l'IA : sauvegarde et fermeture de l'éditeur par MCP, script local qui attend la fermeture, compile et relance l'éditeur (~15 s de redémarrage), puis vérification que les nouveaux réglages existent. Zéro manipulation humaine.
+- Capture : aucune
