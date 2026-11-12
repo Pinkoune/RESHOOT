@@ -55,6 +55,8 @@ void AReshootCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	ApplyBaseMovementSettings();
+	FirstPersonCamera->SetFieldOfView(DefaultFOV);
+	TargetAimFOV = DefaultFOV;
 	HealthComponent->OnDeath.AddDynamic(this, &AReshootCharacter::HandleDeath);
 	SetUniverse(StartingUniverse);
 }
@@ -62,6 +64,7 @@ void AReshootCharacter::BeginPlay()
 void AReshootCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(SlideTimer);
+	GetWorldTimerManager().ClearTimer(AimFOVTimer);
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Destroy();
@@ -99,6 +102,8 @@ void AReshootCharacter::SetUniverse(EUniverse NewUniverse)
 {
 	const UUniverseDefinition* Definition = FindUniverseDefinition(NewUniverse);
 	CurrentUniverse = NewUniverse;
+	bSpaceGravityOn = false;
+	ResetAimFOV();
 
 	ApplyUniverseMovement(Definition, NewUniverse);
 
@@ -120,9 +125,11 @@ AReshootWeapon* AReshootCharacter::EquipWeapon(TSubclassOf<AReshootWeapon> Weapo
 {
 	if (CurrentWeapon)
 	{
+		CurrentWeapon->OnWeaponEvent.RemoveDynamic(this, &AReshootCharacter::HandleWeaponEvent);
 		CurrentWeapon->Destroy();
 		CurrentWeapon = nullptr;
 	}
+	ResetAimFOV();
 
 	if (WeaponClass)
 	{
@@ -135,12 +142,156 @@ AReshootWeapon* AReshootCharacter::EquipWeapon(TSubclassOf<AReshootWeapon> Weapo
 		{
 			CurrentWeapon->AttachToComponent(FirstPersonCamera, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			CurrentWeapon->SetActorRelativeTransform(WeaponOffset);
+			CurrentWeapon->OnWeaponEvent.AddDynamic(this, &AReshootCharacter::HandleWeaponEvent);
 			CurrentWeapon->SetEnabled(!bFrozen);
+			if (!IsWeaponActionAllowed(EWeaponAction::SwitchMode))
+			{
+				CurrentWeapon->SelectMode(0);
+			}
 		}
 	}
 
+	UpdateMaxSpeeds();
 	OnWeaponChanged.Broadcast(CurrentWeapon);
 	return CurrentWeapon;
+}
+
+void AReshootCharacter::HandleWeaponEvent(AReshootWeapon* Weapon, EWeaponEvent Event)
+{
+	if (Event == EWeaponEvent::SecondaryStarted || Event == EWeaponEvent::SecondaryStopped)
+	{
+		UpdateMaxSpeeds(); // Bouclier levé : pas de sprint.
+	}
+	OnPlayerWeaponEvent.Broadcast(Weapon, Event);
+}
+
+void AReshootCharacter::ResetForTake(const FTransform& StartTransform)
+{
+	EndSlide();
+	UnCrouch();
+	SetActorLocationAndRotation(StartTransform.GetLocation(), StartTransform.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
+	if (Controller)
+	{
+		Controller->SetControlRotation(StartTransform.Rotator());
+	}
+	GetCharacterMovement()->StopMovementImmediately();
+	HealthComponent->ResetHealth();
+	ResetAimFOV();
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StopPrimary();
+		CurrentWeapon->StopSecondary();
+		CurrentWeapon->Refill();
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Restrictions du réalisateur
+// ---------------------------------------------------------------------------
+
+void AReshootCharacter::SetWeaponActionAllowed(EWeaponAction Action, bool bAllowed)
+{
+	const uint8 Bit = 1 << static_cast<uint8>(Action);
+	BlockedWeaponActions = bAllowed ? (BlockedWeaponActions & ~Bit) : (BlockedWeaponActions | Bit);
+
+	if (bAllowed || !CurrentWeapon)
+	{
+		return;
+	}
+	switch (Action)
+	{
+	case EWeaponAction::Primary:
+		CurrentWeapon->StopPrimary();
+		break;
+	case EWeaponAction::Secondary:
+		CurrentWeapon->StopSecondary();
+		break;
+	case EWeaponAction::SwitchMode:
+		CurrentWeapon->SelectMode(0);
+		break;
+	default:
+		break;
+	}
+}
+
+bool AReshootCharacter::IsWeaponActionAllowed(EWeaponAction Action) const
+{
+	return (BlockedWeaponActions & (1 << static_cast<uint8>(Action))) == 0;
+}
+
+void AReshootCharacter::SetWeaponCostMultiplier(float Multiplier)
+{
+	WeaponCostMultiplier = FMath::Max(Multiplier, 0.f);
+}
+
+void AReshootCharacter::ClearWeaponRestrictions()
+{
+	BlockedWeaponActions = 0;
+	WeaponCostMultiplier = 1.f;
+}
+
+// ---------------------------------------------------------------------------
+// Visée
+// ---------------------------------------------------------------------------
+
+void AReshootCharacter::SetAimFOV(float TargetFOV)
+{
+	TargetAimFOV = FMath::Clamp(TargetFOV, 30.f, 140.f);
+	if (!GetWorld())
+	{
+		return;
+	}
+	if (!AimFOVTimer.IsValid() || !GetWorldTimerManager().IsTimerActive(AimFOVTimer))
+	{
+		GetWorldTimerManager().SetTimer(AimFOVTimer, this, &AReshootCharacter::UpdateAimFOV, 1.f / 60.f, true);
+	}
+}
+
+void AReshootCharacter::ResetAimFOV()
+{
+	SetAimFOV(DefaultFOV);
+}
+
+void AReshootCharacter::UpdateAimFOV()
+{
+	const float Current = FirstPersonCamera->FieldOfView;
+	const float Next = FMath::FInterpTo(Current, TargetAimFOV, 1.f / 60.f, AimFOVInterpSpeed);
+	if (FMath::IsNearlyEqual(Next, TargetAimFOV, 0.05f))
+	{
+		FirstPersonCamera->SetFieldOfView(TargetAimFOV);
+		GetWorldTimerManager().ClearTimer(AimFOVTimer);
+		return;
+	}
+	FirstPersonCamera->SetFieldOfView(Next);
+}
+
+// ---------------------------------------------------------------------------
+// Gravité temporaire en apesanteur (événement spatial)
+// ---------------------------------------------------------------------------
+
+void AReshootCharacter::SetSpaceGravity(bool bGravityOn)
+{
+	if (CurrentUniverse != EUniverse::Space || bSpaceGravityOn == bGravityOn)
+	{
+		return;
+	}
+	bSpaceGravityOn = bGravityOn;
+
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	if (bGravityOn)
+	{
+		Move->GravityScale = 1.f;
+		Move->MaxAcceleration = MaxAcceleration;
+		Move->BrakingDecelerationWalking = DefaultWalkingBraking;
+		CurrentWalkingBraking = DefaultWalkingBraking;
+		Move->DefaultLandMovementMode = MOVE_Walking;
+		Move->SetMovementMode(MOVE_Falling);
+	}
+	else
+	{
+		ApplyUniverseMovement(FindUniverseDefinition(EUniverse::Space), EUniverse::Space);
+	}
+	UpdateMaxSpeeds();
 }
 
 void AReshootCharacter::SetFrozen(bool bInFrozen)
@@ -221,14 +372,21 @@ bool AReshootCharacter::IsInSpaceMode() const
 void AReshootCharacter::UpdateMaxSpeeds()
 {
 	UCharacterMovementComponent* Move = GetCharacterMovement();
-	const bool bSprint = bSprintHeld && !bIsCrouched;
+	const bool bWeaponBlocksSprint = CurrentWeapon && CurrentWeapon->PreventsSprint();
+	const bool bSprint = bSprintHeld && !bIsCrouched && !bWeaponBlocksSprint;
 	Move->MaxWalkSpeed = bSprint ? SprintSpeed : WalkSpeed;
-	Move->MaxFlySpeed = bSprintHeld ? SprintSpeed : WalkSpeed; // Sprint = boost en apesanteur.
+	Move->MaxFlySpeed = (bSprintHeld && !bWeaponBlocksSprint) ? SprintSpeed : WalkSpeed; // Sprint = boost en apesanteur.
 }
 
 bool AReshootCharacter::IsSprinting() const
 {
-	return bSprintHeld && !bIsCrouched && !bSliding && GetHorizontalSpeed() > WalkSpeed * 0.5f;
+	const bool bWeaponBlocksSprint = CurrentWeapon && CurrentWeapon->PreventsSprint();
+	return bSprintHeld && !bIsCrouched && !bSliding && !bWeaponBlocksSprint && GetHorizontalSpeed() > WalkSpeed * 0.5f;
+}
+
+bool AReshootCharacter::IsInAir() const
+{
+	return GetCharacterMovement()->MovementMode == MOVE_Falling;
 }
 
 bool AReshootCharacter::IsMoving() const
@@ -257,7 +415,7 @@ bool AReshootCharacter::CanStartSlide() const
 	const UCharacterMovementComponent* Move = GetCharacterMovement();
 	const float Now = GetWorld()->GetTimeSeconds();
 	return !bSliding
-		&& bSprintHeld
+		&& IsSprinting()
 		&& Move->IsMovingOnGround()
 		&& GetHorizontalSpeed() >= SlideMinStartSpeed
 		&& Now - LastSlideEndTime >= SlideCooldown;
@@ -391,6 +549,18 @@ void AReshootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		Input->BindAction(ReloadAction, ETriggerEvent::Started, this, &AReshootCharacter::OnReload);
 	}
+	if (Mode1Action)
+	{
+		Input->BindAction(Mode1Action, ETriggerEvent::Started, this, &AReshootCharacter::OnMode1);
+	}
+	if (Mode2Action)
+	{
+		Input->BindAction(Mode2Action, ETriggerEvent::Started, this, &AReshootCharacter::OnMode2);
+	}
+	if (CycleModeAction)
+	{
+		Input->BindAction(CycleModeAction, ETriggerEvent::Triggered, this, &AReshootCharacter::OnCycleMode);
+	}
 }
 
 void AReshootCharacter::EnsureDefaultInput()
@@ -415,6 +585,9 @@ void AReshootCharacter::EnsureDefaultInput()
 	PrimaryAction = MakeAction(TEXT("IA_Primary_Runtime"), EInputActionValueType::Boolean);
 	SecondaryAction = MakeAction(TEXT("IA_Secondary_Runtime"), EInputActionValueType::Boolean);
 	ReloadAction = MakeAction(TEXT("IA_Reload_Runtime"), EInputActionValueType::Boolean);
+	Mode1Action = MakeAction(TEXT("IA_Mode1_Runtime"), EInputActionValueType::Boolean);
+	Mode2Action = MakeAction(TEXT("IA_Mode2_Runtime"), EInputActionValueType::Boolean);
+	CycleModeAction = MakeAction(TEXT("IA_CycleMode_Runtime"), EInputActionValueType::Axis1D);
 
 	UInputMappingContext* Context = NewObject<UInputMappingContext>(this, TEXT("IMC_Default_Runtime"));
 
@@ -454,6 +627,10 @@ void AReshootCharacter::EnsureDefaultInput()
 	Context->MapKey(PrimaryAction, EKeys::LeftMouseButton);
 	Context->MapKey(SecondaryAction, EKeys::RightMouseButton);
 	Context->MapKey(ReloadAction, EKeys::R);
+	// Touches 1 et 2 : même code de touche en AZERTY (&, é) qu'en QWERTY.
+	Context->MapKey(Mode1Action, EKeys::One);
+	Context->MapKey(Mode2Action, EKeys::Two);
+	Context->MapKey(CycleModeAction, EKeys::MouseWheelAxis);
 
 	DefaultMappingContext = Context;
 	UE_LOG(LogReshoot, Log, TEXT("No input assets assigned on %s: using runtime default mapping context."), *GetName());
@@ -575,7 +752,7 @@ void AReshootCharacter::OnSprintCompleted()
 
 void AReshootCharacter::OnPrimaryStarted()
 {
-	if (!bFrozen && CurrentWeapon)
+	if (!bFrozen && CurrentWeapon && IsWeaponActionAllowed(EWeaponAction::Primary))
 	{
 		CurrentWeapon->StartPrimary();
 	}
@@ -591,7 +768,7 @@ void AReshootCharacter::OnPrimaryCompleted()
 
 void AReshootCharacter::OnSecondaryStarted()
 {
-	if (!bFrozen && CurrentWeapon)
+	if (!bFrozen && CurrentWeapon && IsWeaponActionAllowed(EWeaponAction::Secondary))
 	{
 		CurrentWeapon->StartSecondary();
 	}
@@ -607,8 +784,33 @@ void AReshootCharacter::OnSecondaryCompleted()
 
 void AReshootCharacter::OnReload()
 {
-	if (!bFrozen && CurrentWeapon)
+	if (!bFrozen && CurrentWeapon && IsWeaponActionAllowed(EWeaponAction::Reload))
 	{
 		CurrentWeapon->Reload();
+	}
+}
+
+void AReshootCharacter::OnMode1()
+{
+	if (!bFrozen && CurrentWeapon)
+	{
+		CurrentWeapon->SelectMode(0); // Le mode 0 reste toujours permis.
+	}
+}
+
+void AReshootCharacter::OnMode2()
+{
+	if (!bFrozen && CurrentWeapon && IsWeaponActionAllowed(EWeaponAction::SwitchMode))
+	{
+		CurrentWeapon->SelectMode(1);
+	}
+}
+
+void AReshootCharacter::OnCycleMode(const FInputActionValue& Value)
+{
+	const float Axis = Value.Get<float>();
+	if (!bFrozen && CurrentWeapon && Axis != 0.f && IsWeaponActionAllowed(EWeaponAction::SwitchMode))
+	{
+		CurrentWeapon->CycleMode(Axis > 0.f ? 1 : -1);
 	}
 }

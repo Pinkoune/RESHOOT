@@ -40,9 +40,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audience", meta = (ClampMin = "1"))
 	float MaxRating = 1000.f;
 
-	/** Audimat minimal pour chaque étoile, croissant. */
+	/** Audimat minimal pour chaque étoile, croissant (GDD : 1 étoile sous 200, puis 200, 400, 600, 800). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audience")
-	TArray<float> StarThresholds = { 100.f, 300.f, 500.f, 700.f, 900.f };
+	TArray<float> StarThresholds = { 0.f, 200.f, 400.f, 600.f, 800.f };
 
 private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Audience")

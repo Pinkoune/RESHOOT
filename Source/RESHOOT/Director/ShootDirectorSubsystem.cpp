@@ -9,6 +9,7 @@
 #include "Core/ReshootGameState.h"
 #include "Core/HealthComponent.h"
 #include "Core/UniverseDefinition.h"
+#include "Core/UniverseEvent.h"
 #include "RESHOOT.h"
 
 #include "EngineUtils.h"
@@ -30,6 +31,8 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(PhaseTimer);
 		World->GetTimerManager().ClearTimer(FinaleSwitchTimer);
 		World->GetTimerManager().ClearTimer(FinaleEndTimer);
+		World->GetTimerManager().ClearTimer(CutTimer);
+		World->GetTimerManager().ClearTimer(EventTimer);
 	}
 	Super::Deinitialize();
 }
@@ -46,6 +49,11 @@ void UShootDirectorSubsystem::SetShootScript(UShootScript* InScript)
 UUniverseDefinition* UShootDirectorSubsystem::GetUniverseDefinition(EUniverse Universe) const
 {
 	return Script ? Script->FindUniverseDefinition(Universe) : nullptr;
+}
+
+AReshootCharacter* UShootDirectorSubsystem::GetPlayer() const
+{
+	return Cast<AReshootCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 }
 
 UAudienceRating* UShootDirectorSubsystem::GetAudienceRating() const
@@ -155,6 +163,21 @@ void UShootDirectorSubsystem::FreezeAll(bool bFreeze)
 // ---------------------------------------------------------------------------
 // Déroulé
 // ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::StartCasting()
+{
+	// TODO Enzo : placer le joueur au PlayerStart CastingPlayerStartTag (AReshootCharacter::ResetForTake).
+	SetPhase(EShootPhase::Casting);
+	PlayLine(Script ? Script->CastingIntroLineId : NAME_None);
+}
+
+void UShootDirectorSubsystem::FinishCasting()
+{
+	if (Phase == EShootPhase::Casting)
+	{
+		StartShoot();
+	}
+}
 
 void UShootDirectorSubsystem::StartShoot()
 {
@@ -284,17 +307,42 @@ void UShootDirectorSubsystem::CallAction()
 
 void UShootDirectorSubsystem::NotifyKill(const FKillInfo& Kill)
 {
-	const float Base = Script ? Script->BaseKillRating : 10.f;
-	const float Multiplier = CurrentDirective ? CurrentDirective->EvaluateKill(Kill) : 1.f;
+	bool bRespected = false;
+	float Points = Script ? Script->BaseKillRating : 10.f;
+	if (CurrentDirective)
+	{
+		bRespected = CurrentDirective->IsKillRespected(Kill);
+		Points = bRespected
+			? (Script ? Script->DirectiveKillRating : 25.f)
+			: (Script ? Script->IgnoredDirectiveKillRating : 5.f);
+		CurrentDirective->OnKill(this, Kill);
+	}
 	if (UAudienceRating* Rating = GetAudienceRating())
 	{
-		Rating->Add(Base * Multiplier);
+		Rating->Add(Points);
 	}
+	if (AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>())
+	{
+		FShootStats& Stats = GameState->GetMutableShootStats();
+		++Stats.Kills;
+		Stats.DirectiveKills += bRespected ? 1 : 0;
+		Stats.Headshots += Kill.bHeadshot ? 1 : 0;
+	}
+	OnKillScored.Broadcast(Kill, Points, bRespected);
 }
 
 void UShootDirectorSubsystem::NotifyPlayerDeath()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Player died: retake."));
+	bPlayerDiedThisTake = true;
+	if (UAudienceRating* Rating = GetAudienceRating())
+	{
+		Rating->Add(-(Script ? Script->DeathPenalty : 60.f));
+	}
+	if (AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>())
+	{
+		++GameState->GetMutableShootStats().FailedTakes;
+	}
 	const float Delay = FMath::Max(PlayLine(Script ? Script->RetakeLineId : NAME_None), Script ? Script->RetakeDelay : 2.f);
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::RestartTake, FMath::Max(Delay, 0.1f), false);
 }

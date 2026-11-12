@@ -9,7 +9,16 @@ void UDirective::OnEnd(UShootDirectorSubsystem* Director)
 {
 }
 
-float UDirective::EvaluateKill(const FKillInfo& Kill) const
+bool UDirective::IsKillRespected(const FKillInfo& Kill) const
 {
-	return 1.f;
+	return true;
+}
+
+void UDirective::OnKill(UShootDirectorSubsystem* Director, const FKillInfo& Kill)
+{
+}
+
+bool UDirective::IsAllowedIn(EUniverse Universe) const
+{
+	return AllowedUniverses.Num() == 0 || AllowedUniverses.Contains(Universe);
 }

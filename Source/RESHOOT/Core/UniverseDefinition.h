@@ -12,6 +12,7 @@ class AReshootWeapon;
 class AReshootEnemy;
 class AUniverseEvent;
 class UMaterialInterface;
+class USoundBase;
 
 UCLASS(BlueprintType)
 class RESHOOT_API UUniverseDefinition : public UPrimaryDataAsset
@@ -55,4 +56,16 @@ public:
 	/** Événement d'univers déclenché pendant les prises. Peut être nul. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Universe")
 	TSubclassOf<AUniverseEvent> EventClass;
+
+	/** Réplique d'annonce de l'événement, jouée 3 s avant (« Envoyez les chevaux ! »). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Universe")
+	FName EventLineId;
+
+	/** Boucle musicale de l'univers. Peut être nulle. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> Music;
+
+	/** Mots possibles pour le titre de l'affiche de fin (un mot tiré par univers joué). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Poster")
+	TArray<FText> PosterTitleWords;
 };

@@ -13,12 +13,16 @@ class UUniverseDefinition;
 class AWaveSpawner;
 class UAudienceRating;
 class UDirectorVoice;
+class AUniverseEvent;
+class AReshootCharacter;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootPhaseChanged, EShootPhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootUniverseChanged, EUniverse, NewUniverse);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShootCut);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShootAction);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectiveChanged, UDirective*, NewDirective);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnKillScored, const FKillInfo&, Kill, float, Points, bool, bDirectiveRespected);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUniverseEventAnnounced, AUniverseEvent*, Event);
 
 UCLASS()
 class RESHOOT_API UShootDirectorSubsystem : public UWorldSubsystem
@@ -61,7 +65,27 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Director")
 	FOnDirectiveChanged OnDirectiveChanged;
 
+	/** Après chaque élimination : points gagnés et directive respectée ou non (le « + 25 » du HUD). */
+	UPROPERTY(BlueprintAssignable, Category = "Director")
+	FOnKillScored OnKillScored;
+
+	/** Annonce d'un événement d'univers, EventWarningTime avant son déclenchement. */
+	UPROPERTY(BlueprintAssignable, Category = "Director")
+	FOnUniverseEventAnnounced OnUniverseEventAnnounced;
+
 	// --- Compléments ---
+
+	/** Casting : place le joueur au PlayerStart CastingPlayerStartTag, phase Casting, réplique d'accueil. */
+	UFUNCTION(BlueprintCallable, Category = "Director")
+	void StartCasting();
+
+	/** Fin du casting (le joueur a fini le tutoriel) : enchaîne sur StartShoot(). */
+	UFUNCTION(BlueprintCallable, Category = "Director")
+	void FinishCasting();
+
+	/** Le joueur (joueur 0). Peut être nul. */
+	UFUNCTION(BlueprintPure, Category = "Director")
+	AReshootCharacter* GetPlayer() const;
 
 	/** Fourni par AReshootGameMode au BeginPlay. */
 	UFUNCTION(BlueprintCallable, Category = "Director")
@@ -140,7 +164,14 @@ private:
 	int32 WaveIndex = INDEX_NONE;
 	int32 FinaleUniverseIndex = 0;
 
+	UPROPERTY()
+	TObjectPtr<AUniverseEvent> ActiveEvent;
+
+	bool bPlayerDiedThisTake = false;
+
 	FTimerHandle PhaseTimer;
+	FTimerHandle CutTimer;
+	FTimerHandle EventTimer;
 	FTimerHandle FinaleSwitchTimer;
 	FTimerHandle FinaleEndTimer;
 };

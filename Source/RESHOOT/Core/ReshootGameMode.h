@@ -24,6 +24,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reshoot")
 	bool bAutoStartShoot = false;
 
+	/** Avec bAutoStartShoot : saute le casting et lance directement la scène 1. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reshoot")
+	bool bSkipCasting = true;
+
 protected:
 	virtual void BeginPlay() override;
 };

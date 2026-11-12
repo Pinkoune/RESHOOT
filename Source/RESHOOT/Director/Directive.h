@@ -22,9 +22,22 @@ public:
 	/** Appelé quand la directive est remplacée ou que la prise se termine. */
 	virtual void OnEnd(UShootDirectorSubsystem* Director);
 
-	/** Multiplicateur d'audimat pour ce kill. 1 = neutre, 0 = kill qui ne rapporte rien. */
+	/**
+	 * Vrai si l'élimination respecte la directive (+ DirectiveKillRating), faux si elle l'ignore (+ IgnoredDirectiveKillRating).
+	 * Les directives restrictives (bouclier, arc, rechargement interdits) renvoient toujours vrai.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Directive")
-	virtual float EvaluateKill(const FKillInfo& Kill) const;
+	virtual bool IsKillRespected(const FKillInfo& Kill) const;
+
+	/** Appelé à chaque élimination tant que la directive est active (« Pas de coupure ! » : recharge l'arme). */
+	virtual void OnKill(UShootDirectorSubsystem* Director, const FKillInfo& Kill);
+
+	/** Univers où la directive peut être tirée. Vide = tous. */
+	UFUNCTION(BlueprintPure, Category = "Directive")
+	bool IsAllowedIn(EUniverse Universe) const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive")
+	TArray<EUniverse> AllowedUniverses;
 
 	/** Texte affiché par le HUD. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive")

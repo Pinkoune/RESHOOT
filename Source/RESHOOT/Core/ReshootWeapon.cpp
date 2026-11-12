@@ -36,12 +36,20 @@ void AReshootWeapon::StopPrimary()
 
 void AReshootWeapon::StartSecondary()
 {
-	bSecondaryHeld = true;
+	if (!bSecondaryHeld)
+	{
+		bSecondaryHeld = true;
+		BroadcastWeaponEvent(EWeaponEvent::SecondaryStarted);
+	}
 }
 
 void AReshootWeapon::StopSecondary()
 {
-	bSecondaryHeld = false;
+	if (bSecondaryHeld)
+	{
+		bSecondaryHeld = false;
+		BroadcastWeaponEvent(EWeaponEvent::SecondaryStopped);
+	}
 }
 
 void AReshootWeapon::Reload()
@@ -117,5 +125,48 @@ float AReshootWeapon::DealDamage(AActor* Target, float Damage, bool bHeadshot, b
 	{
 		return 0.f;
 	}
-	return Health->ApplyDamage(Damage, GetOwner(), bHeadshot, bMelee);
+	const float Applied = Health->ApplyDamage(Damage, GetOwner(), bHeadshot, bMelee);
+	if (Applied > 0.f)
+	{
+		BroadcastWeaponEvent(EWeaponEvent::HitConfirmed);
+	}
+	return Applied;
+}
+
+// ---------------------------------------------------------------------------
+// Modes, restrictions, événements
+// ---------------------------------------------------------------------------
+
+void AReshootWeapon::SelectMode(int32 Index)
+{
+	// Une seule arme / un seul mode par défaut. Les sous-classes à plusieurs modes surchargent
+	// et appellent BroadcastWeaponEvent(EWeaponEvent::ModeChanged).
+}
+
+void AReshootWeapon::CycleMode(int32 Direction)
+{
+	const int32 Count = GetModeCount();
+	if (Count <= 1 || Direction == 0)
+	{
+		return;
+	}
+	const int32 Next = ((GetMode() + (Direction > 0 ? 1 : -1)) % Count + Count) % Count;
+	SelectMode(Next);
+}
+
+float AReshootWeapon::GetCostMultiplier() const
+{
+	const AReshootCharacter* Character = GetOwnerCharacter();
+	return Character ? Character->GetWeaponCostMultiplier() : 1.f;
+}
+
+bool AReshootWeapon::IsActionAllowed(EWeaponAction Action) const
+{
+	const AReshootCharacter* Character = GetOwnerCharacter();
+	return !Character || Character->IsWeaponActionAllowed(Action);
+}
+
+void AReshootWeapon::BroadcastWeaponEvent(EWeaponEvent Event)
+{
+	OnWeaponEvent.Broadcast(this, Event);
 }
