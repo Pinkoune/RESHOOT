@@ -1,4 +1,5 @@
-// RESHOOT — revolver du film noir : hitscan, coup par coup, chargeur de 6, recharge (R ou auto quand vide).
+// RESHOOT — revolver du film noir : hitscan, coup par coup, chargeur de 6, recharge (R ou auto quand vide),
+// clic droit = visée avec zoom léger. Chaque tir fait un éclair de lumière (utile pendant la coupure de courant).
 
 #pragma once
 
@@ -18,6 +19,8 @@ public:
 
 	virtual void StartPrimary() override;
 	virtual void StopPrimary() override;
+	virtual void StartSecondary() override;
+	virtual void StopSecondary() override;
 	virtual void Reload() override;
 	virtual void SetEnabled(bool bInEnabled) override;
 
@@ -27,9 +30,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Revolver")
 	bool IsReloading() const { return bReloading; }
 
+	/** Remplit le chargeur sans délai (directive « Plan-séquence » : un chargeur plein à chaque élimination). */
+	UFUNCTION(BlueprintCallable, Category = "Revolver")
+	void RefillMagazine();
+
+	/** Interdit la recharge (directive « Plan-séquence »). */
+	UFUNCTION(BlueprintCallable, Category = "Revolver")
+	void SetReloadBlocked(bool bBlocked);
+
+	/** Éclair de tir : lumière ponctuelle très brève, attachée à Owner. Utilisé aussi par les gangsters. */
+	static void SpawnMuzzleFlash(AActor* Owner, const FVector& Location, float Intensity, float Duration);
+
 	/** Dégâts d'une balle (le multiplicateur de tête est dans UHealthComponent). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver", meta = (ClampMin = "0"))
-	float Damage = 40.f;
+	float Damage = 45.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver", meta = (ClampMin = "0"))
 	float Range = 10000.f;
@@ -43,6 +57,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver", meta = (ClampMin = "0"))
 	float ReloadTime = 1.5f;
+
+	/** Champ de vision pendant la visée (clic droit). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver", meta = (ClampMin = "10", ClampMax = "170"))
+	float AimFieldOfView = 65.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver|Flash", meta = (ClampMin = "0"))
+	float MuzzleFlashIntensity = 3000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver|Flash", meta = (ClampMin = "0"))
+	float MuzzleFlashDuration = 0.06f;
 
 	/** Trait de debug à chaque tir (boîtes grises). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Revolver")
@@ -59,9 +83,11 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void Fire();
 	void FinishReload();
+	void SetAiming(bool bAim);
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Revolver")
 	int32 CurrentAmmo = 6;
@@ -69,6 +95,13 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Revolver")
 	bool bReloading = false;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Revolver")
+	bool bReloadBlocked = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Revolver")
+	bool bAiming = false;
+
+	float DefaultFieldOfView = 90.f;
 	double LastFireTime = -1000.0;
 	FTimerHandle ReloadTimer;
 };

@@ -65,7 +65,7 @@ Socle
 - [ ] Intégration des trois univers dans `UShootScript`
 
 Univers
-- [ ] Habillage (assets générés), événement d'univers
+- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
@@ -88,3 +88,5 @@ Interface
 Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison>`
 - [ ] Jules : `AReshootWeapon::TraceFromAim` trace sur `ECC_Visibility`, que le profil de collision Pawn ignore : les balles traversent les capsules des ennemis (vérifié en PIE). Contourné côté Noir (corps et tête du gangster bloquent Visibility). Médiéval et Spatial auront le même souci : faire bloquer Visibility à la capsule de `AReshootEnemy`, ou tracer sur un autre canal.
 - [ ] Jules : `AReshootEnemy` n'a aucun mesh, un figurant est invisible en jeu. Le gangster ajoute ses propres formes (cylindre, sphère, chapeau) ; prévenir Médiéval et Spatial.
+- [ ] Jules : `L_Stage` a besoin d'un `NavMeshBoundsVolume` qui couvre le plateau : les gangsters courent d'un couvert à l'autre par navmesh (sans navmesh, ils restent sur place). Les couverts sont les acteurs tagués `NoirCover` (caisses de `L_Noir`).
+- [ ] Jules : directive « Plan-séquence » (Noir) : `ANoirRevolver::SetReloadBlocked(true)` au début, `RefillMagazine()` à chaque élimination, `SetReloadBlocked(false)` à la fin. L'événement Noir se lance avec `StartEvent()` et s'arrête seul au bout de `Duration` (10 s).
