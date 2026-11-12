@@ -18,7 +18,7 @@ Socle
 - [x] Projet UE 5.9 C++ `RESHOOT`, `.gitignore`, premier commit
 - [x] Tous les headers de `docs/ARCHITECTURE.md` créés avec corps vides, compilés, éditeur redémarré une fois (compilé par Build.bat le 12/11)
 - [ ] `UHealthComponent`, `AReshootWeapon`, `AReshootCharacter`, `AReshootEnemy` fonctionnels (vie, joueur, ennemi testés en PIE sur `L_SocleTest` ; reste une arme concrète pour tirer pour de vrai)
-- [ ] `L_Stage` en boîtes grises
+- [x] `L_Stage` en boîtes grises (`Content/RESHOOT/Core/Maps/L_Stage`, GameMode `BP_StageGameMode`, script `SS_Main`)
 - [ ] Premier build packagé qui se lance
 
 Médiéval
@@ -40,7 +40,8 @@ Tous
 Socle
 - [ ] `UShootDirectorSubsystem` : scènes, prises, vagues, `AWaveSpawner`
 - [ ] « CUT! » : gel, réplique, reprise
-- [ ] Mort du joueur = la prise recommence
+- [x] Mort du joueur = la prise recommence (retour au PlayerStart tagué du nom de l'univers, sinon au départ ; testé dans `L_Stage`)
+- [x] Changement d'univers : streaming du sous-niveau + post-process (testé avec Noir dans `L_Stage`)
 
 Médiéval
 - [ ] Figurant en armure (fonce au corps-à-corps), archer fixe
@@ -60,7 +61,7 @@ Film noir + audio
 ## Samedi — fin de journée : partie complète du menu à l'écran de fin
 
 Socle
-- [ ] Directives (6 à 8) et `UAudienceRating`
+- [x] Directives (6 à 8) et `UAudienceRating` (8 directives dans `Content/RESHOOT/Director/Directives`, testées en PIE)
 - [ ] Final : bascule d'univers toutes les 20 s
 - [ ] Intégration des trois univers dans `UShootScript`
 

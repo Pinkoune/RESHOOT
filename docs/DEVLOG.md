@@ -59,3 +59,27 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : gangster conforme au GDD (80 PV, rafales de 3 balles à 15 toutes les 2 s, 450 cm/s) : il rejoint la caisse la plus proche, reste baissé derrière, se relève pour tirer, fait le tour de sa caisse si le joueur le contourne et court vers un autre couvert si le joueur approche à moins de 6 m ; il touche moins un joueur qui bouge. Revolver à 45 dégâts, clic droit = visée avec zoom, éclair de lumière à chaque tir, API pour la directive « Plan-séquence ». Événement « coupure de courant » (`ANoirBlackoutEvent`) : lumières éteintes 10 s, exposition figée, seuls les tirs éclairent.
 - Comment : tout vérifié en PIE depuis la console Python : gangsters baissés/relevés, fuite de la caisse 1 à la caisse 4 quand le joueur est téléporté à côté. Premier essai de coupure raté : lumières à 2 % mais l'exposition manuelle rendait la scène presque aussi claire ; réglé en direct (lumières à 0, éclairs de 3000 cd) avant de figer les valeurs.
 - Capture : docs/devlog-media/2026-11-12-noir-coupure.jpg
+
+### 2026-11-12 — Réalisateur : sous-niveaux, post-process, retour au départ
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : `UShootDirectorSubsystem::SetUniverse` affiche le sous-niveau de l'univers (`SubLevelName`) et décharge ceux des autres univers du script ; applique le `PostProcessMaterial` de l'univers sur un volume sans borne créé à la volée. À la reprise après la mort, le joueur revient au PlayerStart dont le Player Start Tag est le nom de l'univers (« Noir »), sinon à son point d'apparition.
+- Comment : tout dans le `.cpp`, aucun header touché, pour rester en Live Coding. Pas de membre ajouté : le volume est retrouvé par un tag d'acteur, les sous-niveaux par leur nom (préfixe PIE retiré).
+- Capture : aucune
+
+### 2026-11-12 22:25 — Plateau L_Stage et premier tournage complet
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : `L_Stage` (plateau 60 × 60 m, sol à Z=0, murs, ciel, PlayerStart, WaveSpawner, NavMesh, `L_Noir` en sous-niveau non chargé au départ), `SS_Main` (scène Noir : 2 prises, final 60 s), `BP_StageGameMode` (lance le tournage tout seul) et `BP_StageGameState` (branche `DT_DirectorLines`, jusque-là reliée à rien : aucun sous-titre ne sortait). Vérifié en PIE : le réalisateur charge `L_Noir`, applique le filtre noir et blanc, donne le revolver, lance la vague ; le joueur tué à 20 m du départ y revient avec sa vie remise à 100.
+- Comment : tout créé par l'IA via le serveur MCP de l'éditeur (Python). Le premier PIE a révélé un bug d'ordre : le BeginPlay du joueur passait après celui du GameMode et remettait son univers à None (pas d'arme). Corrigé côté réalisateur en lançant la première scène une frame plus tard, recompilé par Live Coding. Constat : les gangsters tirent déjà pendant l'intro de la scène (4,5 s), un joueur immobile meurt avant le « Action! ».
+- Capture : aucune
+
+### 2026-11-12 22:35 — Réalisateur : gel pendant l'intro de scène
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : pendant l'annonce du réalisateur, joueur et figurants sont gelés ; « Action! » dégèle. Le sous-niveau de l'univers est chargé tout de suite (`FlushLevelStreaming`) pour que ses gangsters soient gelés eux aussi. Vérifié en PIE : 3 gangsters gelés et joueur à 100 PV de 0 à 4,5 s, premiers dégâts ~2,5 s après « Action! ».
+- Comment : sans le chargement immédiat, les gangsters du sous-niveau arrivaient après l'appel au gel et tiraient pendant l'intro. Mesure prise par l'IA en échantillonnant toutes les 0,4 s (vie du joueur, figurants gelés) depuis la console Python de l'éditeur.
+- Capture : aucune
+
+### 2026-11-12 23:05 — Réalisateur : 8 directives
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : 8 sous-classes de `UDirective` (tirs à la tête, ne t'arrête jamais, corps-à-corps, joue-la blessé, plus vite, pas un seul coup, pas de recharge, du style), un asset chacune dans `Content/RESHOOT/Director/Directives/`. Kill qui respecte la directive ×2, sinon ×0,25 (réglables par asset). Le réalisateur annonce la nouvelle directive pendant le gel, puis « Action! ». Branchées dans `SS_Main` : prise 2 « tirs à la tête », nouvelle prise 3 « plus vite ». Vérifié en PIE sur 20 kills : prise 1 +10 par kill, prise 2 +20 à la tête et +2,5 au corps, prise 3 +20 pour des kills rapprochés ; enchaînement jusqu'au final.
+- Comment : nouvelles classes = un seul lot de headers et un redémarrage. Deux pièges : relancer l'éditeur ne recompile pas un module modifié quand Live Coding a déjà tourné (l'ancienne DLL était rechargée, les classes n'existaient pas et l'asset créé sortait en DataAsset vide) ; puis `C4458` traité en erreur (variable locale `Player` qui masquait un membre de la classe de base). « Pas de recharge » repère la recharge par un timer qui surveille les munitions, sans toucher aux armes du socle.
+- Capture : aucune

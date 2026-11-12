@@ -105,10 +105,13 @@ protected:
 
 private:
 	void SetPhase(EShootPhase NewPhase);
-	void SetDirective(UDirective* NewDirective);
+	/** Retourne la durée de la réplique d'annonce (0 si la directive ne change pas). */
+	float SetDirective(UDirective* NewDirective);
 
 	void BeginScene(int32 NewSceneIndex);
 	void BeginTake(int32 NewTakeIndex);
+	/** « Action! » d'une prise : dégel, réplique, vagues. */
+	void StartTakeAction();
 	void StartNextWave();
 	void EndTake();
 	void RestartTake();

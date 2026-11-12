@@ -13,10 +13,57 @@
 
 #include "EngineUtils.h"
 #include "Engine/World.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/PostProcessVolume.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/GameModeBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
+#include "Misc/PackageName.h"
 #include "TimerManager.h"
 
-// Squelette du jeudi : la séquence complète (sous-niveaux, enchaînement des prises) est la tâche du vendredi.
+namespace ReshootDirector
+{
+	/** Tag du volume de post-process géré par le réalisateur (créé à la volée, sans borne). */
+	static const FName UniversePostProcessTag(TEXT("ReshootUniversePostProcess"));
+
+	/** Vrai si ce niveau en streaming est le sous-niveau SubLevelName (« L_Noir »), préfixe PIE ignoré. */
+	static bool IsSubLevel(const ULevelStreaming* Streaming, FName SubLevelName)
+	{
+		if (!Streaming || SubLevelName.IsNone())
+		{
+			return false;
+		}
+		const FString ShortName = UWorld::RemovePIEPrefix(FPackageName::GetShortName(Streaming->GetWorldAssetPackageName()));
+		return ShortName.Equals(SubLevelName.ToString(), ESearchCase::IgnoreCase);
+	}
+
+	/** Tous les sous-niveaux d'univers cités par le script (scènes et final). */
+	static TSet<FName> CollectUniverseSubLevels(const UShootScript* Script)
+	{
+		TSet<FName> Names;
+		if (!Script)
+		{
+			return Names;
+		}
+		for (const FSceneDef& Scene : Script->Scenes)
+		{
+			if (Scene.UniverseDefinition && !Scene.UniverseDefinition->SubLevelName.IsNone())
+			{
+				Names.Add(Scene.UniverseDefinition->SubLevelName);
+			}
+		}
+		for (const UUniverseDefinition* Definition : Script->FinaleUniverses)
+		{
+			if (Definition && !Definition->SubLevelName.IsNone())
+			{
+				Names.Add(Definition->SubLevelName);
+			}
+		}
+		return Names;
+	}
+}
 
 bool UShootDirectorSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
 {
@@ -95,23 +142,26 @@ void UShootDirectorSubsystem::SetPhase(EShootPhase NewPhase)
 	OnPhaseChanged.Broadcast(NewPhase);
 }
 
-void UShootDirectorSubsystem::SetDirective(UDirective* NewDirective)
+float UShootDirectorSubsystem::SetDirective(UDirective* NewDirective)
 {
 	if (CurrentDirective == NewDirective)
 	{
-		return;
+		return 0.f;
 	}
 	if (CurrentDirective)
 	{
 		CurrentDirective->OnEnd(this);
 	}
 	CurrentDirective = NewDirective;
+	float LineDuration = 0.f;
 	if (CurrentDirective)
 	{
 		CurrentDirective->OnBegin(this);
-		PlayLine(CurrentDirective->VoiceLineId);
+		LineDuration = PlayLine(CurrentDirective->VoiceLineId);
+		UE_LOG(LogReshoot, Log, TEXT("Directive -> %s"), *GetNameSafe(CurrentDirective));
 	}
 	OnDirectiveChanged.Broadcast(CurrentDirective);
+	return LineDuration;
 }
 
 void UShootDirectorSubsystem::SetUniverse(EUniverse NewUniverse)
@@ -122,7 +172,73 @@ void UShootDirectorSubsystem::SetUniverse(EUniverse NewUniverse)
 	{
 		Player->SetUniverse(NewUniverse);
 	}
-	// TODO vendredi : streaming du sous-niveau (UUniverseDefinition::SubLevelName) et post-process.
+
+	UWorld* World = GetWorld();
+	const UUniverseDefinition* Definition = GetUniverseDefinition(NewUniverse);
+	const FName TargetSubLevel = Definition ? Definition->SubLevelName : NAME_None;
+
+	// Sous-niveaux : on affiche celui de l'univers, on décharge ceux des autres univers du script.
+	// Les sous-niveaux doivent être déclarés dans le niveau persistant (fenêtre Levels de L_Stage).
+	const TSet<FName> UniverseSubLevels = ReshootDirector::CollectUniverseSubLevels(Script);
+	bool bFoundTarget = TargetSubLevel.IsNone();
+	for (ULevelStreaming* Streaming : World->GetStreamingLevels())
+	{
+		if (ReshootDirector::IsSubLevel(Streaming, TargetSubLevel))
+		{
+			Streaming->SetShouldBeLoaded(true);
+			Streaming->SetShouldBeVisible(true);
+			bFoundTarget = true;
+			continue;
+		}
+		for (const FName& Other : UniverseSubLevels)
+		{
+			if (ReshootDirector::IsSubLevel(Streaming, Other))
+			{
+				Streaming->SetShouldBeLoaded(false);
+				Streaming->SetShouldBeVisible(false);
+				break;
+			}
+		}
+	}
+	if (!bFoundTarget)
+	{
+		UE_LOG(LogReshoot, Warning, TEXT("SetUniverse: sub-level '%s' is not in the persistent level's streaming levels."), *TargetSubLevel.ToString());
+	}
+	// Chargement immédiat (petit à-coup, masqué par l'intro ou le CUT!) : les figurants du sous-niveau
+	// existent tout de suite, donc FreezeAll les atteint.
+	World->FlushLevelStreaming();
+
+	// Post-process de l'univers sur un volume sans borne, créé au premier besoin.
+	UMaterialInterface* PostProcess = Definition ? Definition->PostProcessMaterial.Get() : nullptr;
+	APostProcessVolume* Volume = nullptr;
+	for (TActorIterator<APostProcessVolume> It(World); It; ++It)
+	{
+		if (It->ActorHasTag(ReshootDirector::UniversePostProcessTag))
+		{
+			Volume = *It;
+			break;
+		}
+	}
+	if (!Volume && PostProcess)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Volume = World->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FTransform::Identity, Params);
+		if (Volume)
+		{
+			Volume->Tags.Add(ReshootDirector::UniversePostProcessTag);
+			Volume->bUnbound = true;
+			Volume->Priority = 10.f;
+		}
+	}
+	if (Volume)
+	{
+		Volume->Settings.WeightedBlendables.Array.Reset();
+		if (PostProcess)
+		{
+			Volume->Settings.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, PostProcess));
+		}
+	}
 
 	OnUniverseChanged.Broadcast(NewUniverse);
 }
@@ -167,7 +283,12 @@ void UShootDirectorSubsystem::StartShoot()
 	{
 		Rating->ResetRating();
 	}
-	BeginScene(0);
+	// Une frame plus tard : avec bAutoStartShoot, le BeginPlay du joueur passe après celui du GameMode
+	// et remettrait son univers de départ (None) par-dessus celui de la première scène.
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		BeginScene(0);
+	}));
 }
 
 void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
@@ -182,6 +303,8 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 
 	SetPhase(EShootPhase::SceneIntro);
 	SetUniverse(Scene.UniverseDefinition ? Scene.UniverseDefinition->Universe : EUniverse::None);
+	// Personne ne bouge pendant l'annonce du réalisateur ; BeginTake dégèle au « Action! ».
+	FreezeAll(true);
 	const float Delay = PlayLine(Scene.IntroLineId);
 
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateUObject(this, &UShootDirectorSubsystem::BeginTake, 0), FMath::Max(Delay, 0.1f), false);
@@ -205,7 +328,26 @@ void UShootDirectorSubsystem::BeginTake(int32 NewTakeIndex)
 	WaveIndex = INDEX_NONE;
 	const FTakeDef& Take = Scene.Takes[TakeIndex];
 
-	SetDirective(Take.Directive);
+	// Nouvelle directive : le réalisateur l'annonce, tout le monde reste figé jusqu'à la fin de la réplique.
+	const float AnnounceDuration = SetDirective(Take.Directive);
+	if (AnnounceDuration > 0.f)
+	{
+		FreezeAll(true);
+		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::StartTakeAction, AnnounceDuration, false);
+		return;
+	}
+	StartTakeAction();
+}
+
+void UShootDirectorSubsystem::StartTakeAction()
+{
+	if (!Script || !Script->Scenes.IsValidIndex(SceneIndex) || !Script->Scenes[SceneIndex].Takes.IsValidIndex(TakeIndex))
+	{
+		return;
+	}
+	const FTakeDef& Take = Script->Scenes[SceneIndex].Takes[TakeIndex];
+
+	FreezeAll(false);
 	PlayLine(Take.ActionLineId);
 	SetPhase(EShootPhase::TakeRunning);
 	OnAction.Broadcast();
@@ -311,7 +453,24 @@ void UShootDirectorSubsystem::RestartTake()
 		{
 			Health->ResetHealth();
 		}
-		// TODO vendredi : replacer le joueur au point de départ de la prise.
+
+		// Retour au départ : PlayerStart dont le Player Start Tag est le nom de l'univers (« Noir »,
+		// « Medieval », « Space »), sinon le PlayerStart où le joueur est apparu.
+		AController* Controller = Player->GetController();
+		AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+		const FString UniverseTag = StaticEnum<EUniverse>()->GetNameStringByValue(static_cast<int64>(CurrentUniverse));
+		if (AActor* Start = GameMode && Controller ? GameMode->FindPlayerStart(Controller, UniverseTag) : nullptr)
+		{
+			const FRotator StartYaw(0.f, Start->GetActorRotation().Yaw, 0.f);
+			Player->GetCharacterMovement()->StopMovementImmediately();
+			Player->SetActorLocationAndRotation(Start->GetActorLocation(), StartYaw, false, nullptr, ETeleportType::TeleportPhysics);
+			Controller->SetControlRotation(StartYaw);
+		}
+	}
+	// Même directive, sans nouvelle annonce : on remet seulement son état à zéro (coup reçu, recharge…).
+	if (CurrentDirective)
+	{
+		CurrentDirective->OnBegin(this);
 	}
 	if (TakeIndex != INDEX_NONE)
 	{
