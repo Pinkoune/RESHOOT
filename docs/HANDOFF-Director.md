@@ -38,7 +38,9 @@ Pas encore testé après le second lot de headers : `NotifyKill` avec directive,
 4. **Samedi — les 8 directives.** Une sous-classe C++ par directive, dans `Director/`. Le tableau de branchement est dans `docs/ARCHITECTURE.md`. Les restrictions passent par `AReshootCharacter::SetWeaponActionAllowed` et `SetWeaponCostMultiplier` ; pense à `ClearWeaponRestrictions` dans `OnEnd` et à la reprise. Nouvelles classes = nouveaux headers = un redémarrage : crée les 8 d'un coup.
 5. **Samedi — événement d'univers.** Pendant la prise `EventTakeIndex`, `EventDelay` s après ACTION : `OnUniverseEventAnnounced`, réplique `EventLineId`, puis `StartEvent()` `EventWarningTime` s plus tard. Gel au CUT : `ActiveEvent->SetEventPaused(true)`. L'événement spatial (`ASpaceGravityEvent`) est fait par Argon.
 6. **Samedi — final.** Squelette présent (bascule toutes les `FinaleSwitchInterval` s, `ReplaceAllForUniverse`). Reste : réplique `FinaleIntroLineId`, enchaîner les `FinaleWaves`, pas de CUT pendant le final.
-7. **Samedi — casting.** Placer le joueur au `PlayerStart` tagué `CastingPlayerStartTag`. L'UI appelle `FinishCasting()` quand le tutoriel est fini et `AReshootGameState::SetPlayerName`.
+7. **Vendredi — voix sans chevauchement.** Le GDD dit qu'une réplique ne coupe jamais une autre : la nouvelle attend, ou elle est abandonnée si elle n'est plus d'actualité. Aujourd'hui, `UDirectorVoice::PlayLine` joue tout de suite (`PlaySound2D`), donc deux répliques se chevauchent.
+8. **Vendredi — entrées des figurants.** Le GDD veut qu'ils entrent par les portes, jamais dans le dos du joueur à moins de 10 m. Aujourd'hui, `AWaveSpawner` tire un point au hasard dans `SpawnPoints` ou sur un cercle, sans regarder où est le joueur.
+9. **Samedi — casting.** Placer le joueur au `PlayerStart` tagué `CastingPlayerStartTag`. L'UI appelle `FinishCasting()` quand le tutoriel est fini et `AReshootGameState::SetPlayerName`.
 
 ## Pièges connus
 
