@@ -51,8 +51,8 @@ Spatial
 - [ ] `UUniverseDefinition` + sous-niveau `L_Space`
 
 Film noir + audio
-- [ ] Gangster à couvert (code fait, pas testé), post-process noir et blanc
-- [ ] `UUniverseDefinition` + sous-niveau `L_Noir`
+- [ ] Gangster à couvert (code fait, pas testé), post-process noir et blanc (`M_PP_Noir` fait, à appliquer par le réalisateur via `DA_Noir`)
+- [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
 - [ ] Répliques générées, `DT_DirectorLines` remplie
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
