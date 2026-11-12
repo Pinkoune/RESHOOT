@@ -7,7 +7,7 @@ Une tâche = un propriétaire, un dossier, un critère de fin. Remplacez les `@?
 | Rôle | Dev | Dossiers |
 | --- | --- | --- |
 | Socle et réalisateur | @? | `Source/RESHOOT/Core`, `Source/RESHOOT/Director`, `Content/RESHOOT/Core`, `Content/RESHOOT/Director`, `L_Stage` |
-| Médiéval | @? | `Source/RESHOOT/Medieval`, `Content/RESHOOT/Medieval` |
+| Médiéval | @ileanasaintpaul | `Source/RESHOOT/Medieval`, `Content/RESHOOT/Medieval` |
 | Spatial | @? | `Source/RESHOOT/Space`, `Content/RESHOOT/Space` |
 | Film noir + audio | @julesgilli (semi-présent) | `Source/RESHOOT/Noir`, `Content/RESHOOT/Noir`, `Content/RESHOOT/Audio` |
 | Interface | premier dev libre au jour 3 | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
