@@ -39,7 +39,7 @@ Tous
 
 Socle
 - [ ] `UShootDirectorSubsystem` : scènes, prises, vagues, `AWaveSpawner`
-- [ ] « CUT! » : gel, réplique, reprise
+- [x] « CUT! » : gel, réplique, reprise (en pleine prise, 20 à 40 s après « Action! », testé dans `L_Stage`)
 - [x] Mort du joueur = la prise recommence (retour au PlayerStart tagué du nom de l'univers, sinon au départ ; testé dans `L_Stage`)
 - [x] Changement d'univers : streaming du sous-niveau + post-process (testé avec Noir dans `L_Stage`)
 

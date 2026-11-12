@@ -18,7 +18,7 @@ class RESHOOT_API UDirective : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
-	/** Appelé quand la directive devient active, et de nouveau quand la prise est rejouée après une mort. */
+	/** Appelé quand la directive est annoncée (« CUT! » en pleine prise). */
 	virtual void OnBegin(UShootDirectorSubsystem* Director);
 
 	/** Appelé quand la directive est remplacée ou que la partie se termine. */
@@ -38,11 +38,11 @@ public:
 
 	/** Multiplicateur d'audimat d'un kill qui respecte la directive. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive", meta = (ClampMin = "0"))
-	float BonusMultiplier = 2.f;
+	float BonusMultiplier = 2.5f;
 
 	/** Multiplicateur d'audimat d'un kill qui ne la respecte pas. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Directive", meta = (ClampMin = "0"))
-	float PenaltyMultiplier = 0.25f;
+	float PenaltyMultiplier = 0.5f;
 
 protected:
 	float Judge(bool bRespected) const { return bRespected ? BonusMultiplier : PenaltyMultiplier; }

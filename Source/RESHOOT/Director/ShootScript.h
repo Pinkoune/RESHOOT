@@ -43,7 +43,7 @@ struct FTakeDef
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Take")
 	TArray<FWaveDef> Waves;
 
-	/** Directive imposée pour cette prise. Nulle = aucune contrainte. */
+	/** Directive imposée au « CUT! » en pleine prise. Nulle = tirée au hasard dans RandomDirectives du script. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Take")
 	TObjectPtr<UDirective> Directive;
 
@@ -51,7 +51,7 @@ struct FTakeDef
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Take")
 	FName ActionLineId;
 
-	/** Réplique jouée au « CUT! » qui termine la prise. */
+	/** Commentaire du réalisateur quand la prise se termine (dernier figurant éliminé). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Take")
 	FName CutLineId;
 };
@@ -102,9 +102,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
 	float BaseKillRating = 10.f;
 
-	/** Durée du gel « CUT! » avant « Action! ». */
+	/** Audimat gagné quand une prise se termine (une mort relance la prise, donc elle se finit toujours sans mourir). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float TakeClearedRating = 40.f;
+
+	/** Audimat perdu à la mort du joueur. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float PlayerDeathPenalty = 60.f;
+
+	/** Durée du gel « CUT! » avant « Action! » (fin de prise, ou CUT! sans réplique). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDuration = 3.f;
+
+	/** « CUT! » en pleine prise : délai minimal après « Action! », en secondes. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut", meta = (ClampMin = "0"))
+	float MidTakeCutMinDelay = 20.f;
+
+	/** « CUT! » en pleine prise : délai maximal après « Action! », en secondes. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut", meta = (ClampMin = "0"))
+	float MidTakeCutMaxDelay = 40.f;
+
+	/** Commentaires tirés au hasard au « CUT! » en pleine prise, avant l'annonce de la directive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut")
+	TArray<FName> MidTakeCutLineIds;
+
+	/** Directives tirées au hasard quand la prise n'en impose pas. Vide = CUT! sans directive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mid-take Cut")
+	TArray<TObjectPtr<UDirective>> RandomDirectives;
 
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))

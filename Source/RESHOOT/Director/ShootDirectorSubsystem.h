@@ -110,8 +110,13 @@ private:
 
 	void BeginScene(int32 NewSceneIndex);
 	void BeginTake(int32 NewTakeIndex);
-	/** « Action! » d'une prise : dégel, réplique, vagues. */
+	/** « Action! » d'une prise : dégel, réplique, vagues, programmation du « CUT! » en pleine prise. */
 	void StartTakeAction();
+	void ScheduleMidTakeCut();
+	/** « CUT! » en pleine prise : gel et commentaire du réalisateur. */
+	void MidTakeCut();
+	/** Annonce de la directive, puis « Action! ». */
+	void AnnounceMidTakeDirective();
 	void StartNextWave();
 	void EndTake();
 	void RestartTake();
@@ -132,6 +137,14 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UDirective> CurrentDirective;
+
+	/** Directive choisie au « CUT! », annoncée après le commentaire. */
+	UPROPERTY()
+	TObjectPtr<UDirective> PendingDirective;
+
+	/** Dernière directive imposée, pour ne pas la répéter deux prises de suite. */
+	UPROPERTY()
+	TObjectPtr<UDirective> LastDirective;
 
 	UPROPERTY()
 	TWeakObjectPtr<AWaveSpawner> Spawner;

@@ -326,16 +326,9 @@ void UShootDirectorSubsystem::BeginTake(int32 NewTakeIndex)
 
 	TakeIndex = NewTakeIndex;
 	WaveIndex = INDEX_NONE;
-	const FTakeDef& Take = Scene.Takes[TakeIndex];
 
-	// Nouvelle directive : le réalisateur l'annonce, tout le monde reste figé jusqu'à la fin de la réplique.
-	const float AnnounceDuration = SetDirective(Take.Directive);
-	if (AnnounceDuration > 0.f)
-	{
-		FreezeAll(true);
-		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::StartTakeAction, AnnounceDuration, false);
-		return;
-	}
+	// Chaque prise (ou reprise après une mort) démarre sans directive : elle arrive au « CUT! » en pleine prise.
+	SetDirective(nullptr);
 	StartTakeAction();
 }
 
@@ -351,7 +344,75 @@ void UShootDirectorSubsystem::StartTakeAction()
 	PlayLine(Take.ActionLineId);
 	SetPhase(EShootPhase::TakeRunning);
 	OnAction.Broadcast();
+	ScheduleMidTakeCut();
 	StartNextWave();
+}
+
+// ---------------------------------------------------------------------------
+// « CUT! » en pleine prise : gel, commentaire, directive, « Action! »
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::ScheduleMidTakeCut()
+{
+	// PhaseTimer est libre pendant la prise : il sera remplacé si la prise se termine ou si le joueur meurt avant.
+	const float MinDelay = Script ? Script->MidTakeCutMinDelay : 20.f;
+	const float MaxDelay = Script ? FMath::Max(Script->MidTakeCutMaxDelay, MinDelay) : 40.f;
+	const float Delay = FMath::Max(FMath::FRandRange(MinDelay, MaxDelay), 0.1f);
+	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::MidTakeCut, Delay, false);
+}
+
+void UShootDirectorSubsystem::MidTakeCut()
+{
+	if (Phase != EShootPhase::TakeRunning || !Script
+		|| !Script->Scenes.IsValidIndex(SceneIndex) || !Script->Scenes[SceneIndex].Takes.IsValidIndex(TakeIndex))
+	{
+		return;
+	}
+
+	// Directive imposée par la prise, sinon tirée au hasard (en évitant de répéter la précédente).
+	PendingDirective = Script->Scenes[SceneIndex].Takes[TakeIndex].Directive;
+	if (!PendingDirective && Script->RandomDirectives.Num() > 0)
+	{
+		TArray<UDirective*> Choices;
+		for (UDirective* Candidate : Script->RandomDirectives)
+		{
+			if (Candidate && Candidate != LastDirective)
+			{
+				Choices.Add(Candidate);
+			}
+		}
+		if (Choices.Num() == 0 && LastDirective)
+		{
+			Choices.Add(LastDirective);
+		}
+		PendingDirective = Choices.Num() > 0 ? Choices[FMath::RandRange(0, Choices.Num() - 1)] : nullptr;
+	}
+
+	SetPhase(EShootPhase::Cut);
+	OnCut.Broadcast();
+	FreezeAll(true);
+
+	const TArray<FName>& Comments = Script->MidTakeCutLineIds;
+	const float CommentDuration = Comments.Num() > 0 ? PlayLine(Comments[FMath::RandRange(0, Comments.Num() - 1)]) : 0.f;
+	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::AnnounceMidTakeDirective, FMath::Max(CommentDuration, 0.1f), false);
+}
+
+void UShootDirectorSubsystem::AnnounceMidTakeDirective()
+{
+	if (Phase != EShootPhase::Cut)
+	{
+		return;
+	}
+	if (PendingDirective)
+	{
+		LastDirective = PendingDirective;
+	}
+	const float AnnounceDuration = SetDirective(PendingDirective);
+	PendingDirective = nullptr;
+
+	// Sans réplique (ou sans directive), le gel dure au moins CutDuration.
+	const float Hold = AnnounceDuration > 0.f ? AnnounceDuration : (Script ? Script->CutDuration : 2.f);
+	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::CallAction, FMath::Max(Hold, 0.1f), false);
 }
 
 void UShootDirectorSubsystem::StartNextWave()
@@ -387,7 +448,11 @@ void UShootDirectorSubsystem::HandleWaveCleared(AWaveSpawner* ClearedSpawner)
 
 void UShootDirectorSubsystem::EndTake()
 {
-	// Fin de prise = « CUT! » puis prise suivante, avec sa directive.
+	// Fin de prise : bonus (une mort relance la prise, donc on arrive ici sans être mort), commentaire, prise suivante.
+	if (UAudienceRating* Rating = GetAudienceRating())
+	{
+		Rating->Add(Script ? Script->TakeClearedRating : 40.f);
+	}
 	const FSceneDef* Scene = Script && Script->Scenes.IsValidIndex(SceneIndex) ? &Script->Scenes[SceneIndex] : nullptr;
 	if (Scene && Scene->Takes.IsValidIndex(TakeIndex))
 	{
@@ -437,6 +502,10 @@ void UShootDirectorSubsystem::NotifyKill(const FKillInfo& Kill)
 void UShootDirectorSubsystem::NotifyPlayerDeath()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Player died: retake."));
+	if (UAudienceRating* Rating = GetAudienceRating())
+	{
+		Rating->Add(-(Script ? Script->PlayerDeathPenalty : 60.f));
+	}
 	const float Delay = FMath::Max(PlayLine(Script ? Script->RetakeLineId : NAME_None), Script ? Script->RetakeDelay : 2.f);
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::RestartTake, FMath::Max(Delay, 0.1f), false);
 }
@@ -467,11 +536,7 @@ void UShootDirectorSubsystem::RestartTake()
 			Controller->SetControlRotation(StartYaw);
 		}
 	}
-	// Même directive, sans nouvelle annonce : on remet seulement son état à zéro (coup reçu, recharge…).
-	if (CurrentDirective)
-	{
-		CurrentDirective->OnBegin(this);
-	}
+	// La prise repart du clap : BeginTake retire la directive, un nouveau « CUT! » en imposera une.
 	if (TakeIndex != INDEX_NONE)
 	{
 		BeginTake(TakeIndex);
@@ -481,6 +546,7 @@ void UShootDirectorSubsystem::RestartTake()
 void UShootDirectorSubsystem::BeginFinale()
 {
 	SetPhase(EShootPhase::Finale);
+	SetDirective(nullptr);
 	FinaleUniverseIndex = 0;
 	FinaleSwitchUniverse();
 
