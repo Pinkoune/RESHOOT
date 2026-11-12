@@ -10,7 +10,7 @@ Une tâche = un propriétaire, un dossier, un critère de fin. Remplacez les `@?
 | Médiéval | @ileanasaintpaul | `Source/RESHOOT/Medieval`, `Content/RESHOOT/Medieval` |
 | Spatial | @? | `Source/RESHOOT/Space`, `Content/RESHOOT/Space` |
 | Film noir + audio | @julesgilli (semi-présent) | `Source/RESHOOT/Noir`, `Content/RESHOOT/Noir`, `Content/RESHOOT/Audio` |
-| Interface | premier dev libre au jour 3 | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
+| Interface | @ileanasaintpaul (en plus du Médiéval) | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
 
 ## Jeudi — fin de journée : un joueur tire sur un bot dans une boîte grise
 
@@ -93,3 +93,4 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 
 - [ ] @ileanasaintpaul : j'ai besoin de `AReshootCharacter::SetSprintBlocked(bool)` (ou d'un multiplicateur de vitesse) pour empêcher le sprint bouclier levé. En attendant, `AMedievalSword` rabaisse `MaxWalkSpeed` toutes les 0,05 s.
 - [ ] @ileanasaintpaul : j'ai besoin que le réalisateur déclenche l'événement d'univers (`UUniverseDefinition::EventClass`) une fois par scène : chercher un acteur de cette classe déjà posé dans le sous-niveau (le convoi médiéval `AMedievalHorseConvoyEvent` est posé dans `L_Medieval` avec ses rails), sinon le faire apparaître, puis appeler `StartEvent()` 3 s après la réplique d'annonce. L'événement s'arrête tout seul (`StopEvent`) et se fige au CUT!.  Penser à remettre `AutoStartInterval` du convoi à 0 dans `L_Medieval` à ce moment-là (il se relance seul toutes les 20 s pour les tests).
+- [ ] @ileanasaintpaul (Interface) : j'ai besoin que `AReshootGameMode` utilise `AReshootHUD` (`HUDClass = AReshootHUD::StaticClass()` dans son constructeur, `#include "UI/ReshootHUD.h"`) pour afficher le HUD dans le vrai jeu. En attendant, il est branché sur le GameMode de test médiéval.
