@@ -55,6 +55,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Waves", meta = (ClampMin = "0"))
 	float SpawnRadius = 800.f;
 
+	/** Aucun figurant n'apparaît dans le dos du joueur à moins de cette distance (GDD : 10 m). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Waves", meta = (ClampMin = "0"))
+	float MinDistanceBehindPlayer = 1000.f;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

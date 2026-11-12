@@ -6,6 +6,8 @@
 
 #include "Components/SceneComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 AWaveSpawner::AWaveSpawner()
@@ -103,21 +105,60 @@ TSubclassOf<AReshootEnemy> AWaveSpawner::PickEnemyClass(EUniverse Universe) cons
 
 FTransform AWaveSpawner::PickSpawnTransform() const
 {
+	// Règle du GDD : jamais dans le dos du joueur à moins de MinDistanceBehindPlayer.
+	const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	const auto IsAllowed = [this, Player](const FVector& Location)
+	{
+		if (!Player)
+		{
+			return true;
+		}
+		const FVector ToSpawn = (Location - Player->GetActorLocation()).GetSafeNormal2D();
+		const FVector Facing = Player->GetControlRotation().Vector().GetSafeNormal2D();
+		const bool bBehind = FVector::DotProduct(Facing, ToSpawn) < 0.f;
+		return !bBehind || FVector::Dist2D(Location, Player->GetActorLocation()) >= MinDistanceBehindPlayer;
+	};
+
 	TArray<AActor*> ValidPoints;
+	TArray<AActor*> AllowedPoints;
 	for (AActor* Point : SpawnPoints)
 	{
 		if (Point)
 		{
 			ValidPoints.Add(Point);
+			if (IsAllowed(Point->GetActorLocation()))
+			{
+				AllowedPoints.Add(Point);
+			}
 		}
+	}
+	if (AllowedPoints.Num() > 0)
+	{
+		return AllowedPoints[FMath::RandRange(0, AllowedPoints.Num() - 1)]->GetActorTransform();
 	}
 	if (ValidPoints.Num() > 0)
 	{
-		return ValidPoints[FMath::RandRange(0, ValidPoints.Num() - 1)]->GetActorTransform();
+		// Tous interdits : le plus éloigné du joueur.
+		const FVector PlayerLocation = Player ? Player->GetActorLocation() : GetActorLocation();
+		ValidPoints.Sort([&PlayerLocation](const AActor& A, const AActor& B)
+		{
+			return FVector::DistSquared2D(A.GetActorLocation(), PlayerLocation) > FVector::DistSquared2D(B.GetActorLocation(), PlayerLocation);
+		});
+		return ValidPoints[0]->GetActorTransform();
 	}
 
-	const FVector2D Offset = FMath::RandPointInCircle(SpawnRadius);
-	return FTransform(GetActorRotation(), GetActorLocation() + FVector(Offset.X, Offset.Y, 0.f));
+	// Sans points : autour du spawner, quelques essais pour respecter la règle.
+	FVector Location = GetActorLocation();
+	for (int32 Attempt = 0; Attempt < 8; ++Attempt)
+	{
+		const FVector2D Offset = FMath::RandPointInCircle(SpawnRadius);
+		Location = GetActorLocation() + FVector(Offset.X, Offset.Y, 0.f);
+		if (IsAllowed(Location))
+		{
+			break;
+		}
+	}
+	return FTransform(GetActorRotation(), Location);
 }
 
 void AWaveSpawner::HandleEnemyDied(AReshootEnemy* Enemy)
