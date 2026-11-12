@@ -44,8 +44,8 @@ Spatial
 - [x] Laser hitscan, surchauffe, visée (testé en PIE)
 
 Film noir + audio
-- [ ] Revolver hitscan avec chargeur
-- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix
+- [x] Revolver hitscan avec chargeur (testé en PIE sur `L_NoirTest` : 40 dégâts, x2 à la tête, recharge auto)
+- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte fait : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix en attente des crédits fal
 
 Tous
 - [ ] Réclamer les crédits (SpaceXSI, Tripo, Hyper3D, fal, Diversion)
@@ -70,9 +70,9 @@ Spatial
 - [x] `DA_Universe_Space`, `BP_SpaceDrone`, script de test `SS_SpaceTest`
 
 Film noir + audio
-- [ ] Gangster à couvert, post-process noir et blanc
-- [ ] `UUniverseDefinition` + sous-niveau `L_Noir`
-- [ ] Répliques générées, `DT_DirectorLines` remplie
+- [x] Gangster à couvert, post-process noir et blanc (testés sur `L_NoirTest` ; `M_PP_Noir` reste à appliquer par le réalisateur via `DA_Noir`)
+- [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
+- [ ] Répliques générées, `DT_DirectorLines` remplie — table créée (`Content/RESHOOT/Audio/DT_DirectorLines`, 40 lignes, sous-titres seulement), sons en attente des crédits fal
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
 
@@ -85,7 +85,7 @@ Réalisateur (Enzo)
 - [ ] Intégration des trois univers dans `UShootScript`
 
 Univers
-- [ ] Habillage (assets générés), événement d'univers
+- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
@@ -106,3 +106,7 @@ Interface
 ## Demandes au socle
 
 Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison>`
+- [ ] Jules : `AReshootWeapon::TraceFromAim` trace sur `ECC_Visibility`, que le profil de collision Pawn ignore : les balles traversent les capsules des ennemis (vérifié en PIE). Contourné côté Noir (corps et tête du gangster bloquent Visibility). Médiéval et Spatial auront le même souci : faire bloquer Visibility à la capsule de `AReshootEnemy`, ou tracer sur un autre canal.
+- [ ] Jules : `AReshootEnemy` n'a aucun mesh, un figurant est invisible en jeu. Le gangster ajoute ses propres formes (cylindre, sphère, chapeau) ; prévenir Médiéval et Spatial.
+- [ ] Jules : `L_Stage` a besoin d'un `NavMeshBoundsVolume` qui couvre le plateau : les gangsters courent d'un couvert à l'autre par navmesh (sans navmesh, ils restent sur place). Les couverts sont les acteurs tagués `NoirCover` (caisses de `L_Noir`).
+- [ ] Jules : directive « Plan-séquence » (Noir) : `ANoirRevolver::SetReloadBlocked(true)` au début, `RefillMagazine()` à chaque élimination, `SetReloadBlocked(false)` à la fin. L'événement Noir se lance avec `StartEvent()` et s'arrête seul au bout de `Duration` (10 s).
