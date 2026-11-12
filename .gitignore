@@ -1,0 +1,27 @@
+# Unreal Engine
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# IDE / solutions (régénérées depuis le .uproject)
+.vs/
+.idea/
+*.sln
+*.slnx
+*.suo
+*.sdf
+*.VC.db
+*.VC.opendb
+*.opensdf
+*.xcworkspace
+*.code-workspace
+
+# Divers
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
