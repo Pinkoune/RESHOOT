@@ -61,6 +61,8 @@ Règles :
 - Chaque arme appelle `BroadcastWeaponEvent(Fired)` à chaque tir ou coup (`MeleeSwing` en plus pour un coup d'épée), `Reloaded` en fin de rechargement, `ModeChanged`, `Overheated`, `CooledDown`. Le réalisateur et le HUD écoutent `AReshootCharacter::OnPlayerWeaponEvent`.
 - Les restrictions des directives sont portées par le joueur, pas par l'arme : elles survivent au changement d'arme du final. Le joueur filtre lui-même les entrées interdites ; l'arme lit `GetCostMultiplier()` pour sa surchauffe.
 - Changer d'arme ou de mode : touches 1 et 2, molette. Le mode 0 est toujours permis.
+- Traces de tir : **par type d'objet** (WorldStatic, WorldDynamic, Pawn, PhysicsBody), jamais sur le canal Visibility, que le profil « Pawn » des personnages ignore. `TraceFromAim` le fait déjà ; un ennemi qui tire fait pareil.
+- Tir à la tête : os ou composant `HeadBoneOrTag`, ou impact dans le quart supérieur de la capsule (la trace s'arrête sur la capsule).
 
 ## Déplacement
 

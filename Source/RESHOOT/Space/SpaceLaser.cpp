@@ -13,6 +13,16 @@
 
 namespace
 {
+	FCollisionObjectQueryParams LaserHitObjectTypes()
+	{
+		FCollisionObjectQueryParams Types;
+		Types.AddObjectTypesToQuery(ECC_WorldStatic);
+		Types.AddObjectTypesToQuery(ECC_WorldDynamic);
+		Types.AddObjectTypesToQuery(ECC_Pawn);
+		Types.AddObjectTypesToQuery(ECC_PhysicsBody);
+		return Types;
+	}
+
 	constexpr float HeatTickInterval = 0.05f;
 	const FLinearColor DefaultBeamColor(0.1f, 0.85f, 1.f);
 }
@@ -117,7 +127,7 @@ void ASpaceLaser::FireShot()
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SpaceLaserTrace), true, this);
 	Params.AddIgnoredActor(GetOwner());
 	FHitResult Hit;
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
+	const bool bHit = GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, LaserHitObjectTypes(), Params);
 	const FVector Impact = bHit ? Hit.ImpactPoint : End;
 
 	if (bHit && Hit.GetActor())

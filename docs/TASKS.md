@@ -9,7 +9,7 @@ Une tâche = un propriétaire, un dossier, un critère de fin.
 | Socle, plateau, builds | Jérémy (+ Claude) | `Source/RESHOOT/Core`, `Content/RESHOOT/Core`, `L_Stage`, builds quotidiens |
 | Réalisateur | Enzo | `Source/RESHOOT/Director`, `Content/RESHOOT/Director` (directives, audimat, final, casting) |
 | Médiéval | Ileana | `Source/RESHOOT/Medieval`, `Content/RESHOOT/Medieval` |
-| Spatial | Jérémy + Claude, Codex, Argon (voir découpage ci-dessous) | `Source/RESHOOT/Space`, `Content/RESHOOT/Space` |
+| Spatial | Jérémy + Claude (Codex et Argon en renfort, voir ci-dessous) | `Source/RESHOOT/Space`, `Content/RESHOOT/Space` |
 | Film noir + audio | Jules (@julesgilli, semi-présent) | `Source/RESHOOT/Noir`, `Content/RESHOOT/Noir`, `Content/RESHOOT/Audio` |
 | Interface | premier dev libre au jour 3 | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
 
@@ -20,8 +20,8 @@ Passation du réalisateur à Enzo : `docs/HANDOFF-Director.md`.
 | Lot | Qui | Fichiers (et rien d'autre) | Brief |
 | --- | --- | --- | --- |
 | Fusil laser | Claude (Claude Code) | `Space/SpaceLaser.h/.cpp`, `Content/RESHOOT/Space/Weapons/` | — |
-| Drone | Codex | `Space/SpaceDrone.cpp`, `Content/RESHOOT/Space/Enemies/` | `docs/briefs/codex-space-drone.md` |
-| Gravité + habillage | Argon (Antigravity) | `Space/SpaceGravityEvent.cpp`, `Content/RESHOOT/Space/Maps/L_Space`, `Content/RESHOOT/Space/Environment/` | `docs/briefs/argon-space-gravity.md` |
+| Drone | ~~Codex~~ fait par Claude le 12/11 | `Space/SpaceDrone.cpp`, `Content/RESHOOT/Space/Enemies/` | `docs/briefs/codex-space-drone.md` (sans objet) |
+| Gravité (fait par Claude le 12/11) + habillage avec les assets générés (Argon) | `Space/SpaceGravityEvent.cpp`, `Content/RESHOOT/Space/Maps/L_Space`, `Content/RESHOOT/Space/Environment/` | `docs/briefs/argon-space-gravity.md` |
 | `DA_Universe_Space`, intégration | Jérémy + Claude | `Content/RESHOOT/Space/DA_Universe_Space` | — |
 
 Une seule IA à la fois pilote l'éditeur via le MCP Unreal : Claude par défaut. Les autres écrivent du `.cpp` et décrivent ce qu'il faut créer dans l'éditeur.
@@ -33,7 +33,7 @@ Socle
 - [x] Tous les headers de `docs/ARCHITECTURE.md` créés avec corps vides, compilés, éditeur redémarré une fois (compilé par Build.bat le 12/11)
 - [ ] `UHealthComponent`, `AReshootWeapon`, `AReshootCharacter`, `AReshootEnemy` fonctionnels (vie, joueur, ennemi testés en PIE sur `L_SocleTest` ; reste une arme concrète pour tirer pour de vrai)
 - [x] Second lot de headers : signaux des armes, restrictions des directives, casting, nom du joueur, bilan, valeurs du GDD, headers du spatial (redémarrage de l'éditeur requis)
-- [ ] `L_Stage` en boîtes grises
+- [x] `L_Stage` en boîtes grises (50 × 40 m, 4 portes, mezzanines et rampes, couverts, spawner aux portes, `BP_ReshootGameMode`)
 - [ ] Premier build packagé qui se lance
 
 Médiéval
@@ -41,7 +41,7 @@ Médiéval
 
 Spatial
 - [x] Déplacement en apesanteur avec inertie (socle)
-- [ ] Laser hitscan, surchauffe, visée (Claude) — codé, à tester en PIE après le redémarrage
+- [x] Laser hitscan, surchauffe, visée (testé en PIE)
 
 Film noir + audio
 - [ ] Revolver hitscan avec chargeur
@@ -63,10 +63,11 @@ Médiéval
 - [ ] `UUniverseDefinition` + sous-niveau `L_Medieval`
 
 Spatial
-- [ ] Drone : ligne droite vers le joueur, tir à courte portée, gel au CUT (Codex)
-- [ ] Événement de coupure de gravité (Argon)
-- [ ] Sous-niveau `L_Space` en boîtes grises, puis habillé (Argon)
-- [ ] `DA_Universe_Space` (Jérémy + Claude)
+- [x] Drone : ligne droite vers le joueur, tir à courte portée, gel au CUT (testé en PIE)
+- [x] Événement de coupure de gravité (testé en PIE)
+- [x] Sous-niveau `L_Space` en boîtes grises
+- [ ] `L_Space` habillé avec les assets générés (Argon, `docs/briefs/space-assets.md`)
+- [x] `DA_Universe_Space`, `BP_SpaceDrone`, script de test `SS_SpaceTest`
 
 Film noir + audio
 - [ ] Gangster à couvert, post-process noir et blanc

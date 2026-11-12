@@ -58,7 +58,17 @@ void AReshootCharacter::BeginPlay()
 	FirstPersonCamera->SetFieldOfView(DefaultFOV);
 	TargetAimFOV = DefaultFOV;
 	HealthComponent->OnDeath.AddDynamic(this, &AReshootCharacter::HandleDeath);
-	SetUniverse(StartingUniverse);
+
+	// Le réalisateur peut avoir lancé la scène avant l'apparition du joueur : on reprend son univers.
+	EUniverse InitialUniverse = StartingUniverse;
+	if (InitialUniverse == EUniverse::None)
+	{
+		if (const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>())
+		{
+			InitialUniverse = Director->GetCurrentUniverse();
+		}
+	}
+	SetUniverse(InitialUniverse);
 }
 
 void AReshootCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)

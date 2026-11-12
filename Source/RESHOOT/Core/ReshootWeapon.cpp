@@ -3,8 +3,24 @@
 #include "Core/HealthComponent.h"
 #include "RESHOOT.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
+
+namespace ReshootTrace
+{
+	/** Le profil « Pawn » ignore le canal Visibility : on trace par type d'objet pour toucher monde et personnages. */
+	static FCollisionObjectQueryParams HitObjectTypes()
+	{
+		FCollisionObjectQueryParams Types;
+		Types.AddObjectTypesToQuery(ECC_WorldStatic);
+		Types.AddObjectTypesToQuery(ECC_WorldDynamic);
+		Types.AddObjectTypesToQuery(ECC_Pawn);
+		Types.AddObjectTypesToQuery(ECC_PhysicsBody);
+		Types.AddObjectTypesToQuery(ECC_Destructible);
+		return Types;
+	}
+}
 
 AReshootWeapon::AReshootWeapon()
 {
@@ -97,7 +113,7 @@ bool AReshootWeapon::TraceFromAim(float Range, FHitResult& OutHit) const
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ReshootWeaponTrace), true, this);
 	Params.AddIgnoredActor(GetOwner());
-	return GetWorld()->LineTraceSingleByChannel(OutHit, Start, Start + Direction * Range, ECC_Visibility, Params);
+	return GetWorld()->LineTraceSingleByObjectType(OutHit, Start, Start + Direction * Range, ReshootTrace::HitObjectTypes(), Params);
 }
 
 bool AReshootWeapon::IsHeadshot(const FHitResult& Hit) const
@@ -111,7 +127,18 @@ bool AReshootWeapon::IsHeadshot(const FHitResult& Hit) const
 		return true;
 	}
 	const UPrimitiveComponent* HitComponent = Hit.GetComponent();
-	return HitComponent && HitComponent->ComponentHasTag(HeadBoneOrTag);
+	if (HitComponent && HitComponent->ComponentHasTag(HeadBoneOrTag))
+	{
+		return true;
+	}
+	// Les tirs s'arrêtent sur la capsule des personnages (elle englobe le squelette) :
+	// le quart supérieur de la capsule compte comme la tête.
+	if (const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(HitComponent))
+	{
+		const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+		return Hit.ImpactPoint.Z >= Capsule->GetComponentLocation().Z + HalfHeight * 0.5f;
+	}
+	return false;
 }
 
 float AReshootWeapon::DealDamage(AActor* Target, float Damage, bool bHeadshot, bool bMelee)
