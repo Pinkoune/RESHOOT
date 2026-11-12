@@ -17,7 +17,7 @@ Une tâche = un propriétaire, un dossier, un critère de fin. Remplacez les `@?
 Socle
 - [x] Projet UE 5.9 C++ `RESHOOT`, `.gitignore`, premier commit
 - [x] Tous les headers de `docs/ARCHITECTURE.md` créés avec corps vides, compilés, éditeur redémarré une fois (compilé par Build.bat le 12/11)
-- [ ] `UHealthComponent`, `AReshootWeapon`, `AReshootCharacter`, `AReshootEnemy` fonctionnels (codés et compilés ; vie + déplacement complets, à tester en jeu)
+- [ ] `UHealthComponent`, `AReshootWeapon`, `AReshootCharacter`, `AReshootEnemy` fonctionnels (vie, joueur, ennemi testés en PIE sur `L_SocleTest` ; reste une arme concrète pour tirer pour de vrai)
 - [ ] `L_Stage` en boîtes grises
 - [ ] Premier build packagé qui se lance
 

@@ -5,6 +5,7 @@
 #include "Director/AudienceRating.h"
 #include "Director/DirectorVoice.h"
 #include "Core/ReshootCharacter.h"
+#include "Core/ReshootEnemy.h"
 #include "Core/ReshootGameState.h"
 #include "Core/HealthComponent.h"
 #include "Core/UniverseDefinition.h"
@@ -136,9 +137,18 @@ void UShootDirectorSubsystem::FreezeAll(bool bFreeze)
 			Health->SetInvulnerable(bFreeze);
 		}
 	}
+	// Le spawner suspend ses apparitions et gèlera les figurants qu'il crée pendant le gel.
 	if (AWaveSpawner* WaveSpawner = FindSpawner())
 	{
 		WaveSpawner->FreezeAll(bFreeze);
+	}
+	// Tous les figurants du monde, y compris ceux posés à la main dans le niveau.
+	for (TActorIterator<AReshootEnemy> It(GetWorld()); It; ++It)
+	{
+		if (!It->IsDead())
+		{
+			It->Freeze(bFreeze);
+		}
 	}
 }
 
