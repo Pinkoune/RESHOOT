@@ -1,0 +1,11 @@
+newmtl tripo_material_6e59736b_69f3_4a97_95da_523d40358324
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_NeonTube_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_NeonTube_roughness.png
+map_Pm SM_Space_NeonTube_metallic.png
+norm SM_Space_NeonTube_normal.png
+

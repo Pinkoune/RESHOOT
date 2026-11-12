@@ -1,0 +1,11 @@
+newmtl tripo_material_38d94598_f49f_4292_ac5e_b67629fa193c
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_Barrel_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_Barrel_roughness.png
+map_Pm SM_Space_Barrel_metallic.png
+norm SM_Space_Barrel_normal.png
+
