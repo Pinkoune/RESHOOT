@@ -41,7 +41,7 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : `ANoirRevolver` (hitscan coup par coup, chargeur de 6, recharge R ou auto à vide, annulée au gel), `ANoirGangster` (reste à couvert, se tourne et tire quand il voit le joueur, probabilité de toucher, timer mis en pause au CUT!). 40 répliques du réalisateur écrites dans `Content/RESHOOT/Audio/DirectorLines.csv`, prêtes à importer en `DT_DirectorLines` (colonne Sound vide en attendant les voix).
 - Comment : tout le code en un seul lot de headers pour un seul redémarrage de l'éditeur. Gangster sans navmesh : il est placé derrière une caisse, le « couvert » vient du level design. Emplacements de sons (tir, vide, recharge) prévus dès maintenant pour brancher l'audio samedi sans toucher aux headers. Voix pas encore générées : plus de crédits ElevenLabs, on attend les crédits fal du jam.
 - Capture : aucune
-
+- 
 ### 2026-11-12 21:40 — Film noir : assets créés par l'IA dans l'éditeur
 - Qui : Jules + Claude (Claude Code, Opus 5.5)
 - Fait : `M_PP_Noir` (post-process noir et blanc : SceneTexture PostProcessInput0 → Desaturation à 1 → Emissive), `DA_Noir` (univers Noir, revolver, gangster, sous-niveau `L_Noir`, post-process), `L_Noir` (5 caisses, 3 gangsters derrière les 3 premières, tournés vers le centre).
@@ -59,3 +59,16 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : gangster conforme au GDD (80 PV, rafales de 3 balles à 15 toutes les 2 s, 450 cm/s) : il rejoint la caisse la plus proche, reste baissé derrière, se relève pour tirer, fait le tour de sa caisse si le joueur le contourne et court vers un autre couvert si le joueur approche à moins de 6 m ; il touche moins un joueur qui bouge. Revolver à 45 dégâts, clic droit = visée avec zoom, éclair de lumière à chaque tir, API pour la directive « Plan-séquence ». Événement « coupure de courant » (`ANoirBlackoutEvent`) : lumières éteintes 10 s, exposition figée, seuls les tirs éclairent.
 - Comment : tout vérifié en PIE depuis la console Python : gangsters baissés/relevés, fuite de la caisse 1 à la caisse 4 quand le joueur est téléporté à côté. Premier essai de coupure raté : lumières à 2 % mais l'exposition manuelle rendait la scène presque aussi claire ; réglé en direct (lumières à 0, éclairs de 3000 cd) avant de figer les valeurs.
 - Capture : docs/devlog-media/2026-11-12-noir-coupure.jpg
+
+### 2026-11-12 22:30 — Médiéval : compilé, carte de test, jouable
+- Qui : Iléana + Claude (Claude Code, Opus 5.5)
+- Fait : `DA_Medieval` (épée, chevalier, archer), carte `Content/RESHOOT/Medieval/Test/L_MedievalTest` (sol, mur, caisses, 3 chevaliers, archer sur une tour) avec un joueur et un GameMode de test qui donnent l'épée sans passer par le réalisateur. Épée, bouclier, arc, chevaliers et archer testés en PIE : tout marche.
+- Comment : Live Coding lancé par l'IA via le MCP a fait planter l'éditeur (nouvelles classes et nouvelles `UPROPERTY` : « VTable did not change »), il a fallu un build complet. Ensuite, deux éditeurs ouverts se disputaient le port 8000 du MCP ; relancé sans redémarrer avec la commande console `ModelContextProtocol.StartServer`. Leçon : nouvelles classes = build complet éditeur fermé, corps de fonctions = Live Coding.
+- Capture : aucune
+
+### 2026-11-12 23:00 — Médiéval : épée, bouclier, arc, chevalier, archer (code)
+- Qui : Ileana + Claude (Claude Code, Opus 5.5)
+- Fait : `AMedievalSword` (épée en cône 2,5 m / 50 dégâts / 1,5 coup par s, bouclier qui passe par `SetFrontalBlock(0.2)`, arc chargé 40→100 dégâts en 1 s), `AMedievalArrow` (projectile commun au joueur et à l'archer, gelé au CUT!), `AMedievalKnight` (poursuite navmesh ou ligne droite, coup préparé de 0,35 s, mort en physique avec heaume qui s'envole), `AMedievalArcher` (fixe, flèche lente avec anticipation partielle). Tout en boîtes grises avec les formes de base du moteur. Pas encore compilé ni testé.
+- Comment : conflit repéré entre le GDD (deux armes médiévales) et l'architecture (une `WeaponClass` par univers) : résolu sans toucher au socle avec une seule arme à deux modes, qui ajoute elle-même son contexte Enhanced Input (1, 2, molette). Le déplacement du socle est réutilisé tel quel ; seul manque une API pour bloquer le sprint bouclier levé, demandée au socle.
+- Capture : aucune
+- 
