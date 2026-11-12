@@ -41,7 +41,7 @@ Médiéval
 
 Spatial
 - [x] Déplacement en apesanteur avec inertie (socle)
-- [ ] Laser hitscan, surchauffe, visée (Claude)
+- [ ] Laser hitscan, surchauffe, visée (Claude) — codé, à tester en PIE après le redémarrage
 
 Film noir + audio
 - [ ] Revolver hitscan avec chargeur
