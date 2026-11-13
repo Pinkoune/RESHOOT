@@ -1,0 +1,11 @@
+newmtl tripo_material_0e038f62_f092_49ac_a10f_23d72e60a7c5
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_AlarmLight_Real_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_AlarmLight_Real_roughness.png
+map_Pm SM_Space_AlarmLight_Real_metallic.png
+norm SM_Space_AlarmLight_Real_normal.png
+
