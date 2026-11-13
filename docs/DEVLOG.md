@@ -82,3 +82,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : 8 modèles importés (fusil laser, caisse, console, bidons, panneau de coursive, hublot, néon, lampe d'alarme) avec matériaux PBR, tailles réelles et collisions simples. `BP_SpaceLaser` porte le fusil ; `L_Space` est habillé (panneaux, hublots, caisses, consoles, néons, alarmes, 4 bidons en plus). Les sources brutes (OBJ + textures) sont rangées dans `SourceArt/Space/`, hors de `Content/`.
 - Comment : les OBJ arrivent Y-haut et en mètres normalisés (~1 unité) : import par Interchange avec un pipeline surchargé (rotation de 90° en roulis, échelle par objet pour la taille réelle). Piège : l'import crée bien le matériau PBR avec les 4 textures, mais laisse la normal map désactivée (poids 0) : réactivée partout. Le fusil (Rodin) n'avait pas de `.mtl` : matériau monté à la main, émissif compris. Autre piège découvert : après un redémarrage de l'éditeur, les correctifs passés par Live Coding sont perdus tant qu'on n'a pas recompilé pour de vrai.
 - Capture : aucune
+
+### 2026-11-13 09:00 — Recompilation et drones qui passent les murs
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : build complet de l'éditeur (correctifs d'hier rendus permanents, code film noir de Jules compilé). Vérifié en PIE sur `L_Stage` sans rien forcer : scène spatiale lancée au démarrage avec `BP_SpaceLaser`, tir à la tête 24 / corps 12, drones qui blessent le joueur. Ajout d'un évitement minimal aux drones : un mur devant eux, ils montent par-dessus (le plateau n'a pas de plafond). Les 4 drones atteignent le joueur en moins de 7 s, quelle que soit leur porte.
+- Comment : le test a montré que les drones nés derrière une porte latérale restaient collés au mur, puisqu'ils volent en ligne droite sans navmesh. Un balayage de sphère de 4 m devant eux suffit.
+- Capture : aucune
