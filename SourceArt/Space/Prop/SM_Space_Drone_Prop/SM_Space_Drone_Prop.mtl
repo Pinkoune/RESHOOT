@@ -1,0 +1,11 @@
+newmtl tripo_material_acc04a3c_6f23_4a9f_9a81_89e698d47cf5
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_Drone_Prop_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_Drone_Prop_roughness.png
+map_Pm SM_Space_Drone_Prop_metallic.png
+norm SM_Space_Drone_Prop_normal.png
+

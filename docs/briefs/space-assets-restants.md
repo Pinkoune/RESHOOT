@@ -1,5 +1,7 @@
 # Spatial — ce qu'il reste à générer (14/11)
 
+**Tout est fait et branché** (drone, sol, mur, ciel, planète, coque, studio). Reste seulement, côté studio : projecteur, chaise de réalisateur, clap. Le suivi est maintenant dans le guide des assets.
+
 Fait : les 8 objets du spatial existent en `_Prop` et en `_Real`, importés, posés dans `L_Space`, branchés sur `M_SetDressing`. Le fusil a ses deux versions.
 
 Ce qui manque, par ordre d'importance pour l'écran :

@@ -110,7 +110,7 @@ Armes et accessoires existent en deux versions, comme les décors : même prompt
 | Épée | `SM_Medieval_Sword` | `Medieval knight longsword, straight double-edged steel blade, simple crossguard, leather-wrapped grip, round pommel.` | 100 cm de long | 20 000 |  |  |
 | Bouclier | `SM_Medieval_Shield` | `Medieval heater shield, painted wood with red and gold heraldic stripes and no emblem, metal rim, leather straps on the back.` | 80 cm de haut | 20 000 |  |  |
 | Arc | `SM_Medieval_Bow` | `Medieval wooden longbow, thick curved yew wood, leather grip in the middle, no string, no arrow.` | 140 cm de haut | 20 000 |  |  |
-| Fusil laser | `SM_Space_LaserRifle` | `Retro sci-fi laser rifle, compact bullpup shape, white and orange plastic panels, glowing blue emitter at the muzzle, cooling fins on the barrel, chunky trigger guard.` | 70 cm de long | 30 000 |  |  |
+| Fusil laser | `SM_Space_LaserRifle` | `Retro sci-fi laser rifle, compact bullpup shape, white and orange plastic panels, glowing blue emitter at the muzzle, cooling fins on the barrel, chunky trigger guard.` | 80 cm de long | 30 000 | Jérémy | Fait (carton + réaliste) |
 | Revolver | `SM_Noir_Revolver` | `1940s snub-nose revolver, six-shot cylinder, dark blued steel, checkered wooden grip, film noir detective style.` | 20 cm de long | 20 000 |  |  |
 
 L'arc est demandé sans corde : les générateurs ratent les objets très fins. La corde et la flèche seront ajoutées dans Unreal.
@@ -121,7 +121,7 @@ L'arc est demandé sans corde : les générateurs ratent les objets très fins. 
 | --- | --- | --- | --- | --- | --- | --- |
 | Casque de chevalier | `SM_Medieval_Helmet` | `Medieval knight helmet, rounded steel great helm with eye slit and breathing holes, slightly dented, hollow inside, wearable.` | 30 cm de haut | 8 000 |  |  |
 | Chapeau de gangster | `SM_Noir_Fedora` | `1940s fedora hat, dark grey felt, black ribbon band, pinched crown, film noir gangster style, hollow inside, wearable.` | 15 cm de haut, 35 cm de large | 5 000 |  |  |
-| Drone | `SM_Space_Drone` | `Small hovering sci-fi security drone, round white body, single large red camera eye, two short side thrusters, small gun barrel underneath, visible screws and seams.` | 60 cm de large | 15 000 |  |  |
+| Drone | `SM_Space_Drone` | `Small hovering sci-fi security drone, round white body, single large red camera eye, two short side thrusters, small gun barrel underneath, visible screws and seams.` | 60 cm de large | 15 000 | Jérémy | Fait (carton + réaliste) |
 
 **Objets communs** — outil : Tripo. Dossier `Content/RESHOOT/Core/Meshes/`.
 
@@ -159,15 +159,15 @@ Les rails du convoi n'existent qu'en carton : `SM_Medieval_Rails_Prop`, prompt `
 
 | Objet | Nom (+ `_Prop` / `_Real`) | Description | Taille dans Unreal | Rôle | Qui | Carton | Réaliste |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panneau de coursive | `SM_Space_CorridorPanel` | `Sci-fi spaceship corridor wall section, white panels, grey vents and orange stripes, straight modular piece, flat back.` | 400 × 260 cm | Mur, à dupliquer | Jérémy | Fait |  |
-| Hublot | `SM_Space_Porthole` | `Large round spaceship porthole window, thick white metal ring frame with bolts, dark glass with stars behind, wall mounted.` | 150 cm de diamètre | Se pose sur le panneau |  |  |  |
-| Caisse de cargo | `SM_Space_CargoCrate` | `Sci-fi cargo crate, white and orange hard plastic box with reinforced corners, recessed handles and a hazard stripe, closed.` | 120 cm de côté | Couvert, flotte en apesanteur |  |  |  |
-| Console | `SM_Space_Console` | `Sci-fi control console, slanted desk with buttons, switches, levers and dark blank screens, white casing, freestanding.` | 150 × 110 cm | Couvert bas |  |  |  |
-| Néon | `SM_Space_NeonTube` | `Long sci-fi light tube fixture, glowing blue tube held by two white metal end caps, wall mounted.` | 150 cm de long | Éclairage |  |  |  |
-| Lampe d'alarme | `SM_Space_AlarmLight` | `Red emergency beacon light, red dome on a black metal base with protective wire cage, wall mounted.` | 30 cm de haut | S'allume à la coupure de gravité |  |  |  |
-| Bidon | `SM_Space_Barrel` | `Sci-fi fuel canister, yellow metal drum with black hazard stripes, two handles on top, round cap.` | 90 cm de haut | Couvert, flotte en apesanteur |  |  |  |
+| Panneau de coursive | `SM_Space_CorridorPanel` | `Sci-fi spaceship corridor wall section, white panels, grey vents and orange stripes, straight modular piece, flat back.` | 400 × 260 cm | Mur, à dupliquer | Jérémy | Fait | Fait |
+| Hublot | `SM_Space_Porthole` | `Large round spaceship porthole window, thick white metal ring frame with bolts, dark glass with stars behind, wall mounted.` | 200 cm de diamètre | Se pose sur le panneau | Jérémy | Fait | Fait |
+| Caisse de cargo | `SM_Space_CargoCrate` | `Sci-fi cargo crate, white and orange hard plastic box with reinforced corners, recessed handles and a hazard stripe, closed.` | 120 cm de côté | Couvert, flotte en apesanteur | Jérémy | Fait | Fait |
+| Console | `SM_Space_Console` | `Sci-fi control console, slanted desk with buttons, switches, levers and dark blank screens, white casing, freestanding.` | 150 × 110 cm | Couvert bas | Jérémy | Fait | Fait |
+| Néon | `SM_Space_NeonTube` | `Long sci-fi light tube fixture, glowing blue tube held by two white metal end caps, wall mounted.` | 200 cm de long | Éclairage | Jérémy | Fait | Fait |
+| Lampe d'alarme | `SM_Space_AlarmLight` | `Red emergency beacon light, red dome on a black metal base with protective wire cage, wall mounted.` | 40 cm de haut | S'allume à la coupure de gravité | Jérémy | Fait | Fait |
+| Bidon | `SM_Space_Barrel` | `Sci-fi fuel canister, yellow metal drum with black hazard stripes, two handles on top, round cap.` | 150 cm de haut | Couvert, flotte en apesanteur | Jérémy | Fait | Fait |
 
-Le panneau déjà généré, avec son cadre en bois, est la version carton : le renommer `SM_Space_CorridorPanel_Prop`. Commencer ensuite par les caisses et les bidons : ce sont eux qui rendent l'apesanteur visible.
+Le spatial est complet. Les tailles du tableau sont celles du jeu : elles ont été recalées sur les objets posés (hublot 200 cm, néon 200 cm, alarme 40 cm, bidons 150 cm).
 
 **Film noir** — `Content/RESHOOT/Noir/Meshes/`. L'univers passe en noir et blanc : les formes et les contrastes comptent plus que les couleurs.
 
@@ -187,10 +187,35 @@ Le panneau déjà généré, avec son cadre en bois, est la version carton : le 
 | Univers | Ciel | Éléments lointains | Qui | Fait |
 | --- | --- | --- | --- | --- |
 | Médiéval | Ciel de fin d'après-midi, nuages dorés | Collines et forêts, remparts et tours d'un château au loin |  |  |
-| Spatial | Champ d'étoiles et nébuleuse | Grande planète en arrière-plan, coque du vaisseau qui se prolonge |  |  |
+| Spatial | Champ d'étoiles et nébuleuse | Grande planète en arrière-plan, coque du vaisseau qui se prolonge | Jérémy | Fait |
 | Film noir | Ciel de nuit couvert, pluie | Silhouettes d'immeubles, fenêtres éclairées, enseignes lointaines |  |  |
 
 Ces arrière-plans font partie de la version réaliste : invisibles pendant la répétition, ils apparaissent derrière le rideau.
+
+Prompts des images (fal, panorama 21:9, 4K si possible). Ajouter à chacun : `matte painting, cinematic, wide panorama, no characters, no text, no logo`. Les éléments lointains se font **sur fond noir pur** : le noir devient transparent dans le jeu.
+
+| Univers | Fichier | Prompt |
+| --- | --- | --- |
+| Médiéval | `T_Medieval_SkyPanorama` | `late afternoon sky with large golden cumulus clouds, warm sun low on the horizon, soft haze` |
+| Médiéval | `T_Medieval_Hills` | `rolling green hills and dark forests with a distant stone castle with tall towers on a hill, black background above the horizon` |
+| Spatial | `T_Space_SkyPanorama` | `deep space starfield with a soft blue and violet nebula, dense small stars, a few bright stars with gentle glow, dark black background` |
+| Spatial | `T_Space_Planet` | `huge blue ocean planet with swirling white clouds seen from orbit, thin glowing atmosphere rim, black space background` |
+| Spatial | `T_Space_HullBackdrop` | `exterior of a giant white spaceship hull stretching into the distance, panels, antennas and blue running lights, black space background` |
+| Film noir | `T_Noir_SkyPanorama` | `overcast night sky over a city, heavy dark clouds lit from below by city lights, light rain` |
+| Film noir | `T_Noir_Skyline` | `1940s city skyline silhouettes at night, brick buildings and water towers, a few lit windows and distant neon signs, black background above the roofs` |
+
+**Sols et murs de la version réaliste.** Après le rideau, le blockout gris ne doit plus se voir : on le recouvre d'un sol et de murs texturés. Une image carrée qui se répète suffit par surface. Outil : fal, image carrée 2048 × 2048 (1024 accepté). Ajouter à chaque prompt : `seamless tileable texture, top-down orthographic, even flat lighting, no shadows, no perspective, no text, no logo`.
+
+| Univers | Fichier | Prompt | Qui | Fait |
+| --- | --- | --- | --- | --- |
+| Médiéval | `T_Medieval_Floor` | `medieval castle courtyard ground, worn grey cobblestones with packed dirt and a little straw between the stones` |  |  |
+| Médiéval | `T_Medieval_Wall` | `medieval castle wall, large weathered grey stone blocks with thin mortar lines, a few mossy stones` |  |  |
+| Spatial | `T_Space_Floor` | `sci-fi spaceship hangar floor, large square white and light grey metal plates, thin dark seams, small bolts at the corners, subtle scuffs and orange hazard markings on a few plates` | Jérémy | Fait |
+| Spatial | `T_Space_Wall` | `sci-fi spaceship hull interior wall, white composite panels with recessed grey vents and thin orange stripes, modular grid` | Jérémy | Fait |
+| Film noir | `T_Noir_Floor` | `1940s city street, wet dark asphalt with cracks, puddles and faded worn paint` |  |  |
+| Film noir | `T_Noir_Wall` | `1940s city alley wall, old dark red bricks with grime, soot and peeling posters without text` |  |  |
+
+Elles se branchent sur `M_SetDressing_Tiled` (la texture se répète d'elle-même, sans étirement), sur une copie du blockout posée 3 cm au-dessus, dans `Dressing_Real`.
 
 ## Priorité 3 : envers du décor
 
@@ -198,37 +223,61 @@ Six objets communs aux trois univers, en une seule version, visibles seulement p
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Où le placer | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Caméra de cinéma | `SM_Stage_Camera` | `Vintage film movie camera on a heavy tripod, large black camera body with two film reels on top, matte box lens hood, crank handle.` | 180 cm de haut | 15 000 | Aux bords du plateau, tournée vers la zone de jeu |  |  |
-| Perche micro | `SM_Stage_BoomMic` | `Boom microphone on a thick wheeled stand, long angled metal arm ending in a large fluffy grey windscreen microphone.` | 300 cm de haut | 8 000 | Au-dessus de la zone de jeu, visible dans le champ |  |  |
-| Câbles enroulés | `SM_Stage_Cables` | `Pile of thick black electrical cables coiled in loops on the floor, with two large stage plugs.` | 80 cm de large | 6 000 | Au sol, hors des chemins de course |  |  |
-| Sacs de sable | `SM_Stage_Sandbags` | `Stack of three film set sandbags, heavy black canvas bags with carrying handles, piled on top of each other.` | 60 cm de large | 4 000 | Au pied des panneaux de décor et des projecteurs |  |  |
-| Passerelle | `SM_Stage_Catwalk` | `Straight section of industrial metal catwalk, grated steel floor with tubular safety railings on both sides, modular segment.` | 400 cm de long, 100 cm de large | 10 000 | En hauteur, le long des murs du hangar |  |  |
-| Caisse de matériel | `SM_Stage_FlightCase` | `Black road flight case on four caster wheels, aluminum edges, ball corners, butterfly latches and recessed handles, closed.` | 120 cm de large, 80 cm de haut | 5 000 | En coulisses, peut servir de couvert |  |  |
+| Caméra de cinéma | `SM_Stage_Camera` | `Vintage film movie camera on a heavy tripod, large black camera body with two film reels on top, matte box lens hood, crank handle.` | 180 cm de haut | 15 000 | Aux bords du plateau, tournée vers la zone de jeu | Jérémy | Fait |
+| Perche micro | `SM_Stage_BoomMic` | `Boom microphone on a thick wheeled stand, long angled metal arm ending in a large fluffy grey windscreen microphone.` | 300 cm de haut | 8 000 | Au-dessus de la zone de jeu, visible dans le champ | Jérémy | Fait |
+| Câbles enroulés | `SM_Stage_Cables` | `Pile of thick black electrical cables coiled in loops on the floor, with two large stage plugs.` | 80 cm de large | 6 000 | Au sol, hors des chemins de course | Jérémy | Fait |
+| Sacs de sable | `SM_Stage_Sandbags` | `Stack of three film set sandbags, heavy black canvas bags with carrying handles, piled on top of each other.` | 60 cm de large | 4 000 | Au pied des panneaux de décor et des projecteurs | Jérémy | Fait |
+| Passerelle | `SM_Stage_Catwalk` | `Straight section of industrial metal catwalk, grated steel floor with tubular safety railings on both sides, modular segment.` | 400 cm de long, 100 cm de large | 10 000 | En hauteur, le long des murs du hangar | Jérémy | Fait |
+| Caisse de matériel | `SM_Stage_FlightCase` | `Black road flight case on four caster wheels, aluminum edges, ball corners, butterfly latches and recessed handles, closed.` | 120 cm de large, 80 cm de haut | 5 000 | En coulisses, peut servir de couvert | Jérémy | Fait |
 
 ## Import dans Unreal et contrôle
 
-Un asset n'est « fait » que lorsqu'il est dans le jeu, à la bonne taille, avec une collision.
+Un asset n'est « fait » que lorsqu'il est dans le jeu, à la bonne taille, au bon endroit, et qu'il change bien au passage du rideau.
 
-1. **Glisser le fichier** (GLB de préférence) dans le dossier indiqué du Content Browser.
-2. **Options d'import :** garder les textures, ne pas importer d'animation, une seule mesh combinée.
-3. **Renommer** selon la colonne « Nom », avec `_Prop` ou `_Real` pour les décors.
-4. **Matériau d'un décor à deux versions :** ne pas garder le matériau généré. Créer une instance du matériau maître `M_SetDressing` et y brancher couleur, normale et rugosité. C'est lui qui fait la transition : un décor sans lui ne change pas au passage du balayage.
-5. **Poser l'objet à côté du mannequin** et le mettre à la taille indiquée. Si l'échelle est très loin de 1, corriger l'échelle d'import dans les réglages de l'asset.
-6. **Vérifier le pivot :** en bas et au centre pour un décor, à la poignée pour une arme. Les deux versions d'un objet ont le même pivot.
-7. **Collision :** aucune sur les décors fixes, le blockout gris s'en charge. Collision convexe automatique pour ce qui bouge (caisses et bidons flottants, convoi) et pour les objets à une version qui servent de couvert.
-8. **Superposer les deux versions** et alterner leur visibilité : rien ne doit sauter. Puis regarder l'objet sous l'éclairage du plateau et ajuster la rugosité si besoin.
+**Le plus simple : déposer, Claude importe.** Exportez depuis l'outil (Tripo et Rodin donnent un zip avec un `.obj` et ses textures), puis déposez le zip tel quel dans le dossier `Meshes/` de l'univers, avec le nom de la ligne : `SM_Space_Console_Real.zip`. Les images (ciels, textures) se déposent en PNG. Claude dézippe dans `SourceArt/` (hors du jeu), importe, règle tout ce qui suit et pose l'objet. Les zips de `Content/` ne sont pas versionnés.
+
+**À la main, si besoin :**
+
+1. **Ranger la source** dans `SourceArt/<Univers>/Prop` ou `/Real` : jamais de `.obj`, `.png` ou `.zip` dans `Content/`, Unreal ne les lit pas et ils alourdissent le dépôt.
+2. **Importer le `.obj`** (Interchange) dans `Content/RESHOOT/<Univers>/Meshes/<Objet>/` (la version réaliste dans un sous-dossier `Real/`), avec :
+   - **rotation d'import de 90° sur l'axe X** : les générateurs exportent « Y en haut », Unreal veut « Z en haut » ;
+   - **échelle d'import = taille voulue en cm ÷ taille de l'objet dans le fichier** : Tripo et Rodin normalisent l'objet autour de 1 unité, donc une caisse de 120 cm s'importe à environ 122 ;
+   - pas de collision ;
+   - **Nanite activé** au-delà de 50 000 triangles.
+3. **Renommer** selon la colonne « Nom », avec `_Prop` ou `_Real`.
+4. **Pivot** : en bas et au centre pour un décor, au centre pour un drone, à la poignée pour une arme. Les deux versions d'un objet ont exactement la même taille et le même pivot : posez-les l'une sur l'autre et alternez leur visibilité, rien ne doit sauter.
+5. **Matériau.** Ne pas garder celui de l'import : il désactive souvent la normal map (poids à 0) et il ne fait pas la transition. Créez une instance de `M_SetDressing` et branchez-y couleur, normale, rugosité et métal. Réglez les textures de rugosité et de métal en « Masks » (sRGB décoché).
+   - **Version carton** : `bIsReal` décoché, et une teinte carton (`BaseColorTint` 0,85 / 0,70 / 0,50) si l'objet ne fait pas assez « carton ».
+   - **Version réaliste** : `bIsReal` coché.
+   - **Studio** (une seule version, qui disparaît au rideau) : `bIsReal` décoché.
+6. **Textures** : taille maximale 2048 (4096 pour les ciels).
+7. **Dans le niveau**, voir `docs/ARCHITECTURE.md` :
+   - dossier `Dressing_Prop` ou `Dressing_Real`, avec le tag `DressingProp` ou `DressingReal` (c'est le tag que le jeu lit) ;
+   - collision « NoCollision » ;
+   - ciels et images lointaines : tag `DressingSwitch` en plus.
+8. **Arme et accessoire de figurant** : renseigner `PropMesh` / `RealMesh` (arme) ou `AccessoryProp` / `AccessoryReal` (figurant) dans le Blueprint.
 
 Pièges fréquents :
 
 | Problème | Solution |
 | --- | --- |
-| Objet minuscule ou géant | Échelle d'import : les GLB sont souvent en mètres, Unreal travaille en centimètres |
+| Objet minuscule (1 cm) | Échelle d'import : les fichiers sont en mètres normalisés, Unreal travaille en centimètres |
 | Objet couché sur le côté | Rotation d'import de 90° sur l'axe X |
+| Objet debout au lieu de couché (panneau) | Ajouter 90° sur l'axe Y à l'import, puis recentrer le pivot |
+| Matériau plat, sans relief | Normal map désactivée par l'import : passer par `M_SetDressing` |
+| L'objet ne change pas au passage du rideau | Pas de `M_SetDressing`, ou pas de tag `DressingProp` / `DressingReal` |
 | Matériau gris | Les textures n'ont pas suivi : les importer à la main et les brancher dans le matériau |
 | Parties fines cassées (corde, pieds, câbles) | Regénérer avec « thick » dans le prompt, ou supprimer la partie du prompt |
 | Texte illisible sur l'objet | Regénérer en ajoutant « blank, no text » |
-| Trop de triangles | Réduire à l'export de l'outil, pas dans Unreal |
+| Import ou duplication qui échoue sans message | Une partie (PIE) tourne encore dans l'éditeur : l'arrêter |
+| Trop de triangles | Réduire à l'export de l'outil, ou activer Nanite |
 
 Pour les armes, c'est le développeur de l'univers qui règle la position en main ; la personne qui génère s'arrête à l'import.
 
 Les fichiers `.uasset` sont gros : poussez-les par petits lots, et prévenez l'équipe avant d'ajouter plus de dix objets d'un coup.
+
+## Ce qu'il reste (14/11)
+
+- **Médiéval et film noir** : tout (armes, accessoires, décors, sols, murs, ciels). Commencer par l'arme, puis les couverts.
+- **Studio** : `SM_Stage_Spotlight`, `SM_Stage_DirectorChair`, `SM_Stage_Clapperboard` (les projecteurs sont encore des formes grises).
+- **Spatial** : complet.
