@@ -1,6 +1,7 @@
 #include "Core/ReshootCharacter.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootWeapon.h"
+#include "Core/SetDressingSweep.h"
 #include "Core/UniverseDefinition.h"
 #include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
@@ -9,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
@@ -68,6 +70,7 @@ void AReshootCharacter::BeginPlay()
 			InitialUniverse = Director->GetCurrentUniverse();
 		}
 	}
+	bDressingReal = ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
 	SetUniverse(InitialUniverse);
 }
 
@@ -125,6 +128,30 @@ void AReshootCharacter::SetUniverse(EUniverse NewUniverse)
 	OnUniverseChanged.Broadcast(NewUniverse);
 }
 
+void AReshootCharacter::SetDressingReal(bool bReal)
+{
+	if (bDressingReal == bReal)
+	{
+		return;
+	}
+	bDressingReal = bReal;
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetDressingReal(bReal);
+	}
+	// Petit flash au passage du rideau (seulement vers le réaliste).
+	if (bReal && DressingFlashTime > 0.f)
+	{
+		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (PC->PlayerCameraManager)
+			{
+				PC->PlayerCameraManager->StartCameraFade(DressingFlashAlpha, 0.f, DressingFlashTime, DressingFlashColor, false, false);
+			}
+		}
+	}
+}
+
 void AReshootCharacter::DebugUniverse(int32 UniverseIndex)
 {
 	const int32 Clamped = FMath::Clamp(UniverseIndex, 0, static_cast<int32>(EUniverse::Noir));
@@ -154,6 +181,7 @@ AReshootWeapon* AReshootCharacter::EquipWeapon(TSubclassOf<AReshootWeapon> Weapo
 			CurrentWeapon->SetActorRelativeTransform(WeaponOffset);
 			CurrentWeapon->OnWeaponEvent.AddDynamic(this, &AReshootCharacter::HandleWeaponEvent);
 			CurrentWeapon->SetEnabled(!bFrozen);
+			CurrentWeapon->SetDressingReal(bDressingReal);
 			if (!IsWeaponActionAllowed(EWeaponAction::SwitchMode))
 			{
 				CurrentWeapon->SelectMode(0);

@@ -115,6 +115,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Reshoot|Movement")
 	bool IsSpaceGravityOn() const { return bSpaceGravityOn; }
 
+	// --- Carton / réaliste ---
+
+	/** Appelé par ASetDressingSweep quand le rideau passe sur le joueur : change le modèle de l'arme, petit flash. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Dressing")
+	void SetDressingReal(bool bReal);
+
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Dressing")
+	bool IsDressingReal() const { return bDressingReal; }
+
 	/** Commande console de test : DebugUniverse 1 (Medieval), 2 (Space), 3 (Noir). */
 	UFUNCTION(Exec)
 	void DebugUniverse(int32 UniverseIndex);
@@ -185,6 +194,17 @@ public:
 	/** Molette : mode suivant / précédent (Axis1D). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CycleModeAction;
+
+	// --- Réglages : flash du passage carton -> réaliste ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing")
+	FLinearColor DressingFlashColor = FLinearColor(1.f, 0.95f, 0.8f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing", meta = (ClampMin = "0", ClampMax = "1"))
+	float DressingFlashAlpha = 0.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing", meta = (ClampMin = "0"))
+	float DressingFlashTime = 0.25f;
 
 	// --- Réglages : caméra ---
 
@@ -347,4 +367,5 @@ private:
 	float TargetAimFOV = 90.f;
 	FTimerHandle AimFOVTimer;
 	bool bSpaceGravityOn = false;
+	bool bDressingReal = false;
 };

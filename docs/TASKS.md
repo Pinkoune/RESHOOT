@@ -103,6 +103,16 @@ Interface
 - [ ] Dev log finalisé
 - [ ] Build final
 
+## Décor carton -> réaliste (13/11)
+
+- [x] Socle : `ASetDressingSweep`, `MPC_SetDressing`, `M_SetDressing`, armes et accessoires en deux versions, test dans `L_Space` (Jérémy + Claude)
+- [ ] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 (Enzo, voir `docs/HANDOFF-Director.md`)
+- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
+- [ ] Spatial : versions carton des 7 objets de décor et du drone (aujourd'hui seuls le panneau de test et le fusil ont un carton)
+- [ ] `L_Stage` : rendre le blockout invisible en jeu une fois les sols et murs habillés
+- [ ] Rendu : figer l'exposition pendant le balayage (aujourd'hui l'image se surexpose au passage)
+- [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
+
 ## Demandes au socle
 
 Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison>`

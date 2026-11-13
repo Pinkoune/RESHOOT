@@ -42,6 +42,15 @@ Pas encore testé après le second lot de headers : `NotifyKill` avec directive,
 8. **Vendredi — entrées des figurants.** Le GDD veut qu'ils entrent par les portes, jamais dans le dos du joueur à moins de 10 m. Aujourd'hui, `AWaveSpawner` tire un point au hasard dans `SpawnPoints` ou sur un cercle, sans regarder où est le joueur.
 9. **Samedi — casting.** Placer le joueur au `PlayerStart` tagué `CastingPlayerStartTag`. L'UI appelle `FinishCasting()` quand le tutoriel est fini et `AReshootGameState::SetPlayerName`.
 
+## Ajout du 13/11 : décor carton -> réaliste
+
+Le GDD prévoit deux états par scène. Côté réalisateur, deux appels seulement :
+
+- au début de chaque scène (`BeginScene`) : `if (ASetDressingSweep* Sweep = ASetDressingSweep::Get(this)) { Sweep->ResetDressing(); }` ;
+- à la fin de la prise 1 : réplique « On améliore la mise en scène ! », puis `Sweep->UpgradeDressing()`. La prise 2 peut commencer sur `OnDressingUpgraded` (2,5 s plus tard).
+
+Pendant le final, l'univers change toutes les 20 s : appelle `UpgradeDressing()` juste après chaque `SetUniverse` pour rester en réaliste. Le carton du nouvel univers ne doit pas réapparaître. À tester.
+
 ## Pièges connus
 
 - Les timers du monde ignorent `CustomTimeDilation` : un ennemi gelé n'arrête ses timers que s'ils passent par `TrackFreezableTimer`. Côté réalisateur, mets toi-même tes timers en pause au CUT.

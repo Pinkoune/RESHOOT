@@ -144,6 +144,31 @@ Simplifications imposées :
 - **Space** : joueur en `MOVE_Flying` avec inertie ; drones en ligne droite vers le joueur, sans navmesh.
 - **Noir** : revolver hitscan avec chargeur ; gangsters à couvert sur navmesh ; post-process noir et blanc.
 
+## Décor carton -> réaliste — `Core/SetDressingSweep`
+
+Chaque scène commence en carton. À la fin de la prise 1, le réalisateur appelle `UpgradeDressing()` : un rideau de lumière balaie le plateau en 2,5 s et révèle le réaliste, à la même place. `ResetDressing()` au début de chaque scène remet tout en carton.
+
+| Élément | Rôle | API / réglages |
+| --- | --- | --- |
+| `ASetDressingSweep` (un seul, dans `L_Stage`) | Le rideau | `UpgradeDressing()`, `ResetDressing()`, `IsDressingReal()`, `IsSweeping()`, `IsLocationReal(Location)` ; statiques `Get(WorldContext)`, `IsLocationRealInWorld(WorldContext, Location)` ; delegates `OnDressingUpgraded` (fin du balayage), `OnDressingReset` ; réglages `Collection`, `SweepDirection`, `SweepLength`, `SweepWidth`, `Duration` 2,5 s, `EdgeWidth`, `EdgeSparks`, `SparkCount`, `SparkHeights`, `SweepSound`, `PropTag`, `RealTag` |
+| `MPC_SetDressing` (`Content/RESHOOT/Core/Materials`) | Position du rideau pour tous les matériaux | `SweepOrigin`, `SweepDirection`, `SweepDistance`, `EdgeWidth` (écrits par le rideau, jamais à la main) |
+| `M_SetDressing` (même dossier) | Matériau maître de tout le décor | Masked, fondu tramé ; switch statique `bIsReal` ; textures `BaseColorMap`, `NormalMap`, `RoughnessMap`, `MetallicMap`, `EmissiveMap` ; `BaseColorTint`, `RoughnessScale`, `MetallicScale`, `EmissiveColor` ; lisière `EdgeColor`, `EdgeIntensity`, `EdgeSharpness` |
+| `AReshootWeapon` | Deux modèles d'arme | `PropMesh`, `RealMesh` (même pivot), `SetDressingReal(bool)`, `IsDressingReal()` |
+| `AReshootEnemy` | Accessoire de costume en deux versions | composant `Accessory` (socket `AccessorySocket`, « head »), `AccessoryProp`, `AccessoryReal`, `SetDressingReal(bool)`, virtuelle `OnDressingChanged(bool)` ; un figurant qui apparaît derrière le rideau est réaliste dès le départ |
+| `AReshootCharacter` | Arme du joueur + flash | `SetDressingReal(bool)` (appelé par le rideau), `IsDressingReal()` ; réglages `DressingFlashColor`, `DressingFlashAlpha`, `DressingFlashTime` |
+
+Convention de niveau (chaque sous-niveau `L_<Univers>`, et `L_Stage` pour le studio commun) :
+
+- **Blockout** : seule géométrie avec collision. Commun aux deux états, il ne bouge jamais.
+- **Dossier `Dressing_Prop` + tag `DressingProp`** : tout ce qui n'existe qu'au tournage. Décor carton, studio (hangar, projecteurs, caméras, perche, passerelles, techniciens), lumière de studio plate, post-process neutre.
+- **Dossier `Dressing_Real` + tag `DressingReal`** : décor réaliste, ciel de l'univers, grands plans d'arrière-plan peints, lumières et post-process de l'univers.
+- **Les dossiers servent aux humains, les tags au jeu** : les dossiers de l'éditeur n'existent plus dans le jeu packagé, donc le rideau ne lit que les tags.
+- **Aucune collision sur le décor** (profil `NoCollision`), qu'il soit carton ou réaliste.
+- **Matériau** : les meshes de décor utilisent une instance de `M_SetDressing`, `bIsReal` décoché pour le carton, coché pour le réaliste. Les deux versions sont posées l'une sur l'autre, à la même place.
+- **Ce qui bascule d'un coup quand le rideau passe sur sa position** : lumières, ciel, brouillard, nuages, et tout acteur qui porte aussi le tag `DressingSwitch` (sphère étoilée, plans peints lointains). Un acteur placé au centre du plateau bascule à mi-balayage.
+- **Post-process** : les volumes tagués se fondent pendant tout le balayage.
+- **Fin du balayage** : tout ce qui est carton est caché (rendu compris). `ResetDressing()` fait l'inverse, instantanément.
+
 ## Interface — `UI/`
 
 L'interface écoute les delegates, elle n'appelle jamais la logique de jeu sauf `StartShoot()` depuis le menu.

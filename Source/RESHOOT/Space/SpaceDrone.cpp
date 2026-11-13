@@ -91,6 +91,14 @@ void ASpaceDrone::BeginPlay()
 		Dynamic->SetVectorParameterValue(TEXT("Color"), DefaultShotColor);
 	}
 
+	// Costume carton / réaliste : l'accessoire est tout le corps du drone. La sphère grise reste
+	// (invisible) pour la physique de la mort, l'accessoire la suit.
+	if (AccessoryProp || AccessoryReal)
+	{
+		Accessory->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		Body->SetVisibility(false, false);
+	}
+
 	GetWorldTimerManager().SetTimer(SteerTimer, this, &ASpaceDrone::Steer, SteerInterval, true, FMath::FRandRange(0.f, SteerInterval));
 	TrackFreezableTimer(SteerTimer);
 }
