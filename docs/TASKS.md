@@ -11,7 +11,7 @@ Une tâche = un propriétaire, un dossier, un critère de fin.
 | Médiéval | Ileana | `Source/RESHOOT/Medieval`, `Content/RESHOOT/Medieval` |
 | Spatial | Jérémy + Claude (Codex et Argon en renfort, voir ci-dessous) | `Source/RESHOOT/Space`, `Content/RESHOOT/Space` |
 | Film noir + audio | Jules (@julesgilli, semi-présent) | `Source/RESHOOT/Noir`, `Content/RESHOOT/Noir`, `Content/RESHOOT/Audio` |
-| Interface | premier dev libre au jour 3 | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
+| Interface | Ileana (en plus du Médiéval) | `Source/RESHOOT/UI`, `Content/RESHOOT/UI` |
 
 Passation du réalisateur à Enzo : `docs/HANDOFF-Director.md`.
 
@@ -85,7 +85,7 @@ Réalisateur (Enzo)
 - [x] Intégration des trois univers dans `UShootScript` (`SS_Main` : Médiéval, Spatial, Noir, final sur les trois ; testé dans `L_Stage`)
 
 Univers
-- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire
+- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire ; Médiéval : convoi de chevaux de bois fait (`AMedievalHorseConvoyEvent` dans `L_Medieval`, branché dans `DA_Medieval`), habillage à faire
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
@@ -114,4 +114,6 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 - [ ] @ileanasaintpaul : j'ai besoin de `AReshootCharacter::SetSprintBlocked(bool)` (ou d'un multiplicateur de vitesse) pour empêcher le sprint bouclier levé. En attendant, `AMedievalSword` rabaisse `MaxWalkSpeed` toutes les 0,05 s.
 - [ ] Enzo (fusion de `space`) : deux correctifs minimaux faits hors de mon périmètre pour que le projet compile avec le nouveau socle. À vérifier par leurs propriétaires :
   - Jules : `ANoirBlackoutEvent::Duration` supprimé, il masquait `AUniverseEvent::Duration` (même défaut 10 s). La coupure utilise maintenant celle du socle, et le socle programme aussi son propre arrêt : vérifier qu'il n'y a pas de double arrêt.
-  - Iléana : `AMedievalSword::GetMode()` renommé `GetMedievalMode()` (il entrait en conflit avec `AReshootWeapon::GetMode()` du socle) ; ajout de `GetMode()` / `GetModeCount()` en override (0 = épée, 1 = arc). Pas de `SelectMode` : les touches 1 / 2 du socle ne changent pas encore de mode.
+  - Iléana : `AMedievalSword::GetMode()` renommé `GetMedievalMode()` (et ses 3 appels dans `ReshootHUD.cpp`, `GetModeCount` = 3 avec les poings) (il entrait en conflit avec `AReshootWeapon::GetMode()` du socle) ; ajout de `GetMode()` / `GetModeCount()` en override (0 = épée, 1 = arc). Pas de `SelectMode` : les touches 1 / 2 du socle ne changent pas encore de mode.
+- [ ] @ileanasaintpaul : j'ai besoin que le réalisateur déclenche l'événement d'univers (`UUniverseDefinition::EventClass`) une fois par scène : chercher un acteur de cette classe déjà posé dans le sous-niveau (le convoi médiéval `AMedievalHorseConvoyEvent` est posé dans `L_Medieval` avec ses rails), sinon le faire apparaître, puis appeler `StartEvent()` 3 s après la réplique d'annonce. L'événement s'arrête tout seul (`StopEvent`) et se fige au CUT!.  Penser à remettre `AutoStartInterval` du convoi à 0 dans `L_Medieval` à ce moment-là (il se relance seul toutes les 20 s pour les tests).
+- [ ] @ileanasaintpaul (Interface) : j'ai besoin que `AReshootGameMode` utilise `AReshootHUD` (`HUDClass = AReshootHUD::StaticClass()` dans son constructeur, `#include "UI/ReshootHUD.h"`) pour afficher le HUD dans le vrai jeu. En attendant, il est branché sur le GameMode de test médiéval.

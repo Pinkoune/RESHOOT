@@ -1,7 +1,8 @@
-// RESHOOT — arme du médiéval. Une seule classe, deux modes (le socle n'équipe qu'une arme par univers) :
-//  - Épée : clic gauche = coup dans un cône devant soi ; clic droit maintenu = bouclier (dégâts de face réduits).
-//  - Arc  : clic gauche maintenu = bander, relâché = tirer une AMedievalArrow (dégâts selon la charge).
-// Changement de mode : touche 1 (épée), touche 2 (arc), molette (bascule). Entrées créées par l'arme elle-même.
+// RESHOOT — arme du médiéval. Une seule classe, trois modes (le socle n'équipe qu'une arme par univers) :
+//  - Épée   : clic gauche = coup dans un cône devant soi ; clic droit maintenu = bouclier (dégâts de face réduits).
+//  - Arc    : clic gauche maintenu = bander, relâché = tirer une AMedievalArrow (dégâts selon la charge).
+//  - Poings : clic gauche = coups de poing rapides qui repoussent ; clic droit maintenu = garde (réduction moindre).
+// Changement de mode : touches 1, 2, 3, molette (cycle). Entrées créées par l'arme elle-même.
 
 #pragma once
 
@@ -20,7 +21,8 @@ UENUM(BlueprintType)
 enum class EMedievalWeaponMode : uint8
 {
 	Sword,
-	Bow
+	Bow,
+	Fists
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMedievalModeChanged, EMedievalWeaponMode, NewMode);
@@ -51,9 +53,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Medieval")
 	EMedievalWeaponMode GetMedievalMode() const { return Mode; }
 
-	/** Mode pour le socle (FKillInfo::WeaponMode, directives) : 0 = épée, 1 = arc. */
+	/** Mode pour le socle (FKillInfo::WeaponMode, directives) : 0 = épée, 1 = arc, 2 = poings. */
 	virtual int32 GetMode() const override { return static_cast<int32>(Mode); }
-	virtual int32 GetModeCount() const override { return 2; }
+	virtual int32 GetModeCount() const override { return 3; }
 
 	UFUNCTION(BlueprintPure, Category = "Medieval")
 	bool IsShieldRaised() const { return bShieldRaised; }
@@ -156,6 +158,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Bow", meta = (ClampMin = "0"))
 	float BowCooldown = 0.25f;
 
+	// --- Poings ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0"))
+	float FistDamage = 20.f;
+
+	/** Portée d'un coup de poing, en cm. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0"))
+	float FistRange = 160.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0", ClampMax = "180"))
+	float FistHalfAngle = 35.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0.1"))
+	float FistPunchesPerSecond = 3.f;
+
+	/** Vitesse donnée au figurant frappé (recul), en cm/s. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0"))
+	float FistKnockback = 450.f;
+
+	/** Part des dégâts de face qui passe en garde aux poings (0,5 = 50 %). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Fists", meta = (ClampMin = "0", ClampMax = "1"))
+	float FistGuardDamageMultiplier = 0.5f;
+
 	// --- Combos ---
 
 	/** Secondes sans toucher avant que le combo retombe. */
@@ -192,7 +217,23 @@ public:
 	FVector ShieldLoweredLocation = FVector(0.f, -35.f, -15.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
-	FVector ShieldRaisedLocation = FVector(40.f, -40.f, -8.f);
+	FVector ShieldRaisedLocation = FVector(40.f, -20.f, 0.f);
+
+	/** Poings au repos (gauche, droit) et en garde, relatifs à l'arme. Le coup avance le poing de FistPunchReach. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector FistLeftRestLocation = FVector(15.f, -35.f, -5.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector FistRightRestLocation = FVector(15.f, 0.f, -5.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector FistLeftGuardLocation = FVector(25.f, -25.f, 12.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	FVector FistRightGuardLocation = FVector(25.f, -8.f, 12.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
+	float FistPunchReach = 35.f;
 
 	/** Épée baissée sur le côté pendant la garde au bouclier. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
@@ -208,7 +249,7 @@ public:
 
 	/** Dessine le cône de l'épée à chaque coup (boîtes grises). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Debug")
-	bool bDrawDebug = true;
+	bool bDrawDebug = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Audio")
 	TObjectPtr<USoundBase> SwingSound;
@@ -234,6 +275,9 @@ public:
 	TObjectPtr<UInputAction> SelectBowAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Input")
+	TObjectPtr<UInputAction> SelectFistsAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Input")
 	TObjectPtr<UInputAction> ToggleModeAction;
 
 protected:
@@ -248,6 +292,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Medieval")
 	TObjectPtr<UStaticMeshComponent> BowMesh;
 
+	/** Poings en boîte grise ; à remplacer dans le Blueprint. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Medieval")
+	TObjectPtr<UStaticMeshComponent> FistLeftMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Medieval")
+	TObjectPtr<UStaticMeshComponent> FistRightMesh;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Medieval")
 	EMedievalWeaponMode Mode = EMedievalWeaponMode::Sword;
 
@@ -257,6 +308,11 @@ protected:
 private:
 	void SwordSwing();
 	void ResetSwingPose();
+	void Punch();
+	void ResetPunchPose();
+
+	/** Frappe au corps à corps dans un cône. Retourne le nombre de cibles touchées. */
+	int32 MeleeSweep(float Range, float HalfAngle, float Damage, float Knockback);
 	void RaiseShield(bool bRaise);
 	void EnforceShieldSpeed();
 	void StartBowCharge();
@@ -273,6 +329,7 @@ private:
 	void CreateDefaultInput();
 	void OnSelectSword();
 	void OnSelectBow();
+	void OnSelectFists();
 	void OnToggleMode();
 
 	bool bShieldAllowed = true;
@@ -282,6 +339,9 @@ private:
 	double ChargeStartTime = 0.0;
 	double LastSwingTime = -1000.0;
 	double LastArrowTime = -1000.0;
+	double LastPunchTime = -1000.0;
+	bool bNextPunchLeft = true;
+	FTimerHandle PunchPoseTimer;
 	FTransform SwordRestTransform;
 
 	FTimerHandle SwingRepeatTimer;
