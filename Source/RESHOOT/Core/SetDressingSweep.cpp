@@ -1,6 +1,7 @@
 #include "Core/SetDressingSweep.h"
 #include "Core/ReshootCharacter.h"
 #include "Core/ReshootEnemy.h"
+#include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
 
 #include "Components/ExponentialHeightFogComponent.h"
@@ -17,6 +18,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
+#include "HAL/IConsoleManager.h"
 
 namespace
 {
@@ -27,6 +29,13 @@ namespace
 	const FName ParamEdge(TEXT("EdgeWidth"));
 
 	const FName SwitchTag(TEXT("DressingSwitch"));
+
+	// Tant que le réalisateur n'appelle pas UpgradeDressing / ResetDressing lui-même, le rideau suit son déroulé :
+	// carton à chaque nouvelle scène, réaliste dès que la scène passe à sa deuxième prise.
+	// Mettre à 0 quand le réalisateur appelle l'API directement.
+	TAutoConsoleVariable<int32> CVarAutoFromDirector(
+		TEXT("reshoot.Dressing.AutoFromDirector"), 1,
+		TEXT("1 = le rideau suit le réalisateur (carton en début de scène, réaliste à la prise 2). 0 = seul le réalisateur le pilote."));
 	constexpr float FarDistance = 1000000.f; // Au-delà de tout le décor, ciel compris.
 
 	/** Lumières, ciel, brouillard, nuages (et tout acteur tagué DressingSwitch) : bascule d'un coup au passage du rideau. */
@@ -50,11 +59,46 @@ void ASetDressingSweep::BeginPlay()
 {
 	Super::BeginPlay();
 	ResetDressing();
+
+	// Suivi du réalisateur (voir reshoot.Dressing.AutoFromDirector). Timer, pas de Tick.
+	FTimerHandle WatchHandle;
+	int32 LastScene = INDEX_NONE;
+	GetWorldTimerManager().SetTimer(WatchHandle, FTimerDelegate::CreateWeakLambda(this, [this, LastScene]() mutable
+	{
+		if (CVarAutoFromDirector.GetValueOnGameThread() == 0)
+		{
+			return;
+		}
+		const UShootDirectorSubsystem* Director = GetWorld() ? GetWorld()->GetSubsystem<UShootDirectorSubsystem>() : nullptr;
+		if (!Director)
+		{
+			return;
+		}
+		const EShootPhase Phase = Director->GetPhase();
+		if (Phase == EShootPhase::Finale || Phase == EShootPhase::Wrap)
+		{
+			return;   // le final reste en réaliste
+		}
+		const int32 Scene = Director->GetSceneIndex();
+		if (Scene != LastScene && Scene != INDEX_NONE)
+		{
+			LastScene = Scene;
+			if (bReal)
+			{
+				ResetDressing();
+			}
+		}
+		if (!bReal && Scene != INDEX_NONE && Director->GetTakeIndex() >= 1)
+		{
+			UE_LOG(LogReshoot, Log, TEXT("Set dressing: scene %d reached take %d -> upgrade"), Scene, Director->GetTakeIndex());
+			UpgradeDressing();
+		}
+	}), 0.25f, true);
 }
 
 void ASetDressingSweep::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorldTimerManager().ClearTimer(SweepTimer);
+	GetWorldTimerManager().ClearAllTimersForObject(this);
 	Super::EndPlay(EndPlayReason);
 }
 

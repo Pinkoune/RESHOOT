@@ -51,6 +51,8 @@ Le GDD prévoit deux états par scène. Côté réalisateur, deux appels seuleme
 
 Pendant le final, l'univers change toutes les 20 s : appelle `UpgradeDressing()` juste après chaque `SetUniverse` pour rester en réaliste. Le carton du nouvel univers ne doit pas réapparaître. À tester.
 
+Mise à jour du 14/11 : en attendant ces appels, le rideau suit tout seul le réalisateur (`reshoot.Dressing.AutoFromDirector`, 1 par défaut) : il repasse en carton à chaque nouvelle scène et en réaliste dès que la scène arrive à sa prise 2. Quand tu appelles `UpgradeDressing()` à la fin de la prise 1, mets cette variable à 0 (ou supprime le bloc dans `SetDressingSweep.cpp`, `BeginPlay`).
+
 ## Pièges connus
 
 - Les timers du monde ignorent `CustomTimeDilation` : un ennemi gelé n'arrête ses timers que s'ils passent par `TrackFreezableTimer`. Côté réalisateur, mets toi-même tes timers en pause au CUT.
