@@ -129,7 +129,8 @@ def aim_pose(loc, scale, extra_yaw=0.0):
         pitch = math.degrees(math.atan2(t[2], math.hypot(t[0], t[1])))
     return unreal.Transform(unreal.Vector(*loc), unreal.Rotator(roll=0, pitch=pitch, yaw=yaw + extra_yaw), unreal.Vector(scale, scale, scale))
 
-POSE = aim_pose((-12, 1, 2), 1.15, -5.0)    # fusil réaliste, pivoté de 5° vers la gauche en plus pour le style
+POSE = aim_pose((-17, -6, 3), 1.15, -1.0)   # fusil réaliste : décollé du bord droit, proche de la caméra, presque droit
+# (NearClipPlane=2 dans DefaultEngine.ini, sinon l'arrière du fusil est coupé par la caméra)
 PROP_POSE = aim_pose((-9, 1, 0.5), 0.92)    # fusil en carton
 
 # --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---

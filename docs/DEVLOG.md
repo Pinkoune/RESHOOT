@@ -154,3 +154,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : le fusil réaliste en main est pivoté de 5° vers la gauche en plus de l'orientation vers le centre (`extra_yaw` dans `Tools/build_laser_fx.py`). Le carton et la visée ne changent pas.
 - Comment : 3° et 6° testés sur capture ; à 5°, le rayon reste dans le prolongement du canon à l'œil.
 - Capture : aucune
+
+### 2026-11-14 23:45 — Fusil réaliste décollé du bord, plus coupé par la caméra
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : fusil réaliste en main décollé du bord droit, rapproché de la caméra et presque droit face à elle (pose 2 parmi trois proposées en capture). Plan de coupe proche passé de 10 à 2 cm (`NearClipPlane` dans `Config/DefaultEngine.ini`) : l'arrière du fusil n'est plus coupé au bord de l'écran.
+- Comment : le fusil fait plus d'un mètre et sa crosse passe derrière la caméra ; à 10 cm, le plan de coupe tranchait le tube lumineux encore visible en bas à droite. Testé en jeu avec `r.SetNearClipPlane 2` avant de l'écrire dans la config (pris en compte au prochain lancement).
+- Capture : aucune
