@@ -7,7 +7,7 @@
 # Chaque objet libre est contrôlé contre les zones de passage (rampes, portes, colonne de vol des drones,
 # couverts, paliers). Un objet en conflit n'est pas posé : il est listé dans le rapport.
 #
-# À lancer dans l'éditeur (Python), jamais pendant une partie. Kits Fab : Hallway_sci_fi, Hollywood_Vol3.
+# À lancer dans l'éditeur (Python), jamais pendant une partie. Kits Fab : Sci_fi_hallway (hangar), Hollywood_Vol3 (studio, fermes).
 import math
 
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
@@ -19,7 +19,8 @@ if les.is_in_play_in_editor():
     raise RuntimeError('Arrête la partie (PIE) avant de lancer ce script.')
 
 STUDIO_BIAS = -3.7
-HANGAR_BIAS = -2.6
+HANGAR_BIAS = -2.5
+CEIL_I = 110.0          # luminaires du plafond (candelas)
 H = 1200.0                      # hauteur sous plafond
 
 # =====================================================================================
@@ -42,7 +43,7 @@ def wyaw(wall, local=0.0):
 # Assets
 # =====================================================================================
 _cache = {}
-for root in ['/Game/Hallway_sci_fi', '/Game/Hollywood_Vol3', '/Game/RESHOOT/Space/Meshes', '/Game/RESHOOT/Core/Meshes']:
+for root in ['/Game/Sci_fi_hallway', '/Game/Hollywood_Vol3', '/Game/RESHOOT/Space/Meshes', '/Game/RESHOOT/Core/Meshes']:
     for d in ar.get_assets_by_path(root, recursive=True):
         if str(d.asset_class_path.asset_name) == 'StaticMesh':
             _cache[str(d.asset_name)] = str(d.package_name)
@@ -320,109 +321,118 @@ RD = dict(folder='Dressing_Real', tags=('DressingReal',))
 cnt = {}
 def count(k): cnt[k] = cnt.get(k, 0) + 1
 
-# Modules de mur du kit : face décorée côté +Y local, pivot au dos -> on recule le pivot de l'épaisseur
-DEPTH = {'SM_wall_bot_a1': 53, 'SM_wall_mid_a1': 38, 'SM_wall_top_a1': 28, 'SM_w_1': 17, 'SM_empty_wall_2_2_2': 19}
-def module(wall, name, a, z, b0=0.0, local_yaw=0.0, tag=''):
-    spawn(f'{tag}{name[3:]}_{wall}_{a:.0f}_{z:.0f}_{b0:.0f}', SM(name), wpos(wall, a, b0 - DEPTH.get(name, 30), z), yaw=wyaw(wall, local_yaw), **K)
+# ---- Kit Sci_fi_hallway : pivots centrés, face décorée côté +Y local ----
+WALL_D = 117.0        # épaisseur du panneau SM_Sci_fi_wall (346 x 117 x 339)
+def panel(label, wall, a, width, z0, height, b0=0.0, local_yaw=0.0):
+    """Panneau de mur dont la face avant affleure le plan b0, de z0 à z0 + height."""
+    spawn(label, SM('SM_Sci_fi_wall'), wpos(wall, a, b0 - WALL_D / 2, z0 + height / 2), yaw=wyaw(wall, local_yaw),
+          scale=(width / 346, 1, height / 339), **K)
     count('wall')
-def stack(wall, a, z0, b0=0.0, window=False, tag=''):
-    module(wall, 'SM_wall_bot_a1', a, z0, b0, tag=tag)
-    module(wall, 'SM_w_1' if window else 'SM_wall_mid_a1', a, z0 + 100, b0, tag=tag)
-    module(wall, 'SM_wall_top_a1', a, z0 + 200, b0, tag=tag)
-def column(wall, a, z0, height, b0=0.0):
-    spawn(f'Col_{wall}_{a:.0f}_{z0:.0f}', SM('SM_column_a1_1'), wpos(wall, a, b0 - 60, z0), yaw=wyaw(wall), scale=(1, 1, height / 350), **K)
+def pillar(label, wall, a, z0, height, b0=0.0):
+    spawn(label, SM('Sci_fi_wall_pillar'), wpos(wall, a, b0 - 40, z0 + height / 2), yaw=wyaw(wall), scale=(1.09, 1.09, height / 316), **K)
+def bays(half):
+    """Travées d'un mur : une travée de porte (400) au centre, le reste en travées régulières."""
+    n = 7 if half >= 2500 else 5
+    w = (half - DOOR_HALF) / n
+    out_ = [(0.0, 2 * DOOR_HALF, True)]
+    for k in range(n):
+        c = DOOR_HALF + w * (k + 0.5)
+        out_ += [(c, w, False), (-c, w, False)]
+    return out_, w
+TILE = 100.0          # dalle du kit (106) ramenée à 1 m : elle tombe juste sur les bords des mezzanines
+TS = TILE / 106.0
 
-# --- Sol : dalles de 2 m (le niveau mezzanine est dallé à 3 m) ---
-for i in range(25):
-    cx = -2400 + 200 * i
-    for j in range(20):
-        y0 = -2000 + 200 * j
-        on_mezz = abs(cx) > 1500 and -900 <= y0 and y0 + 200 <= 900
-        spawn(f'Deck_{i}_{j}', SM('SM_floor_a1_2_2'), (cx, y0, 300 if on_mezz else 0), **K); count('floor')
+# --- Sol ---
+for i in range(50):
+    cx = -2450 + 100 * i
+    for j in range(40):
+        cy = -1950 + 100 * j
+        on_mezz = abs(cx) > 1500 and abs(cy) < 900
+        spawn(f'Tile_{i}_{j}', SM('SM_floor_tile_01'), (cx, cy, (300 if on_mezz else 0) - 6), scale=(TS, TS, 1), **K); count('floor')
 
-# --- Plafond : panneaux du kit, poutres tous les 5 m, rampes de néons ---
-for i in range(25):
-    cx = -2400 + 200 * i
-    for j in range(20):
-        spawn(f'Ceil_{i}_{j}', SM('SM_celling_a1_2_2'), (cx, -2000 + 200 * j, H + 10), **K); count('ceiling')
+# --- Plafond : panneaux du kit, fermes métalliques tous les 5 m, luminaires du kit ---
+for i in range(40):
+    for j in range(32):
+        spawn(f'Roof_{i}_{j}', SM('SM_Roof_panel'), (-2437.5 + 125 * i, -1937.5 + 125 * j, H + 5), yaw=180, roll=180, scale=(125 / 120, 125 / 120, 1), **K); count('ceiling')
 for k in range(9):
     x = -2000 + 500 * k
-    for j in range(9):
-        spawn(f'Girder_{k}_{j}', SM('SM_rigel_a1_1'), (x, -2000 + 450 * j, H - 50), **K)
+    for j in range(10):
+        spawn(f'Truss_{k}_{j}', SM('SM_Structural_Beam_01b'), (x, -2000 + 400 * (j + 1), H - 35), pitch=90, yaw=90, scale=(1, 1, 400 / 404), **K)
     for y in (-1300, 0, 1300):
-        spawn(f'CeilLamp_{k}_{y}', SM('SM_lamp_1'), (x, y - 12, H - 70), yaw=90, **K)
-        light(f'CeilLight_{k}_{y}', unreal.RectLight, (x, y, H - 90), (-90, 0, 0), color=(220, 235, 255), intensity=25.0, radius=1800,
-              shadows=(y == 0 and k % 2 == 0), extra={'source_width': 200.0, 'source_height': 25.0, 'barn_door_angle': 70.0, 'intensity_units': unreal.LightUnits.CANDELAS})
+        spawn(f'CeilFixture_{k}_{y}', SM('SM_Ceiling_light_01'), (x + 40, y, H - 30), yaw=-90, **K)
+        light(f'CeilLight_{k}_{y}', unreal.RectLight, (x + 40, y, H - 50), (-90, 0, 0), color=(250, 232, 215), intensity=CEIL_I, radius=2200,
+              shadows=(y == 0 and k % 2 == 0), extra={'source_width': 240.0, 'source_height': 30.0, 'barn_door_angle': 80.0})
 
-# --- Murs pleins (sud, est, ouest) : 4 rangées de modules, hublots à mi-hauteur, colonnes tous les 4 m ---
+# --- Murs pleins (sud, est, ouest) : trois rangs de panneaux de 4 m, piliers aux joints ---
 for wall in ('S', 'E', 'W'):
     half = WALLS[wall][2]; fz = DOOR_FLOOR[wall]
-    for k in range(int(half / 100)):
-        a = -half + 100 + 200 * k
-        if abs(a) < DOOR_HALF:
-            for z0 in range(int(fz + DOOR_H), int(H), 100):
-                module(wall, 'SM_wall_top_a1', a, z0, tag='Lintel')
+    bl, w = bays(half)
+    for a, width, is_door in bl:
+        if is_door:
+            top = fz + DOOR_H
+            panel(f'Lintel_{wall}', wall, a, width, top, H - top)
             continue
-        for row in range(4):
-            stack(wall, a, 300 * row, window=(row == 2 and k % 2 == 0))
-    for k in range(int(half / 200) + 1):
-        a = -half + 400 * k
-        if abs(a) < DOOR_HALF + 60: continue
-        for row in range(4):
-            column(wall, a, 300 * row, 300)
-    for side in (-1, 1):
-        for row in range(4):
-            column(wall, side * (DOOR_HALF + 25), 300 * row, 300)
+        for r in range(2):
+            panel(f'Panel_{wall}_{a:.0f}_{r}', wall, a, width, 400 * r, 400)
+        # rang du haut : panneaux lisses (moins répétitif, lit comme une structure de hangar)
+        spawn(f'UpperPanel_{wall}_{a:.0f}', SM('SM_Sci_fi_wall_straight_01'), wpos(wall, a, -15, 1000), yaw=wyaw(wall, 90),
+              scale=(1, width / 331, 400 / 329), **K)
+    joints = sorted(set([round(a + s * width / 2) for a, width, d in bl for s in (-1, 1)]))
+    for jx in joints:
+        for r in range(3):
+            if abs(jx) <= DOOR_HALF and 400 * r < fz + DOOR_H:
+                continue
+            pillar(f'Pillar_{wall}_{jx}_{r}', wall, jx, 400 * r, 400)
 
-# --- La baie (nord) : soubassement, montants, champ de force, la planète derrière ---
+# --- La baie (nord) : soubassement de 4 m, cadre métallique, champ de force, la planète derrière ---
 half = WALLS['N'][2]
-for k in range(int(half / 100)):
-    a = -half + 100 + 200 * k
-    if abs(a) >= DOOR_HALF:
-        stack('N', a, 0)
-        module('N', 'SM_wall_top_a1', a, 300)
-    spawn(f'BaySill_{a:.0f}', SM('SM_decel_a1'), wpos('N', a, 0, 400), yaw=wyaw('N'), **K)
-    spawn(f'BayHead_{a:.0f}', SM('SM_decel_a1'), wpos('N', a, 0, H - 50), yaw=wyaw('N'), **K)
-for k in range(int(half / 200) + 1):
-    a = -half + 400 * k
-    if abs(a) >= DOOR_HALF + 60:
-        column('N', a, 0, 400)
-    column('N', a, 450, H - 500)
-for side in (-1, 1):
-    column('N', side * (DOOR_HALF + 25), 0, 400)
-ff = spawn('Bay_ForceField', PLANE, wpos('N', 0, 5, 800), roll=90, yaw=wyaw('N'), scale=(2 * half / 100, (H - 500) / 100, 1), mat=MAT_FF, shadow=False, **K)
+bl, w = bays(half)
+for a, width, is_door in bl:
+    if not is_door:
+        panel(f'Panel_N_{a:.0f}_0', 'N', a, width, 0, 400)
+joints = sorted(set([round(a + s * width / 2) for a, width, d in bl for s in (-1, 1)]))
+for jx in joints:
+    if abs(jx) > DOOR_HALF:
+        pillar(f'Pillar_N_{jx}_0', 'N', jx, 0, 400)
+    spawn(f'Mullion_{jx}', SM('SM_Straight_pillar_02'), wpos('N', jx, -32, 775), yaw=wyaw('N'), scale=(1, 1, 750 / 331), **K)
+pillar('Pillar_N_door_L', 'N', -DOOR_HALF - 25, 0, 400)
+pillar('Pillar_N_door_R', 'N', DOOR_HALF + 25, 0, 400)
+for k in range(13):
+    a = -2500 + 5000 * (k + 0.5) / 13
+    for z in (400, H - 34):
+        spawn(f'BayBeam_{k}_{z:.0f}', SM('SM_Structural_Beam_01b'), wpos('N', a - 5000 / 26, -17, z), pitch=90, yaw=wyaw('N'), scale=(1, 1, 5000 / 13 / 404), **K)
+spawn('Bay_ForceField', PLANE, wpos('N', 0, -60, 775), roll=90, yaw=wyaw('N'), scale=(50, 7.5, 1), mat=MAT_FF, shadow=False, **K)
 
-# --- Portes : cadre du kit, coursive éclairée derrière, balise rouge au-dessus ---
+# --- Portes : piliers, coursive en kit, porte fermée au fond, balise rouge ---
 for wall in WALLS:
     fz = DOOR_FLOOR[wall]
-    spawn(f'Gate_{wall}', SM('SM_door2frame'), wpos(wall, 0, 10, fz), yaw=wyaw(wall), scale=(0.85, 1, (DOOR_H + 40) / 350), **K)
-    for lat in (-100, 100):
-        for b in (-200, -400, -600):
-            spawn(f'CorFloor_{wall}_{lat}_{b}', SM('SM_floor_a1_2_2'), wpos(wall, lat, b - 100, fz), yaw=wyaw(wall), **K)
-            spawn(f'CorCeil_{wall}_{lat}_{b}', SM('SM_celling_a1_2_2'), wpos(wall, lat, b - 100, fz + 510), yaw=wyaw(wall), **K)
-        for b in (-100, -50):
-            spawn(f'CorSill_{wall}_{lat}_{b}', SM('SM_floor_a1_2_05'), wpos(wall, lat + 100, b, fz), yaw=wyaw(wall), **K)
     for side in (-1, 1):
-        for b in (-200, -400, -600):
-            for z0, nm in ((0, 'SM_wall_bot_a1'), (100, 'SM_wall_mid_a1'), (200, 'SM_wall_top_a1'), (300, 'SM_wall_bot_a1'), (400, 'SM_wall_top_a1')):
-                spawn(f'CorWall_{wall}_{side}_{b}_{z0}', SM(nm), wpos(wall, side * (DOOR_HALF + DEPTH[nm]), b, fz + z0), yaw=wyaw(wall, 90 * side), **K)
-    for lat in (-100, 100):
-        for z0, nm in ((0, 'SM_wall_bot_a1'), (100, 'SM_wall_mid_a1'), (200, 'SM_wall_top_a1'), (300, 'SM_wall_bot_a1'), (400, 'SM_wall_top_a1')):
-            module(wall, nm, lat, fz + z0, b0=-100 - CORRIDOR_DEPTH, tag='CorEnd')
-    light(f'CorLight_{wall}', unreal.PointLight, wpos(wall, 0, -400, fz + 420), color=(200, 225, 255), intensity=3000, radius=900, shadows=False)
-    light(f'GateBeacon_{wall}', unreal.PointLight, wpos(wall, 0, 60, fz + DOOR_H + 80), color=(255, 50, 30), intensity=1800, radius=700, shadows=False)
+        pillar(f'DoorPillar_{wall}_{side}', wall, side * (DOOR_HALF + 25), fz, DOOR_H, b0=40)
+        spawn(f'CorWall_{wall}_{side}', SM('SM_Sci_fi_wall_straight_01'), wpos(wall, side * (DOOR_HALF + 15), -100 - CORRIDOR_DEPTH / 2, fz + 250),
+              yaw=wyaw(wall), scale=(1, (CORRIDOR_DEPTH + 100) / 331, 500 / 329), **K)
+    for li in range(4):
+        for bj in range(7):
+            spawn(f'CorTile_{wall}_{li}_{bj}', SM('SM_floor_tile_01'), wpos(wall, -150 + 100 * li, -50 - 100 * bj, fz - 6), yaw=wyaw(wall), scale=(TS, TS, 1), **K)
+            spawn(f'CorRoof_{wall}_{li}_{bj}', SM('SM_Roof_panel'), wpos(wall, -150 + 100 * li, -50 - 100 * bj, fz + 505), yaw=wyaw(wall, 180), roll=180, scale=(100 / 120, 100 / 120, 1), **K)
+    spawn(f'CorDoorway_{wall}', SM('SM_Doorway_01'), wpos(wall, 0, -100 - CORRIDOR_DEPTH + 45, fz + 166), yaw=wyaw(wall), scale=(400 / 341, 1, 1), **K)
+    for side in (-1, 1):
+        spawn(f'CorDoor_{wall}_{side}', SM('SM_Door_half_01'), wpos(wall, side * 36, -100 - CORRIDOR_DEPTH + 45, fz + 110), yaw=wyaw(wall, 0 if side < 0 else 180), **K)
+    spawn(f'CorFixture_{wall}', SM('SM_Ceiling_light_01'), wpos(wall, 0, -400, fz + 490), yaw=wyaw(wall), **K)
+    light(f'CorLight_{wall}', unreal.PointLight, wpos(wall, 0, -400, fz + 440), color=(235, 242, 255), intensity=2500, radius=900, shadows=False)
+    light(f'GateBeacon_{wall}', unreal.PointLight, wpos(wall, 0, 60, fz + DOOR_H + 60), color=(255, 50, 30), intensity=500, radius=450, shadows=False)
 
-# --- Mezzanines : parement, bordure, piliers sous les quais ---
+# --- Mezzanines (quais) : parement en panneaux du kit ---
 for wall in ('E', 'W'):
-    for a in (-800, -600, -400, -200, 0, 200, 400, 600, 800):
-        stack(wall, a, 0, b0=1000, tag='MezzFront')                         # face tournée vers le centre
-        spawn(f'MezzEdge_{wall}_{a}', SM('SM_decel_a1'), wpos(wall, a, 975, 300), yaw=wyaw(wall), check=True, **K)
+    for k in range(5):
+        a = -900 + 360 * (k + 0.5)
+        panel(f'MezzFront_{wall}_{k}', wall, a, 360, 0, 300, b0=1000)
     for side in (-1, 1):
-        for b in (100, 300, 500, 700, 900):
-            for z0, nm in ((0, 'SM_wall_bot_a1'), (100, 'SM_wall_mid_a1'), (200, 'SM_wall_top_a1')):
-                spawn(f'MezzSide_{wall}_{side}_{b}_{z0}', SM(nm), wpos(wall, side * (900 - DEPTH[nm]), b, z0), yaw=wyaw(wall, -90 * side), **K)
+        for k in range(3):
+            b = 1000 * (k + 0.5) / 3
+            spawn(f'MezzSide_{wall}_{side}_{k}', SM('SM_Sci_fi_wall'), wpos(wall, side * (900 - WALL_D / 2), b, 150), yaw=wyaw(wall, -90 * side),
+                  scale=(1000 / 3 / 346, 1, 300 / 339), **K)
 
-# --- Rampes : structure sombre + dalles ---
+# --- Rampes : structure sombre + dalles du kit ---
 for lbl, tr in block.items():
     if lbl.startswith('Ramp'):
         s = tr.scale3d
@@ -431,10 +441,10 @@ for lbl, tr in block.items():
 run, rise = 1400.0, 300.0
 ang = math.degrees(math.atan2(rise, run)); ln = math.hypot(run, rise)
 for s in (-1, 1):
-    for y0 in (-850, -650, 450, 650):
-        for k in range(7):
-            t = (k + 0.5) / 7
-            spawn(f'RampTile_{s}_{y0}_{k}', SM('SM_floor_a1_2_2'), (s * (1500 - run * t), y0, rise * (1 - t) + 12), pitch=s * ang, scale=(ln / 7 / 200, 1, 1), **K)
+    for yc in (-800, -700, -600, -500, 500, 600, 700, 800):
+        for k in range(14):
+            t = (k + 0.5) / 14
+            spawn(f'RampTile_{s}_{yc}_{k}', SM('SM_floor_tile_01'), (s * (1500 - run * t), yc, rise * (1 - t) + 6), pitch=s * ang, scale=(ln / 14 / 106, TS, 1), **K)
 
 # --- Couverts : caisses arrimées (réaliste) / caisse en carton (carton), exactement sur la collision ---
 crate_p, crate_r = SM('SM_Space_CargoCrate_Prop'), SM('SM_Space_CargoCrate_Real')
@@ -481,17 +491,18 @@ for s in (-1, 1):
     twin('Barrel', (s * 2380, 750, 300), yaw=30, scale=0.7)
 
 # --- Lumière de la planète : entre par la baie, froide et rasante ---
-light('PlanetLight', unreal.DirectionalLight, (0, 0, 2500), (-18, -90, 0), color=(165, 200, 255), intensity=7.0)
-light('BayGlow', unreal.RectLight, wpos('N', 0, 30, 800), (0, wyaw('N', 90), 0), color=(120, 170, 255), intensity=6.0, radius=4000, shadows=False,
+light('PlanetLight', unreal.DirectionalLight, (0, 0, 2500), (-18, -90, 0), color=(165, 200, 255), intensity=10.0)
+light('BayGlow', unreal.RectLight, wpos('N', 0, 30, 800), (0, wyaw('N', 90), 0), color=(120, 170, 255), intensity=40.0, radius=4000, shadows=False,
       extra={'source_width': 4800.0, 'source_height': 650.0, 'intensity_units': unreal.LightUnits.CANDELAS})
-sk = light('HangarAmbient', unreal.SkyLight, (0, 0, 600), intensity=0.6, shadows=False)
+sk = light('HangarAmbient', unreal.SkyLight, (0, 0, 600), intensity=1.6, shadows=False)
 for i, (wall, a) in enumerate([('W', 0), ('E', 0), ('S', 0)]):
     spawn(f'AlarmLamp_{i}_Real', SM('SM_Space_AlarmLight_Real'), wpos(wall, a + 600, 10, 900), **RD)
     al = light(f'AlarmLight_{i}', unreal.PointLight, wpos(wall, a + 600, 80, 920), color=(255, 30, 20), intensity=9000, radius=2600, shadows=False,
                folder='Space/Event', tags=('GravityAlarm',))
     al.get_component_by_class(unreal.LightComponent).set_visibility(False)
 haze('Hangar_Haze', 'Dressing_Real/Lighting', ['DressingReal'], 0.008, 0.06)
-ppv('PPV_Hangar', 'Dressing_Real/Lighting', ['DressingReal'], HANGAR_BIAS, bloom_intensity=0.8, vignette_intensity=0.45)
+ppv('PPV_Hangar', 'Dressing_Real/Lighting', ['DressingReal'], HANGAR_BIAS, bloom_intensity=0.6, vignette_intensity=0.4,
+    color_saturation=unreal.Vector4(0.9, 0.9, 0.9, 1), white_temp=7000.0)
 
 # --- Dehors : ciel, planète, coque d'un autre vaisseau (vus par la baie) ---
 _sky_tex = unreal.load_asset('/Game/RESHOOT/Space/Textures/T_Space_SkyPanorama')

@@ -337,7 +337,8 @@ void ASetDressingSweep::GatherDressingActors()
 
 void ASetDressingSweep::SetActorDressingVisible(AActor* Actor, bool bVisible)
 {
-	if (!Actor)
+	// Déjà dans le bon état : rien à faire (appelé à chaque image pendant le balayage, sur des milliers d'acteurs).
+	if (!Actor || Actor->IsHidden() == !bVisible)
 	{
 		return;
 	}
