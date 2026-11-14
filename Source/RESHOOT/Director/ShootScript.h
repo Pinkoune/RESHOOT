@@ -10,6 +10,7 @@
 class AReshootEnemy;
 class UDirective;
 class UUniverseDefinition;
+class UMaterialParameterCollection;
 
 /** Une vague de figurants. */
 USTRUCT(BlueprintType)
@@ -159,6 +160,47 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
 	FName CastingIntroLineId = TEXT("CastingIntro");
+
+	/** Réplique quand le tutoriel est fini, juste avant la scène 1. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	FName CastingDoneLineId = TEXT("CastingDone");
+
+	/** Arme donnée pendant le casting (celle de cet univers ; ni sous-niveau ni post-process). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	EUniverse CastingUniverse = EUniverse::Noir;
+
+	/** Délai entre la fin du tutoriel et la scène 1. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting", meta = (ClampMin = "0"))
+	float CastingOutroDelay = 2.f;
+
+	/** Tag du PlayerStart du plateau (départ des scènes quand ni la scène ni l'univers n'en imposent un). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	FName StagePlayerStartTag = TEXT("Stage");
+
+	// --- Répétition, puis mise en scène (GDD) : décor carton à la 1re prise, réaliste ensuite ---
+
+	/** « On améliore la mise en scène ! », à la fin de la première prise de chaque scène. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
+	FName StagingLineId = TEXT("Staging_Improve");
+
+	/** Durée du balayage du rideau de lumière. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging", meta = (ClampMin = "0.1"))
+	float StagingSweepDuration = 2.5f;
+
+	/** Collection lue par le matériau maître M_SetDressing : StagingParameter va de 0 (carton) à 1 (réaliste). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
+	TObjectPtr<UMaterialParameterCollection> StagingCollection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
+	FName StagingParameter = TEXT("StagingReveal");
+
+	/** Acteurs visibles seulement en version carton (décor carton, studio, projecteurs). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
+	FName PropActorTag = TEXT("SetDressing_Prop");
+
+	/** Acteurs visibles seulement en version réaliste (décor réaliste, ciel, horizon). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
+	FName RealActorTag = TEXT("SetDressing_Real");
 
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))

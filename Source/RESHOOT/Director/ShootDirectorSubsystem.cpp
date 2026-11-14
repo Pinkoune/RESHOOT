@@ -4,6 +4,7 @@
 #include "Director/WaveSpawner.h"
 #include "Director/AudienceRating.h"
 #include "Director/DirectorVoice.h"
+#include "Director/CastingTarget.h"
 #include "Core/ReshootCharacter.h"
 #include "Core/ReshootEnemy.h"
 #include "Core/ReshootGameState.h"
@@ -19,8 +20,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMaterialLibrary.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
 
@@ -86,6 +90,8 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(FinaleEndTimer);
 		World->GetTimerManager().ClearTimer(CutTimer);
 		World->GetTimerManager().ClearTimer(EventTimer);
+		World->GetTimerManager().ClearTimer(StagingTimer);
+		World->GetTimerManager().ClearTimer(CastingTimer);
 	}
 	Super::Deinitialize();
 }
@@ -280,24 +286,294 @@ void UShootDirectorSubsystem::FreezeAll(bool bFreeze)
 			It->Freeze(bFreeze);
 		}
 	}
+	// L'événement d'univers et son compte à rebours se figent aussi.
+	FTimerManager& Timers = GetWorld()->GetTimerManager();
+	if (bFreeze && Timers.IsTimerActive(EventTimer))
+	{
+		Timers.PauseTimer(EventTimer);
+	}
+	else if (!bFreeze && Timers.IsTimerPaused(EventTimer))
+	{
+		Timers.UnPauseTimer(EventTimer);
+	}
+	if (ActiveEvent && ActiveEvent->IsEventActive())
+	{
+		ActiveEvent->SetEventPaused(bFreeze);
+	}
 }
 
 // ---------------------------------------------------------------------------
 // Déroulé
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Casting : fond vert, une glissade et trois cibles, puis la scène 1
+// ---------------------------------------------------------------------------
+
 void UShootDirectorSubsystem::StartCasting()
 {
-	// TODO Enzo : placer le joueur au PlayerStart CastingPlayerStartTag (AReshootCharacter::ResetForTake).
-	SetPhase(EShootPhase::Casting);
-	PlayLine(Script ? Script->CastingIntroLineId : NAME_None);
+	// Une frame plus tard, comme StartShoot : le BeginPlay du joueur passe après celui du GameMode.
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		SetPhase(EShootPhase::Casting);
+		bCastingSlid = false;
+		bCastingDone = false;
+		CastingTargetsHit = 0;
+		CastingTargetsTotal = 0;
+		for (TActorIterator<ACastingTarget> It(GetWorld()); It; ++It)
+		{
+			It->ResetTarget();
+			++CastingTargetsTotal;
+		}
+
+		// Arme de l'univers de casting, sans charger son sous-niveau ni son post-process.
+		if (AReshootCharacter* Player = GetPlayer())
+		{
+			Player->SetUniverse(Script ? Script->CastingUniverse : EUniverse::Noir);
+		}
+		ResetPlayerToStart(Script ? Script->CastingPlayerStartTag : FName(TEXT("Casting")));
+		PlayLine(Script ? Script->CastingIntroLineId : NAME_None);
+
+		GetWorld()->GetTimerManager().SetTimer(CastingTimer, this, &UShootDirectorSubsystem::CheckCastingSlide, 0.1f, true);
+		BroadcastCastingProgress();
+		UE_LOG(LogReshoot, Log, TEXT("Casting started: %d target(s)."), CastingTargetsTotal);
+	}));
+}
+
+void UShootDirectorSubsystem::CheckCastingSlide()
+{
+	const AReshootCharacter* Player = GetPlayer();
+	if (Phase == EShootPhase::Casting && !bCastingSlid && Player && Player->IsSliding())
+	{
+		bCastingSlid = true;
+		BroadcastCastingProgress();
+		TryFinishCasting();
+	}
+}
+
+void UShootDirectorSubsystem::NotifyCastingTargetHit(ACastingTarget* Target)
+{
+	if (Phase != EShootPhase::Casting || bCastingDone)
+	{
+		return;
+	}
+	++CastingTargetsHit;
+	BroadcastCastingProgress();
+	TryFinishCasting();
+}
+
+void UShootDirectorSubsystem::BroadcastCastingProgress()
+{
+	OnCastingProgress.Broadcast(bCastingSlid, CastingTargetsHit, CastingTargetsTotal);
+}
+
+void UShootDirectorSubsystem::TryFinishCasting()
+{
+	if (bCastingDone || !bCastingSlid || CastingTargetsHit < CastingTargetsTotal)
+	{
+		return;
+	}
+	bCastingDone = true;
+	GetWorld()->GetTimerManager().ClearTimer(CastingTimer);
+	UE_LOG(LogReshoot, Log, TEXT("Casting done."));
+	const float LineDuration = PlayLine(Script ? Script->CastingDoneLineId : NAME_None);
+	const float Delay = FMath::Max(LineDuration, Script ? Script->CastingOutroDelay : 2.f);
+	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::FinishCasting, FMath::Max(Delay, 0.1f), false);
 }
 
 void UShootDirectorSubsystem::FinishCasting()
 {
 	if (Phase == EShootPhase::Casting)
 	{
+		GetWorld()->GetTimerManager().ClearTimer(CastingTimer);
 		StartShoot();
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Départ du joueur
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::ResetPlayerToStart(FName PreferredTag)
+{
+	AReshootCharacter* Player = GetPlayer();
+	if (!Player)
+	{
+		return;
+	}
+	// Ordre : tag demandé, tag de la scène, nom de l'univers (« Noir »...), tag du plateau, tout départ hors casting.
+	TArray<FName> Tags;
+	Tags.Add(PreferredTag);
+	if (Phase != EShootPhase::Casting && Phase != EShootPhase::Finale && Script && Script->Scenes.IsValidIndex(SceneIndex))
+	{
+		Tags.Add(Script->Scenes[SceneIndex].PlayerStartTag);
+	}
+	Tags.Add(FName(*StaticEnum<EUniverse>()->GetNameStringByValue(static_cast<int64>(CurrentUniverse))));
+	Tags.Add(Script ? Script->StagePlayerStartTag : FName(TEXT("Stage")));
+	const FName CastingTag = Script ? Script->CastingPlayerStartTag : FName(TEXT("Casting"));
+
+	const APlayerStart* Start = nullptr;
+	for (const FName& Tag : Tags)
+	{
+		if (Tag.IsNone())
+		{
+			continue;
+		}
+		for (TActorIterator<APlayerStart> It(GetWorld()); It && !Start; ++It)
+		{
+			if (It->PlayerStartTag == Tag)
+			{
+				Start = *It;
+			}
+		}
+		if (Start)
+		{
+			break;
+		}
+	}
+	for (TActorIterator<APlayerStart> It(GetWorld()); It && !Start; ++It)
+	{
+		if (It->PlayerStartTag != CastingTag)
+		{
+			Start = *It;
+		}
+	}
+	const FTransform StartTransform = Start
+		? FTransform(FRotator(0.f, Start->GetActorRotation().Yaw, 0.f), Start->GetActorLocation())
+		: Player->GetActorTransform();
+	// Téléporte, vie pleine, arme rechargée (socle).
+	Player->ResetForTake(StartTransform);
+	Player->ClearWeaponRestrictions();
+}
+
+// ---------------------------------------------------------------------------
+// Événement d'univers : annoncé EventDelay s après « Action! » de la prise EventTakeIndex, déclenché 3 s plus tard
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::ScheduleUniverseEvent()
+{
+	if (!Script || !Script->Scenes.IsValidIndex(SceneIndex))
+	{
+		return;
+	}
+	const FSceneDef& Scene = Script->Scenes[SceneIndex];
+	if (Scene.EventTakeIndex != TakeIndex || !Scene.UniverseDefinition || !Scene.UniverseDefinition->EventClass)
+	{
+		return;
+	}
+	GetWorld()->GetTimerManager().SetTimer(EventTimer, this, &UShootDirectorSubsystem::AnnounceUniverseEvent, FMath::Max(Scene.EventDelay, 0.1f), false);
+}
+
+void UShootDirectorSubsystem::AnnounceUniverseEvent()
+{
+	const UUniverseDefinition* Definition = GetUniverseDefinition(CurrentUniverse);
+	if (!Definition || !Definition->EventClass || Phase != EShootPhase::TakeRunning)
+	{
+		return;
+	}
+	// L'événement posé dans le sous-niveau (convoi et ses rails, gravité...), sinon on le fait apparaître.
+	ActiveEvent = nullptr;
+	for (TActorIterator<AUniverseEvent> It(GetWorld()); It; ++It)
+	{
+		if (It->IsA(Definition->EventClass))
+		{
+			ActiveEvent = *It;
+			break;
+		}
+	}
+	if (!ActiveEvent)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ActiveEvent = GetWorld()->SpawnActor<AUniverseEvent>(Definition->EventClass, FTransform::Identity, Params);
+	}
+	if (!ActiveEvent)
+	{
+		return;
+	}
+	UE_LOG(LogReshoot, Log, TEXT("Universe event announced: %s"), *GetNameSafe(ActiveEvent));
+	OnUniverseEventAnnounced.Broadcast(ActiveEvent);
+	PlayLine(Definition->EventLineId);
+	GetWorld()->GetTimerManager().SetTimer(EventTimer, this, &UShootDirectorSubsystem::TriggerUniverseEvent, FMath::Max(Script ? Script->EventWarningTime : 3.f, 0.1f), false);
+}
+
+void UShootDirectorSubsystem::TriggerUniverseEvent()
+{
+	if (ActiveEvent && !ActiveEvent->IsEventActive())
+	{
+		UE_LOG(LogReshoot, Log, TEXT("Universe event started: %s"), *GetNameSafe(ActiveEvent));
+		ActiveEvent->StartEvent();
+	}
+}
+
+void UShootDirectorSubsystem::StopUniverseEvent()
+{
+	GetWorld()->GetTimerManager().ClearTimer(EventTimer);
+	if (ActiveEvent && ActiveEvent->IsEventActive())
+	{
+		ActiveEvent->SetEventPaused(false);
+		ActiveEvent->StopEvent();
+	}
+	ActiveEvent = nullptr;
+}
+
+// ---------------------------------------------------------------------------
+// Répétition, puis mise en scène : décor carton à la 1re prise, rideau de lumière, décor réaliste
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::SetStagingState(bool bReal, float SweepAlpha)
+{
+	bStagingReal = bReal;
+	StagingSweepAlpha = SweepAlpha;
+	if (!Script)
+	{
+		return;
+	}
+	if (Script->StagingCollection)
+	{
+		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, SweepAlpha);
+	}
+	// Sans le matériau M_SetDressing, les deux versions s'échangent par visibilité (tags d'acteur).
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (!Script->PropActorTag.IsNone() && It->ActorHasTag(Script->PropActorTag))
+		{
+			It->SetActorHiddenInGame(bReal);
+		}
+		else if (!Script->RealActorTag.IsNone() && It->ActorHasTag(Script->RealActorTag))
+		{
+			It->SetActorHiddenInGame(!bReal);
+		}
+	}
+}
+
+void UShootDirectorSubsystem::ImproveStaging()
+{
+	UE_LOG(LogReshoot, Log, TEXT("Staging improved: cardboard -> real."));
+	PlayLine(Script ? Script->StagingLineId : NAME_None);
+	OnStagingImproved.Broadcast(CurrentUniverse);
+	StagingSweepAlpha = 0.f;
+	bStagingSwapped = false;
+	GetWorld()->GetTimerManager().SetTimer(StagingTimer, this, &UShootDirectorSubsystem::StepStagingSweep, 1.f / 30.f, true);
+}
+
+void UShootDirectorSubsystem::StepStagingSweep()
+{
+	const float Duration = Script ? FMath::Max(Script->StagingSweepDuration, 0.1f) : 2.5f;
+	StagingSweepAlpha = FMath::Min(StagingSweepAlpha + (1.f / 30.f) / Duration, 1.f);
+	if (Script && Script->StagingCollection)
+	{
+		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, StagingSweepAlpha);
+	}
+	// Échange des versions au passage du rideau (milieu du balayage).
+	if (!bStagingSwapped && StagingSweepAlpha >= 0.5f)
+	{
+		bStagingSwapped = true;
+		SetStagingState(true, StagingSweepAlpha);
+	}
+	if (StagingSweepAlpha >= 1.f)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
 	}
 }
 
@@ -330,8 +606,13 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 	SceneIndex = NewSceneIndex;
 	const FSceneDef& Scene = Script->Scenes[SceneIndex];
 
+	StopUniverseEvent();
 	SetPhase(EShootPhase::SceneIntro);
 	SetUniverse(Scene.UniverseDefinition ? Scene.UniverseDefinition->Universe : EUniverse::None);
+	// Chaque scène commence en répétition, dans le décor en carton.
+	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
+	SetStagingState(false, 0.f);
+	ResetPlayerToStart(Scene.PlayerStartTag);
 	// Personne ne bouge pendant l'annonce du réalisateur ; BeginTake dégèle au « Action! ».
 	FreezeAll(true);
 	const float Delay = PlayLine(Scene.IntroLineId);
@@ -355,6 +636,8 @@ void UShootDirectorSubsystem::BeginTake(int32 NewTakeIndex)
 
 	TakeIndex = NewTakeIndex;
 	WaveIndex = INDEX_NONE;
+	bMidTakeCutDone = false;
+	StopUniverseEvent();
 
 	// Chaque prise (ou reprise après une mort) démarre sans directive : elle arrive au « CUT! » en pleine prise.
 	SetDirective(nullptr);
@@ -374,6 +657,7 @@ void UShootDirectorSubsystem::StartTakeAction()
 	SetPhase(EShootPhase::TakeRunning);
 	OnAction.Broadcast();
 	ScheduleMidTakeCut();
+	ScheduleUniverseEvent();
 	StartNextWave();
 }
 
@@ -417,6 +701,7 @@ void UShootDirectorSubsystem::MidTakeCut()
 		PendingDirective = Choices.Num() > 0 ? Choices[FMath::RandRange(0, Choices.Num() - 1)] : nullptr;
 	}
 
+	bMidTakeCutDone = true;
 	SetPhase(EShootPhase::Cut);
 	OnCut.Broadcast();
 	FreezeAll(true);
@@ -441,7 +726,18 @@ void UShootDirectorSubsystem::AnnounceMidTakeDirective()
 
 	// Sans réplique (ou sans directive), le gel dure au moins CutDuration.
 	const float Hold = AnnounceDuration > 0.f ? AnnounceDuration : (Script ? Script->CutDuration : 2.f);
-	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::CallAction, FMath::Max(Hold, 0.1f), false);
+	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::ResumeAfterMidTakeCut, FMath::Max(Hold, 0.1f), false);
+}
+
+void UShootDirectorSubsystem::ResumeAfterMidTakeCut()
+{
+	CallAction();
+	// Si le CUT! est tombé sur un plateau vide (dernière vague éliminée avant lui), la vague suivante repart.
+	AWaveSpawner* WaveSpawner = FindSpawner();
+	if (WaveSpawner && WaveSpawner->GetAliveCount() == 0 && !WaveSpawner->IsSpawning())
+	{
+		StartNextWave();
+	}
 }
 
 void UShootDirectorSubsystem::StartNextWave()
@@ -454,6 +750,14 @@ void UShootDirectorSubsystem::StartNextWave()
 	++WaveIndex;
 	if (!Take.Waves.IsValidIndex(WaveIndex))
 	{
+		// GDD : une prise est toujours interrompue une fois. Si le joueur a tout éliminé avant le CUT!, le CUT!
+		// tombe maintenant, puis la dernière vague est rejouée sous la directive.
+		if (!bMidTakeCutDone && Take.Waves.Num() > 0)
+		{
+			WaveIndex = Take.Waves.Num() - 2;
+			MidTakeCut();
+			return;
+		}
 		EndTake();
 		return;
 	}
@@ -492,6 +796,7 @@ void UShootDirectorSubsystem::EndTake()
 	{
 		++GameState->GetMutableShootStats().CompletedTakes;
 	}
+	StopUniverseEvent();
 	const FSceneDef* Scene = Script && Script->Scenes.IsValidIndex(SceneIndex) ? &Script->Scenes[SceneIndex] : nullptr;
 	if (Scene && Scene->Takes.IsValidIndex(TakeIndex))
 	{
@@ -501,7 +806,13 @@ void UShootDirectorSubsystem::EndTake()
 	OnCut.Broadcast();
 	FreezeAll(true);
 
-	const float CutDuration = Script ? Script->CutDuration : 2.f;
+	float CutDuration = Script ? Script->CutDuration : 2.f;
+	// Fin de la répétition (1re prise d'une scène qui en a d'autres) : « On améliore la mise en scène ! »
+	if (Scene && TakeIndex == 0 && Scene->Takes.Num() > 1 && !bStagingReal)
+	{
+		ImproveStaging();
+		CutDuration = FMath::Max(CutDuration, (Script ? Script->StagingSweepDuration : 2.5f) + 0.5f);
+	}
 	const int32 NextTake = TakeIndex + 1;
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateWeakLambda(this, [this, NextTake]()
 	{
@@ -578,25 +889,12 @@ void UShootDirectorSubsystem::RestartTake()
 	{
 		WaveSpawner->KillAll();
 	}
-	if (AReshootCharacter* Player = GetPlayer())
+	if (!bInFinale)
 	{
-		// Retour au départ : PlayerStart dont le Player Start Tag est le PlayerStartTag de la scène, sinon le nom
-		// de l'univers (« Noir », « Medieval », « Space »), sinon le PlayerStart où le joueur est apparu.
-		FString StartTag = StaticEnum<EUniverse>()->GetNameStringByValue(static_cast<int64>(CurrentUniverse));
-		if (!bInFinale && Script && Script->Scenes.IsValidIndex(SceneIndex) && !Script->Scenes[SceneIndex].PlayerStartTag.IsNone())
-		{
-			StartTag = Script->Scenes[SceneIndex].PlayerStartTag.ToString();
-		}
-		AController* Controller = Player->GetController();
-		AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
-		const AActor* Start = GameMode && Controller ? GameMode->FindPlayerStart(Controller, StartTag) : nullptr;
-		const FTransform StartTransform = Start
-			? FTransform(FRotator(0.f, Start->GetActorRotation().Yaw, 0.f), Start->GetActorLocation())
-			: Player->GetActorTransform();
-		// Téléporte, vie pleine, arme rechargée (socle).
-		Player->ResetForTake(StartTransform);
-		Player->ClearWeaponRestrictions();
+		StopUniverseEvent();
 	}
+	// Retour au départ de la scène (tag de scène, d'univers ou du plateau), vie et arme pleines.
+	ResetPlayerToStart(NAME_None);
 	bPlayerDiedThisTake = false;
 	// La prise repart du clap : BeginTake retire la directive, un nouveau « CUT! » en imposera une.
 	if (!bInFinale && TakeIndex != INDEX_NONE)
@@ -607,8 +905,12 @@ void UShootDirectorSubsystem::RestartTake()
 
 void UShootDirectorSubsystem::BeginFinale()
 {
+	StopUniverseEvent();
 	SetPhase(EShootPhase::Finale);
 	SetDirective(nullptr);
+	// Le final se joue dans le « vrai » film : décors réalistes.
+	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
+	SetStagingState(true, 1.f);
 	// On peut arriver ici depuis une intro de scène (gelée) si la scène n'a aucune prise.
 	FreezeAll(false);
 	FinaleUniverseIndex = 0;
@@ -659,6 +961,7 @@ void UShootDirectorSubsystem::Wrap()
 {
 	GetWorld()->GetTimerManager().ClearTimer(FinaleSwitchTimer);
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
+	StopUniverseEvent();
 	// Phase d'abord : KillAll vide la vague, et une vague vidée pendant le final en relancerait une.
 	SetPhase(EShootPhase::Wrap);
 	if (AWaveSpawner* WaveSpawner = FindSpawner())

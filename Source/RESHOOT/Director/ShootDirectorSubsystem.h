@@ -23,6 +23,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShootAction);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectiveChanged, UDirective*, NewDirective);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnKillScored, const FKillInfo&, Kill, float, Points, bool, bDirectiveRespected);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUniverseEventAnnounced, AUniverseEvent*, Event);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCastingProgress, bool, bSlid, int32, TargetsHit, int32, TargetsTotal);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStagingImproved, EUniverse, Universe);
+
+class ACastingTarget;
 
 UCLASS()
 class RESHOOT_API UShootDirectorSubsystem : public UWorldSubsystem
@@ -72,6 +76,21 @@ public:
 	/** Annonce d'un événement d'univers, EventWarningTime avant son déclenchement. */
 	UPROPERTY(BlueprintAssignable, Category = "Director")
 	FOnUniverseEventAnnounced OnUniverseEventAnnounced;
+
+	/** Casting : à chaque étape du tutoriel (glissade faite, cible touchée). L'UI affiche les touches en fonction. */
+	UPROPERTY(BlueprintAssignable, Category = "Director")
+	FOnCastingProgress OnCastingProgress;
+
+	/** « On améliore la mise en scène ! » : le décor de la scène passe du carton au réaliste (début du balayage). */
+	UPROPERTY(BlueprintAssignable, Category = "Director")
+	FOnStagingImproved OnStagingImproved;
+
+	/** Appelé par une cible de casting touchée. */
+	void NotifyCastingTargetHit(ACastingTarget* Target);
+
+	/** Vrai si le décor de la scène est passé en version réaliste. */
+	UFUNCTION(BlueprintPure, Category = "Director")
+	bool IsStagingReal() const { return bStagingReal; }
 
 	// --- Compléments ---
 
@@ -142,7 +161,29 @@ private:
 	/** Annonce de la directive, puis « Action! ». */
 	void AnnounceMidTakeDirective();
 	void StartNextWave();
+	/** Après le « Action! » d'un CUT! : relance une vague si le plateau est vide. */
+	void ResumeAfterMidTakeCut();
 	void EndTake();
+
+	// Joueur
+	/** Place le joueur au départ de la scène (PlayerStartTag, sinon tag d'univers, sinon « Stage »), vie et arme pleines. */
+	void ResetPlayerToStart(FName PreferredTag);
+
+	// Événement d'univers
+	void ScheduleUniverseEvent();
+	void AnnounceUniverseEvent();
+	void TriggerUniverseEvent();
+	void StopUniverseEvent();
+
+	// Transition carton -> réaliste
+	void ImproveStaging();
+	void StepStagingSweep();
+	void SetStagingState(bool bReal, float SweepAlpha);
+
+	// Casting
+	void CheckCastingSlide();
+	void BroadcastCastingProgress();
+	void TryFinishCasting();
 	void RestartTake();
 	void BeginFinale();
 	void FinaleSwitchUniverse();
@@ -185,6 +226,20 @@ private:
 
 	bool bPlayerDiedThisTake = false;
 
+	/** Le CUT! en pleine prise a eu lieu (une prise ne se termine pas sans lui). */
+	bool bMidTakeCutDone = false;
+
+	bool bStagingReal = false;
+	float StagingSweepAlpha = 0.f;
+	bool bStagingSwapped = false;
+
+	bool bCastingSlid = false;
+	bool bCastingDone = false;
+	int32 CastingTargetsHit = 0;
+	int32 CastingTargetsTotal = 0;
+
+	FTimerHandle StagingTimer;
+	FTimerHandle CastingTimer;
 	FTimerHandle PhaseTimer;
 	FTimerHandle CutTimer;
 	FTimerHandle EventTimer;
