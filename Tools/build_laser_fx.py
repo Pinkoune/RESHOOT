@@ -107,6 +107,10 @@ def GLOW_PARTS(part):
     return [
     ]   # le fusil laser Fab a déjà ses propres lumières
 
+# Pose de l'arme en main (relative à l'acteur arme, lui-même à (30, 15, -20) de la caméra) : grande, depuis le coin bas-droit,
+# tournée vers le centre, comme dans les FPS modernes.
+POSE = unreal.Transform(unreal.Vector(-12, -4, 2), unreal.Rotator(0, 0, -7), unreal.Vector(1.15, 1.15, 1.15))
+
 # --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---
 def setup_fx(fx, color, sparks=True):
     fx.set_editor_property('beam_material', BEAM)
@@ -120,12 +124,20 @@ if hasattr(unreal, 'SpaceLaserFXComponent') and cdo.get_editor_property('laser_f
     setup_fx(cdo.get_editor_property('laser_fx'), (0.1, 0.75, 1.0))
     # Fusil laser Fab (canon vers +X, bout du canon à 49 cm, rail de visée à 13,5 cm de haut)
     cdo.set_editor_property('real_mesh', unreal.load_asset('/Game/Fab/Laserrifle/laserrifle/StaticMeshes/laserrifle'))
-    cdo.set_editor_property('real_mesh_transform', unreal.Transform(unreal.Vector(2, -9, -1), unreal.Rotator(0, 0, -3), unreal.Vector(1, 1, 1)))
+    cdo.set_editor_property('real_mesh_transform', POSE)
     cdo.set_editor_property('real_muzzle_local', unreal.Vector(49, 0, 7.5))
     cdo.set_editor_property('aim_fov', 75.0)
     cdo.set_editor_property('glow_part_mesh', unreal.load_asset('/Engine/BasicShapes/Cube.Cube'))
     cdo.set_editor_property('glow_part_material', GLOW)
-    cdo.set_editor_property('real_sight_local', unreal.Vector(12, 0, 13.5))
+    cdo.set_editor_property('real_sight_local', unreal.Vector(-14, 0, 15))   # guidon arrière : en visée, on regarde le long du dessus de l'arme
+    # Carton : même pose et même bout de canon (le modèle carton est calé sur le réaliste : 1 m, canon vers +X)
+    cdo.set_editor_property('prop_mesh', unreal.load_asset('/Game/RESHOOT/Space/Meshes/LaserRifle/Prop/SM_Space_LaserRifle_Cardboard'))
+    mesh_comp = cdo.get_editor_property('mesh')
+    mesh_comp.set_editor_property('static_mesh', cdo.get_editor_property('prop_mesh'))
+    mesh_comp.set_editor_property('relative_location', POSE.translation)
+    mesh_comp.set_editor_property('relative_rotation', POSE.rotation.rotator())
+    mesh_comp.set_editor_property('relative_scale3d', POSE.scale3d)
+    cdo.set_editor_property('muzzle_offset', POSE.transform_location(unreal.Vector(49, 0, 7.5)))
     cdo.get_editor_property('laser_fx').set_editor_property('muzzle_flash_size', 4.5)
     cdo.get_editor_property('laser_fx').set_editor_property('core_intensity', 30.0)
     # Pièces lumineuses sur le fusil (espace du mesh : canon vers +Y, haut = +Z) : bandes le long du garde-main, cellule d'énergie

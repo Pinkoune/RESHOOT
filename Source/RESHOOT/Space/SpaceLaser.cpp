@@ -429,24 +429,36 @@ void ASpaceLaser::Tick(float DeltaSeconds)
 	}
 	const float BobSin = FMath::Sin(BobPhase);
 
-	// Visée : amène le viseur sur l'axe de la caméra (l'acteur est attaché à la caméra).
+	// Pose en main : modèle réaliste + recul, balancement, levée, surchauffe.
 	const FTransform Base = GetBaseMeshTransform();
-	const FVector CameraAxisInActor = -GetRootComponent()->GetRelativeLocation();
-	const FVector Sight = (bDressingReal && RealMesh) ? Base.TransformPosition(RealSightLocal) : PropMeshTransform.GetLocation() + FVector(0.f, 0.f, 8.f);
-	const FVector AimOffset(16.f, CameraAxisInActor.Y - Sight.Y, CameraAxisInActor.Z - Sight.Z);
-
 	const FVector Loc = FVector(-KickBack * KickAlpha, 0.f, 0.f)
 		+ FVector(0.f, BobSin * WalkBob * BobScale, -FMath::Abs(BobSin) * WalkBob * 0.8f * BobScale)
-		+ FVector(0.f, 0.f, FMath::Sin(AnimTime * 1.6f) * 0.18f * (1.f - AimAlpha))
-		+ AimOffset * AimAlpha
+		+ FVector(0.f, 0.f, FMath::Sin(AnimTime * 1.6f) * 0.18f)
 		+ FVector(0.f, 0.f, -18.f) * (1.f - Equip)
 		+ FVector(-3.f, 2.f, -5.f) * OverheatAlpha;
 	const FRotator Rot(
 		KickPitch * KickAlpha + SwayRotation.Pitch - 35.f * (1.f - Equip) - 12.f * OverheatAlpha,
 		SwayRotation.Yaw + KickYaw * KickAlpha * 0.6f,
 		SwayRotation.Yaw * 0.6f + 25.f * OverheatAlpha);
+	FTransform Final = Base * FTransform(Rot, Loc);
 
-	Mesh->SetRelativeTransform(Base * FTransform(Rot, Loc));
+	// Visée, comme dans les FPS modernes : arme dans l'axe, viseur tout près de l'œil, sur l'axe de la caméra
+	// (l'acteur est attaché à la caméra). Recul et balancement atténués.
+	if (AimAlpha > KINDA_SMALL_NUMBER)
+	{
+		constexpr float AimEyeDistance = 16.f;
+		const FVector CameraAxisInActor = -GetRootComponent()->GetRelativeLocation();
+		const FVector Scale = Base.GetScale3D();
+		const FVector Target(CameraAxisInActor.X + AimEyeDistance, CameraAxisInActor.Y, CameraAxisInActor.Z);
+		const FTransform AimBase(FRotator::ZeroRotator, Target - Scale * RealSightLocal, Scale);
+		const FTransform AimAnim(
+			FRotator(KickPitch * KickAlpha * 0.35f + SwayRotation.Pitch * 0.3f, SwayRotation.Yaw * 0.3f + KickYaw * KickAlpha * 0.2f, 0.f),
+			FVector(-KickBack * KickAlpha * 0.7f, 0.f, 0.f));
+		FTransform Aimed;
+		Aimed.Blend(Final, AimBase * AimAnim, FMath::SmoothStep(0.f, 1.f, AimAlpha));
+		Final = Aimed;
+	}
+	Mesh->SetRelativeTransform(Final);
 
 	// Pièces lumineuses : cyan au repos, orange en chauffant, clignotantes en surchauffe.
 	if (bDressingReal && GlowPartMids.Num() > 0)

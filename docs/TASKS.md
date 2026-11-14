@@ -116,7 +116,7 @@ Interface
 - [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
 - [x] Spatial : ciel et planète procéduraux, fusil laser réaliste animé, effets de tir du fusil et des drones (`USpaceLaserFXComponent`, `Tools/build_laser_fx.py`)
 - [ ] Spatial : étincelles d'impact laser (le modèle Niagara est désactivé, trop gros), sons de tir (Jules)
-- [ ] Spatial : fusil laser en carton à générer (prompt dans le guide des assets), puis à poser comme `PropMesh` de `BP_SpaceLaser`
+- [x] Spatial : fusil laser en carton (Tripo), posé comme `PropMesh` de `BP_SpaceLaser`
 
 ## Demandes au socle
 
