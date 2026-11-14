@@ -159,7 +159,10 @@ Chaque scène commence en carton. À la fin de la prise 1, le réalisateur appel
 
 Convention de niveau (chaque sous-niveau `L_<Univers>`, et `L_Stage` pour le studio commun) :
 
-- **Blockout** : seule géométrie avec collision. Commun aux deux états, il ne bouge jamais.
+- **Blockout** : seule géométrie avec collision. Commun aux deux états, il ne bouge jamais. Dans `L_Stage`, il est **invisible en jeu** (visible dans l'éditeur) : tout ce qu'on voit est de l'habillage. Un plafond de collision à 12 m ferme le plateau.
+- **Kits Fab** : leurs modules gardent leurs matériaux. Ils portent les tags `DressingReal` et `DressingSwitch` et apparaissent module par module au passage du rideau.
+- **Reconstruction** : `Tools/build_space_set.py` régénère le studio de `L_Stage` et tout l'habillage de `L_Space` à partir du blockout (à lancer dans l'éditeur, hors partie). Il sert de modèle pour les autres univers.
+- **Exposition figée** : chaque phase a son post-process en exposition manuelle, pour éviter la surexposition pendant le balayage.
 - **Dossier `Dressing_Prop` + tag `DressingProp`** : tout ce qui n'existe qu'au tournage. Décor carton, studio (hangar, projecteurs, caméras, perche, passerelles, techniciens), lumière de studio plate, post-process neutre.
 - **Dossier `Dressing_Real` + tag `DressingReal`** : décor réaliste, ciel de l'univers, grands plans d'arrière-plan peints, lumières et post-process de l'univers.
 - **Les dossiers servent aux humains, les tags au jeu** : les dossiers de l'éditeur n'existent plus dans le jeu packagé, donc le rideau ne lit que les tags.

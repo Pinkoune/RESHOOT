@@ -109,8 +109,10 @@ Interface
 - [ ] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 (Enzo, voir `docs/HANDOFF-Director.md`)
 - [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
 - [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
-- [ ] `L_Stage` : rendre le blockout invisible en jeu une fois les sols et murs habillés
-- [ ] Rendu : figer l'exposition pendant le balayage (aujourd'hui l'image se surexpose au passage)
+- [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
+- [x] Rendu : exposition figée dans les deux phases
+- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
+- [ ] Compléter `docs/CREDITS.md` (titres Fab exacts) avant la soumission
 - [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
 
 ## Demandes au socle
