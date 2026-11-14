@@ -114,6 +114,8 @@ Interface
 - [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
 - [ ] Compléter `docs/CREDITS.md` (titres Fab exacts) avant la soumission
 - [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
+- [x] Spatial : ciel et planète procéduraux, fusil laser réaliste animé, effets de tir du fusil et des drones (`USpaceLaserFXComponent`, `Tools/build_laser_fx.py`)
+- [ ] Spatial : étincelles d'impact laser (le modèle Niagara est désactivé, trop gros), sons de tir (Jules)
 
 ## Demandes au socle
 

@@ -1,0 +1,142 @@
+# RESHOOT — assets des effets laser (Space). À lancer dans l'éditeur (Unreal MCP, execute_python).
+# Crée dans /Game/RESHOOT/Space/FX :
+#   M_Space_LaserBeam   additif, éteint : Color × Intensity × Fade, plus brillant au centre du cylindre (halo doux)
+#   M_Space_LaserGlow   opaque émissif : pièces lumineuses du fusil (Color × Intensity)
+#   M_Space_LaserScorch décal de brûlure : métal noirci + point chaud orange qui refroidit (DecalLifetimeOpacity)
+#   NS_Space_LaserSparks étincelles (copie du modèle Niagara DirectionalBurst)
+# puis règle BP_SpaceLaser (fusil d'Epic + pièces lumineuses) et BP_SpaceDrone.
+import unreal
+
+eal = unreal.EditorAssetLibrary
+at = unreal.AssetToolsHelpers.get_asset_tools()
+mel = unreal.MaterialEditingLibrary
+DIR = '/Game/RESHOOT/Space/FX'
+out = {}
+
+def new_material(name):
+    path = f'{DIR}/{name}'
+    if eal.does_asset_exist(path):     # on le vide plutôt que de le supprimer : il peut être référencé
+        m = unreal.load_asset(path)
+        mel.delete_all_material_expressions(m)
+        return m
+    return at.create_asset(name, DIR, unreal.Material, unreal.MaterialFactoryNew())
+
+def param_vec(m, name, v, x, y):
+    e = mel.create_material_expression(m, unreal.MaterialExpressionVectorParameter, x, y)
+    e.set_editor_property('parameter_name', name); e.set_editor_property('default_value', unreal.LinearColor(*v))
+    return e
+
+def param_scalar(m, name, v, x, y):
+    e = mel.create_material_expression(m, unreal.MaterialExpressionScalarParameter, x, y)
+    e.set_editor_property('parameter_name', name); e.set_editor_property('default_value', v)
+    return e
+
+def custom(m, code, inputs, x, y, out_type=unreal.CustomMaterialOutputType.CMOT_FLOAT1):
+    c = mel.create_material_expression(m, unreal.MaterialExpressionCustom, x, y)
+    c.set_editor_property('code', code); c.set_editor_property('output_type', out_type)
+    ins = []
+    for n in inputs:
+        ci = unreal.CustomInput(); ci.set_editor_property('input_name', n); ins.append(ci)
+    c.set_editor_property('inputs', ins)
+    return c
+
+C = mel.connect_material_expressions
+
+# --- Rayon ---
+m = new_material('M_Space_LaserBeam')
+m.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
+m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ADDITIVE)
+m.set_editor_property('two_sided', True)
+col = param_vec(m, 'Color', (0.1, 0.75, 1.0, 1), -900, -200)
+inten = param_scalar(m, 'Intensity', 20.0, -900, 0)
+fade = param_scalar(m, 'Fade', 1.0, -900, 100)
+soft = custom(m, 'return pow(saturate(abs(dot(normalize(N), normalize(V)))), 1.6);', ['N', 'V'], -650, 250)
+C(mel.create_material_expression(m, unreal.MaterialExpressionVertexNormalWS, -900, 250), '', soft, 'N')
+C(mel.create_material_expression(m, unreal.MaterialExpressionCameraVectorWS, -900, 350), '', soft, 'V')
+emis = custom(m, 'return Col * I * F * S;', ['Col', 'I', 'F', 'S'], -350, 0, unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+for e, n in ((col, 'Col'), (inten, 'I'), (fade, 'F'), (soft, 'S')):
+    C(e, '', emis, n)
+mel.connect_material_property(emis, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+mel.recompile_material(m); eal.save_loaded_asset(m)
+BEAM = m
+
+# --- Pièces lumineuses ---
+m = new_material('M_Space_LaserGlow')
+m.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
+col = param_vec(m, 'Color', (0.1, 0.75, 1.0, 1), -600, -100)
+inten = param_scalar(m, 'Intensity', 8.0, -600, 100)
+mul = mel.create_material_expression(m, unreal.MaterialExpressionMultiply, -300, 0)
+C(col, '', mul, 'A'); C(inten, '', mul, 'B')
+mel.connect_material_property(mul, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+mel.recompile_material(m); eal.save_loaded_asset(m)
+GLOW = m
+
+# --- Brûlure ---
+m = new_material('M_Space_LaserScorch')
+m.set_editor_property('material_domain', unreal.MaterialDomain.MD_DEFERRED_DECAL)
+m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ALPHA_COMPOSITE)   # seuls modes admis pour un décal (Substrate)
+hot = param_vec(m, 'HotColor', (1.0, 0.35, 0.08, 1), -900, -200)
+uv = mel.create_material_expression(m, unreal.MaterialExpressionTextureCoordinate, -900, 0)
+life = mel.create_material_expression(m, unreal.MaterialExpressionDecalLifetimeOpacity, -900, 150)
+mask = custom(m, 'float r = length(UV - 0.5) * 2.0; float n = frac(sin(dot(floor(UV * 23.0), float2(12.9898, 78.233))) * 43758.5453); return saturate((1.0 - r) * 1.6 - n * 0.25);', ['UV'], -650, 0)
+C(uv, '', mask, 'UV')
+opac = custom(m, 'return saturate(M * 1.4) * saturate(Life * 1.5);', ['M', 'Life'], -350, 100)
+C(mask, '', opac, 'M'); C(life, '', opac, 'Life')
+emis = custom(m, 'return Hot * pow(M, 4.0) * pow(saturate(Life), 10.0) * 25.0;', ['Hot', 'M', 'Life'], -350, -150, unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+C(hot, '', emis, 'Hot'); C(mask, '', emis, 'M'); C(life, '', emis, 'Life')
+base = mel.create_material_expression(m, unreal.MaterialExpressionConstant3Vector, -350, 250)
+base.set_editor_property('constant', unreal.LinearColor(0.012, 0.011, 0.010, 1))
+rough = mel.create_material_expression(m, unreal.MaterialExpressionConstant, -350, 350); rough.set_editor_property('r', 0.9)
+mel.connect_material_property(base, '', unreal.MaterialProperty.MP_BASE_COLOR)
+mel.connect_material_property(rough, '', unreal.MaterialProperty.MP_ROUGHNESS)
+mel.connect_material_property(opac, '', unreal.MaterialProperty.MP_OPACITY)
+mel.connect_material_property(emis, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+mel.recompile_material(m); eal.save_loaded_asset(m)
+SCORCH = m
+
+# --- Étincelles ---
+NS = f'{DIR}/NS_Space_LaserSparks'
+if not eal.does_asset_exist(NS):
+    eal.duplicate_loaded_asset(unreal.load_asset('/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst'), NS)
+SPARKS = unreal.load_asset(NS)
+USE_SPARKS = False   # le modèle DirectionalBurst fait des gerbes de 2 m, trop grosses : désactivé tant qu'il n'est pas réglé
+out['assets'] = [BEAM.get_path_name(), GLOW.get_path_name(), SCORCH.get_path_name(), SPARKS.get_path_name() if SPARKS else None]
+
+# Pièces lumineuses du fusil, dans l'espace du mesh SM_Rifle (canon vers +Y, haut = +Z), tailles en cm.
+def GLOW_PARTS(part):
+    return [
+        part((3.1, 30.0, 3.0), (0.3, 16.0, 0.6)),     # bande, garde-main droit
+        part((-3.1, 30.0, 3.0), (0.3, 16.0, 0.6)),    # bande, garde-main gauche
+        part((0.0, 47.0, 4.0), (2.2, 0.3, 2.2)),      # anneau à la bouche
+    ]
+
+# --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---
+def setup_fx(fx, color, sparks=True):
+    fx.set_editor_property('beam_material', BEAM)
+    fx.set_editor_property('scorch_material', SCORCH)
+    fx.set_editor_property('beam_color', unreal.LinearColor(*color, 1))
+    fx.set_editor_property('impact_sparks', SPARKS if (sparks and USE_SPARKS) else None)
+
+bp = unreal.load_asset('/Game/RESHOOT/Space/Weapons/BP_SpaceLaser')
+cdo = unreal.get_default_object(bp.generated_class())
+if hasattr(unreal, 'SpaceLaserFXComponent') and cdo.get_editor_property('laser_fx'):
+    setup_fx(cdo.get_editor_property('laser_fx'), (0.1, 0.75, 1.0))
+    cdo.set_editor_property('real_mesh', unreal.load_asset('/Game/Weapons/Rifle/Meshes/SM_Rifle'))
+    cdo.set_editor_property('glow_part_mesh', unreal.load_asset('/Engine/BasicShapes/Cube.Cube'))
+    cdo.set_editor_property('glow_part_material', GLOW)
+    cdo.set_editor_property('real_sight_local', unreal.Vector(0, 5, 15.7))
+    cdo.get_editor_property('laser_fx').set_editor_property('muzzle_flash_size', 4.5)
+    cdo.get_editor_property('laser_fx').set_editor_property('core_intensity', 30.0)
+    # Pièces lumineuses sur le fusil (espace du mesh : canon vers +Y, haut = +Z) : bandes le long du garde-main, cellule d'énergie
+    def part(loc, size):
+        return unreal.Transform(unreal.Vector(*loc), unreal.Rotator(0, 0, 0), unreal.Vector(size[0] / 100, size[1] / 100, size[2] / 100))
+    cdo.set_editor_property('real_glow_parts', GLOW_PARTS(part))
+    unreal.BlueprintEditorLibrary.compile_blueprint(bp); eal.save_loaded_asset(bp)
+    out['laser_bp'] = 'ok'
+bpd = unreal.load_asset('/Game/RESHOOT/Space/Enemies/BP_SpaceDrone')
+dcdo = unreal.get_default_object(bpd.generated_class())
+if hasattr(unreal, 'SpaceLaserFXComponent') and dcdo.get_editor_property('laser_fx'):
+    setup_fx(dcdo.get_editor_property('laser_fx'), (1.0, 0.12, 0.06))
+    unreal.BlueprintEditorLibrary.compile_blueprint(bpd); eal.save_loaded_asset(bpd)
+    out['drone_bp'] = 'ok'
+out

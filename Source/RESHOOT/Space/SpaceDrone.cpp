@@ -1,4 +1,5 @@
 #include "Space/SpaceDrone.h"
+#include "Space/SpaceLaserFX.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
 #include "RESHOOT.h"
@@ -8,6 +9,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -25,7 +27,6 @@ namespace
 		return Types;
 	}
 
-	constexpr float ShotBeamVisibleTime = 0.06f;
 	const FLinearColor DefaultShotColor(1.f, 0.15f, 0.1f);
 }
 
@@ -58,6 +59,14 @@ ASpaceDrone::ASpaceDrone(const FObjectInitializer& ObjectInitializer)
 	{
 		Body->SetStaticMesh(SphereMesh.Object);
 	}
+
+	LaserFX = CreateDefaultSubobject<USpaceLaserFXComponent>(TEXT("LaserFX"));
+	LaserFX->BeamColor = DefaultShotColor;
+	LaserFX->PoolSize = 2;
+	LaserFX->CoreThickness = 1.2f;
+	LaserFX->GlowThickness = 7.f;
+	LaserFX->BoltSpeed = 9000.f;   // plus lent que le joueur : on voit venir le tir
+	LaserFX->BeamLifetime = 0.18f;
 
 	ShotBeam = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShotBeam"));
 	ShotBeam->SetupAttachment(GetCapsuleComponent());
@@ -187,8 +196,8 @@ void ASpaceDrone::TryFire()
 		Target = Camera->GetComponentLocation() - FVector(0.f, 0.f, 20.f); // Le haut du torse.
 	}
 
-	const FVector Start = GetActorLocation();
-	FVector Direction = (Target - Start).GetSafeNormal();
+	FVector Direction = (Target - GetActorLocation()).GetSafeNormal();
+	const FVector Start = GetActorLocation() + Direction * MuzzleForward;
 	if (SpreadDegrees > 0.f)
 	{
 		Direction = FMath::VRandCone(Direction, FMath::DegreesToRadians(SpreadDegrees));
@@ -207,20 +216,11 @@ void ASpaceDrone::TryFire()
 		}
 	}
 
-	// Rayon visible.
-	const FVector Impact = bHit ? Hit.ImpactPoint : End;
-	const FVector Delta = Impact - Start;
-	const float Length = Delta.Size();
-	if (Length > KINDA_SMALL_NUMBER)
-	{
-		ShotBeam->SetWorldLocationAndRotation(Start + Delta * 0.5f, FRotationMatrix::MakeFromZ(Delta / Length).Rotator());
-		ShotBeam->SetWorldScale3D(FVector(0.04f, 0.04f, Length / 100.f));
-		ShotBeam->SetHiddenInGame(false);
-		GetWorldTimerManager().SetTimer(ShotBeamTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
-		{
-			ShotBeam->SetHiddenInGame(true);
-		}), ShotBeamVisibleTime, false);
-	}
+	// Tir visible : rayon rouge, trait, éclair, impact (le joueur ne reçoit ni brûlure ni étincelles sur lui).
+	const FVector Impact = bHit ? FVector(Hit.ImpactPoint) : End;
+	const bool bHitPlayer = bHit && Hit.GetActor() == Player;
+	const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
+	LaserFX->FireBeam(Start, Impact, bHit && !bHitPlayer, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
 
 	if (FireSound)
 	{

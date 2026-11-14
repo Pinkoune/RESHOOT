@@ -11,6 +11,7 @@
 class UStaticMeshComponent;
 class UMaterialInterface;
 class USoundBase;
+class USpaceLaserFXComponent;
 
 UCLASS(Blueprintable)
 class RESHOOT_API ASpaceDrone : public AReshootEnemy
@@ -63,6 +64,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Feel")
 	TObjectPtr<UMaterialInterface> ShotMaterial;
 
+	/** Départ du tir, devant le drone dans la direction de visée (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Feel", meta = (ClampMin = "0"))
+	float MuzzleForward = 50.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Audio")
 	TObjectPtr<USoundBase> FireSound;
 
@@ -81,6 +86,10 @@ protected:
 	/** Tir visible : cylindre étiré, affiché brièvement. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Drone")
 	TObjectPtr<UStaticMeshComponent> ShotBeam;
+
+	/** Effets du tir (mêmes que le fusil, en rouge) : rayon, trait, éclairs, impacts. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Drone")
+	TObjectPtr<USpaceLaserFXComponent> LaserFX;
 
 private:
 	void Steer();

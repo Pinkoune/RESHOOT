@@ -90,61 +90,174 @@ MAT_FF = unreal.load_asset(FF)
 PLANET_C = (9000.0, 42000.0, -7000.0)     # sous la baie, à droite : on voit l'horizon de la planète
 PLANET_R = 19000.0
 SUN_DIR = (-0.55, -0.55, 0.63)            # soleil en haut à gauche, côté hangar : la face visible est éclairée
+PLANET_SEED = (3.7, 1.3, 8.2)             # change la disposition des continents
+SKY_BRIGHT = 1.0
+PLANET_BRIGHT = 1.0
 
-def planet_materials():
-    """Planète procédurale (éteinte, éclairage calculé dans le matériau) et son atmosphère additive."""
+# Bruit en HLSL (nœud Custom) : tout est calculé par pixel, donc net à toutes les résolutions, sans texture.
+HLSL_LIB = r'''
+struct ReshootNoise
+{
+	float h1(float3 p) { p = frac(p * 0.3183099 + 0.1); p *= 17.0; return frac(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+	float3 h3(float3 p) { return float3(h1(p), h1(p + 19.19), h1(p + 47.47)); }
+	float vn(float3 x)
+	{
+		float3 i = floor(x); float3 f = frac(x); f = f * f * (3.0 - 2.0 * f);
+		return lerp(lerp(lerp(h1(i), h1(i + float3(1, 0, 0)), f.x), lerp(h1(i + float3(0, 1, 0)), h1(i + float3(1, 1, 0)), f.x), f.y),
+		            lerp(lerp(h1(i + float3(0, 0, 1)), h1(i + float3(1, 0, 1)), f.x), lerp(h1(i + float3(0, 1, 1)), h1(i + float3(1, 1, 1)), f.x), f.y), f.z);
+	}
+	float fbm(float3 p, int o)
+	{
+		float a = 0.5; float s = 0.0;
+		for (int k = 0; k < o; k++) { s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
+		return s;
+	}
+};
+ReshootNoise L;
+'''
+
+HLSL_SKY = HLSL_LIB + r'''
+float3 d = normalize(-D);
+float fwd = length(fwidth(d));
+float3 bandN = normalize(float3(0.35, -0.25, 0.9));
+float bd = dot(d, bandN);
+float band = exp(-bd * bd * 14.0);
+float3 col = 0;
+float dens[3] = { 70.0, 160.0, 360.0 };
+float gain[3] = { 1.6, 1.0, 0.55 };
+for (int k = 0; k < 3; k++)
+{
+	float3 p = d * dens[k];
+	float3 c = floor(p); float3 f = p - c;
+	float3 pos = 0.25 + 0.5 * L.h3(c + k * 31.7);
+	float3 hb = L.h3(c * 1.31 + 7.3 + k);
+	float present = step(lerp(0.94, 0.80, band), hb.x);
+	float sz = lerp(0.05, 0.10, hb.y);
+	float s2 = max(sz, fwd * dens[k] * 0.75);
+	float r = length(f - pos);
+	float I = (0.25 + 10.0 * pow(hb.z, 10.0)) * (sz * sz) / (s2 * s2) * gain[k];
+	float3 tint = lerp(float3(1.0, 0.74, 0.52), float3(0.72, 0.84, 1.0), frac(hb.z * 7.13));
+	col += present * tint * I * exp(-r * r / (s2 * s2));
+}
+float n1 = L.fbm(d * 2.5 + 3.1, 6);
+float n2 = L.fbm(d * 6.0 + 11.7, 5);
+float dust = smoothstep(0.45, 0.68, L.fbm(d * 8.0 + 21.3, 5));
+float3 milky = band * (0.6 * n1 * n1 + 0.4 * n2 * n2) * float3(0.55, 0.52, 0.62) * (1.0 - 0.8 * dust);
+float neb = pow(saturate((L.fbm(d * 1.6 + 40.0, 6) - 0.42) * 3.0), 2.5);
+float3 nebc = lerp(float3(0.30, 0.06, 0.24), float3(0.05, 0.14, 0.30), L.fbm(d * 3.0 + 70.0, 4));
+col += milky * 0.18 + neb * nebc * 0.25;
+return col * Bright;
+'''
+
+HLSL_PLANET = HLSL_LIB + r'''
+float3 C = float3(%(cx)f, %(cy)f, %(cz)f); float R = %(r)f;
+float3 Ls = normalize(float3(%(sx)f, %(sy)f, %(sz)f));
+float3 ro = CP - C; float3 rd = normalize(WP - CP);
+float b = dot(ro, rd); float c = dot(ro, ro) - R * R; float h = b * b - c;
+float3 v = -rd;
+if (h > 0.0 && b < 0.0)
+{
+	float3 nw = normalize(ro + rd * (-b - sqrt(h)));
+	float3 ax = normalize(float3(0.25, -0.3, 0.92));
+	float3 ex = normalize(cross(float3(0.0, 1.0, 0.0), ax));
+	float3 ey = cross(ax, ex);
+	float3 n = float3(dot(nw, ex), dot(nw, ey), dot(nw, ax));
+	float lat = abs(n.z);
+	float3 q = n * 2.0 + float3(%(seedx)f, %(seedy)f, %(seedz)f);
+	float3 w = float3(L.fbm(q * 0.8, 4), L.fbm(q * 0.8 + 5.2, 4), L.fbm(q * 0.8 + 9.7, 4));
+	float hgt = L.fbm(q + w * 1.5, 8);
+	float sea = 0.53;
+	float land = smoothstep(sea, sea + 0.004, hgt);
+	float moist = L.fbm(n * 5.0 + 3.3, 6);
+	float3 desert = float3(0.40, 0.31, 0.19);
+	float3 forest = float3(0.035, 0.075, 0.03);
+	float3 grass = float3(0.10, 0.12, 0.05);
+	float3 rock = float3(0.22, 0.20, 0.18);
+	float3 lc = lerp(lerp(grass, forest, smoothstep(0.48, 0.62, moist)), desert, smoothstep(0.47, 0.36, moist));
+	lc = lerp(lc, rock, smoothstep(sea + 0.09, sea + 0.17, hgt));
+	float ice = smoothstep(0.80, 0.87, lat + (hgt - sea) * 0.5);
+	float depth = saturate((sea - hgt) / 0.08);
+	float3 oc = lerp(float3(0.018, 0.06, 0.09), float3(0.003, 0.012, 0.035), depth);
+	float3 alb = lerp(lerp(oc, lc, land), float3(0.80, 0.83, 0.87), ice);
+
+	float3 cq = n * float3(3.0, 3.0, 6.5) + w * 1.6 + float3(T * 0.002, 0.0, 0.0);
+	float cl = L.fbm(cq + 17.0, 6) + (L.fbm(cq * 5.0 + 3.0, 5) - 0.5) * 0.45;
+	float cov = smoothstep(0.50, 0.58, cl) * (0.45 + 0.55 * smoothstep(0.35, 0.65, L.fbm(n * 1.3 + 50.0, 3)));
+
+	float ndl = dot(nw, Ls);
+	float day = smoothstep(-0.06, 0.35, ndl);
+	float mu = saturate(dot(nw, v));
+	float3 term = lerp(float3(1.0, 0.55, 0.32), float3(1.0, 1.0, 1.0), smoothstep(0.0, 0.3, ndl));
+	float3 hlf = normalize(Ls + v);
+	float spec = pow(saturate(dot(nw, hlf)), 160.0) * 5.0 * (1.0 - land) * (1.0 - ice) * (1.0 - cov);
+	float3 ground = alb * (1.0 - 0.45 * cov) * day * term * 2.4 + spec * float3(1.0, 0.95, 0.88) * day;
+	float3 cloudc = float3(0.92, 0.93, 0.95) * (0.01 + day * term * 1.9);
+	float3 col = lerp(ground, cloudc, cov);
+	float city = land * (1.0 - ice) * (1.0 - cov) * smoothstep(0.66, 0.82, L.fbm(n * 70.0, 4)) * smoothstep(0.02, -0.2, ndl);
+	col += city * float3(1.0, 0.62, 0.28) * 0.6;
+	float rim = pow(1.0 - mu, 2.5);
+	col = lerp(col, float3(0.32, 0.58, 1.0) * (day * 1.3 + 0.01), rim * 0.5);
+	return float4(col * Bright, 1.0);
+}
+float3 pc = ro - rd * b;
+float dmin = length(pc);
+float alt = max(dmin - R, 0.0) / (R * 0.03);
+float sl = dot(normalize(pc), Ls);
+float3 ac = lerp(float3(1.0, 0.45, 0.2), float3(0.32, 0.58, 1.0), smoothstep(0.0, 0.45, sl));
+float a = saturate(exp(-alt * 3.0) * smoothstep(-0.3, 0.35, sl) * 1.1) * step(b, 0.0);
+return float4(ac * a * 1.8 * Bright, a);
+'''
+
+def sky_materials():
+    """Ciel étoilé (opaque, intérieur de sphère) et planète analytique (rayon-sphère par pixel, bord net, atmosphère)."""
     out_ = []
-    for name, build in (('M_Space_Planet', 'planet'), ('M_Space_Atmosphere', 'atmo')):
+    params = dict(cx=PLANET_C[0], cy=PLANET_C[1], cz=PLANET_C[2], r=PLANET_R, sx=SUN_DIR[0], sy=SUN_DIR[1], sz=SUN_DIR[2],
+                  seedx=PLANET_SEED[0], seedy=PLANET_SEED[1], seedz=PLANET_SEED[2])
+    for name in ('M_Space_DeepSky', 'M_Space_PlanetAnalytic'):
         path = '/Game/RESHOOT/Space/Materials/' + name
         if eal.does_asset_exist(path):
             eal.delete_asset(path)
         m = at.create_asset(name, '/Game/RESHOOT/Space/Materials', unreal.Material, unreal.MaterialFactoryNew())
         m.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
         E = lambda cls, x, y: mel.create_material_expression(m, cls, x, y)
-        C = mel.connect_material_expressions
-        def const3(v, x, y):
-            e = E(unreal.MaterialExpressionConstant3Vector, x, y); e.set_editor_property('constant', unreal.LinearColor(*v, 1)); return e
-        def const(v, x, y):
-            e = E(unreal.MaterialExpressionConstant, x, y); e.set_editor_property('r', v); return e
-        def op(cls, a, b, x, y, ia='A', ib='B'):
-            e = E(cls, x, y); C(a, '', e, ia)
-            if b is not None: C(b, '', e, ib)
-            return e
-        nrm = E(unreal.MaterialExpressionVertexNormalWS, -1400, 0)
-        light_ = op(unreal.MaterialExpressionDotProduct, nrm, const3(SUN_DIR, -1400, 150), -1200, 50)
-        if build == 'planet':
-            # jour / nuit : terminateur doux
-            day = E(unreal.MaterialExpressionSaturate, -900, 50); C(op(unreal.MaterialExpressionAdd, op(unreal.MaterialExpressionMultiply, light_, const(2.2, -1200, 200), -1050, 50), const(0.15, -1050, 200), -950, 60), '', day, '')
-            wp = E(unreal.MaterialExpressionWorldPosition, -1700, 400)
-            def noise(scale, levels, x, y):
-                # l'échelle se règle sur le nœud lui-même (il lit la position monde par défaut)
-                n = E(unreal.MaterialExpressionNoise, x, y)
-                n.set_editor_property('scale', 1.0 / scale); n.set_editor_property('levels', levels)
-                n.set_editor_property('output_min', 0.0); n.set_editor_property('output_max', 1.0)
-                n.set_editor_property('quality', 1)
-                n.set_editor_property('turbulence', False)
-                n.set_editor_property('level_scale', 2.0)
-                return n
-            land = noise(30000.0, 7, -1250, 400)
-            landmask = E(unreal.MaterialExpressionSaturate, -900, 400)
-            C(op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionSubtract, land, const(0.5, -1100, 520), -1050, 420), const(10.0, -1100, 600), -980, 430), '', landmask, '')
-            surf = E(unreal.MaterialExpressionLinearInterpolate, -750, 300)
-            C(const3((0.004, 0.022, 0.07), -900, 250), '', surf, 'A'); C(const3((0.11, 0.12, 0.07), -900, 330), '', surf, 'B'); C(landmask, '', surf, 'Alpha')
-            cl = noise(9000.0, 7, -1250, 700)
-            cloud = E(unreal.MaterialExpressionSaturate, -900, 700)
-            C(op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionSubtract, cl, const(0.55, -1100, 820), -1050, 720), const(2.2, -1100, 900), -980, 730), '', cloud, '')
-            col = E(unreal.MaterialExpressionLinearInterpolate, -600, 400)
-            C(surf, '', col, 'A'); C(const3((0.7, 0.73, 0.78), -750, 500), '', col, 'B'); C(cloud, '', col, 'Alpha')
-            lit = op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionMultiply, col, day, -450, 250), const(4.5, -600, 150), -300, 250)
-            mel.connect_material_property(lit, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        cus = E(unreal.MaterialExpressionCustom, -400, 0)
+        bright = E(unreal.MaterialExpressionScalarParameter, -800, 300)
+        bright.set_editor_property('parameter_name', 'Brightness')
+        if name == 'M_Space_DeepSky':
+            m.set_editor_property('two_sided', True)
+            bright.set_editor_property('default_value', SKY_BRIGHT)
+            cus.set_editor_property('code', HLSL_SKY)
+            cus.set_editor_property('output_type', unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+            ins = []
+            for n_ in ('D', 'Bright'):
+                ci = unreal.CustomInput(); ci.set_editor_property('input_name', n_); ins.append(ci)
+            cus.set_editor_property('inputs', ins)
+            cam = E(unreal.MaterialExpressionCameraVectorWS, -800, 0)
+            mel.connect_material_expressions(cam, '', cus, 'D')
+            mel.connect_material_expressions(bright, '', cus, 'Bright')
+            mel.connect_material_property(cus, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
         else:
-            m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ADDITIVE)
-            m.set_editor_property('two_sided', False)
-            fres = E(unreal.MaterialExpressionFresnel, -1000, 300)
-            fres.set_editor_property('exponent', 4.0)
-            day = E(unreal.MaterialExpressionSaturate, -900, 50); C(op(unreal.MaterialExpressionAdd, light_, const(0.35, -1100, 200), -1000, 60), '', day, '')
-            glow = op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionMultiply, fres, day, -700, 200), const3((0.25, 0.55, 1.6), -850, 400), -500, 250)
-            mel.connect_material_property(glow, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+            m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ALPHA_COMPOSITE)
+            bright.set_editor_property('default_value', PLANET_BRIGHT)
+            cus.set_editor_property('code', HLSL_PLANET % params)
+            cus.set_editor_property('output_type', unreal.CustomMaterialOutputType.CMOT_FLOAT4)
+            ins = []
+            for n_ in ('WP', 'CP', 'T', 'Bright'):
+                ci = unreal.CustomInput(); ci.set_editor_property('input_name', n_); ins.append(ci)
+            cus.set_editor_property('inputs', ins)
+            mel.connect_material_expressions(E(unreal.MaterialExpressionWorldPosition, -800, -200), '', cus, 'WP')
+            mel.connect_material_expressions(E(unreal.MaterialExpressionCameraPositionWS, -800, -100), '', cus, 'CP')
+            mel.connect_material_expressions(E(unreal.MaterialExpressionTime, -800, 100), '', cus, 'T')
+            mel.connect_material_expressions(bright, '', cus, 'Bright')
+            rgb = E(unreal.MaterialExpressionComponentMask, -150, 0)
+            rgb.set_editor_property('r', True); rgb.set_editor_property('g', True); rgb.set_editor_property('b', True); rgb.set_editor_property('a', False)
+            alpha = E(unreal.MaterialExpressionComponentMask, -150, 150)
+            for ch in 'rgb': alpha.set_editor_property(ch, False)
+            alpha.set_editor_property('a', True)
+            mel.connect_material_expressions(cus, '', rgb, '')
+            mel.connect_material_expressions(cus, '', alpha, '')
+            mel.connect_material_property(rgb, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+            mel.connect_material_property(alpha, '', unreal.MaterialProperty.MP_OPACITY)
         mel.recompile_material(m); eal.save_loaded_asset(m)
         out_.append(m)
     return out_
@@ -246,6 +359,7 @@ def haze(label, folder, tags, density, falloff):
     fc.set_editor_property('fog_density', density); fc.set_editor_property('fog_height_falloff', falloff)
     fc.set_editor_property('enable_volumetric_fog', True)
     fc.set_editor_property('fog_inscattering_luminance', unreal.LinearColor(0.0, 0.0, 0.0, 1))
+    fc.set_editor_property('fog_cutoff_distance', 15000.0)   # le ciel et la planète, au-delà, restent nets
     fog.set_actor_label(label); fog.set_folder_path(folder); fog.tags = list(tags)
 
 def block_box(label, wall, lat, b, z, size):
@@ -573,14 +687,12 @@ haze('Hangar_Haze', 'Dressing_Real/Lighting', ['DressingReal'], 0.008, 0.06)
 ppv('PPV_Hangar', 'Dressing_Real/Lighting', ['DressingReal'], HANGAR_BIAS, bloom_intensity=0.6, vignette_intensity=0.4,
     color_saturation=unreal.Vector4(0.9, 0.9, 0.9, 1), white_temp=7000.0)
 
-# --- Dehors : ciel, planète, coque d'un autre vaisseau (vus par la baie) ---
-_sky_tex = unreal.load_asset('/Game/RESHOOT/Space/Textures/T_Space_SkyPanorama')
-_sky_tex.set_editor_property('address_x', unreal.TextureAddress.TA_MIRROR); eal.save_loaded_asset(_sky_tex)
+# --- Dehors : ciel étoilé et planète, procéduraux (vus par la baie) ---
 SKY = dict(folder='Dressing_Real/Sky', tags=('DressingReal', 'DressingSwitch'), shadow=False)
-spawn('Sky_Starfield', SPHERE, (0, 0, 0), scale=(1500, 1500, 1500), mat=unreal.load_asset('/Game/RESHOOT/Space/Materials/MI_Space_Sky'), **SKY)
-planet_mat, atmo_mat = planet_materials()
-spawn('Planet', SPHERE, PLANET_C, scale=(PLANET_R / 50,) * 3, mat=planet_mat, **SKY)
-spawn('Planet_Atmosphere', SPHERE, PLANET_C, scale=(PLANET_R * 1.035 / 50,) * 3, mat=atmo_mat, **SKY)
+sky_mat, planet_mat = sky_materials()
+spawn('Sky_Starfield', SPHERE, (0, 0, 0), scale=(1500, 1500, 1500), mat=sky_mat, **SKY)
+# La sphère n'est qu'un support : la planète est calculée par pixel (rayon-sphère), l'atmosphère déborde jusqu'à 1,12 R.
+spawn('Planet', SPHERE, PLANET_C, scale=(PLANET_R * 1.12 / 50,) * 3, mat=planet_mat, **SKY)
 les.save_current_level()
 les.load_level('/Game/RESHOOT/Core/Maps/L_Stage', unsaved_changes_policy=DISCARD)
 out['hangar_conflicts'] = list(REPORT)

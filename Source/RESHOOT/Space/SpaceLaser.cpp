@@ -1,10 +1,13 @@
 #include "Space/SpaceLaser.h"
+#include "Space/SpaceLaserFX.h"
 #include "Core/ReshootCharacter.h"
 #include "RESHOOT.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -30,6 +33,12 @@ namespace
 ASpaceLaser::ASpaceLaser()
 {
 	DisplayName = NSLOCTEXT("Reshoot", "SpaceLaser", "Fusil laser");
+
+	// Tick : animations de l'arme en main (recul, balancement, visée) ; pas de logique de jeu ici.
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	LaserFX = CreateDefaultSubobject<USpaceLaserFXComponent>(TEXT("LaserFX"));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -60,6 +69,35 @@ void ASpaceLaser::BeginPlay()
 {
 	Super::BeginPlay();
 
+	PropMeshTransform = Mesh->GetRelativeTransform();
+	if (const AReshootCharacter* Character = GetOwnerCharacter())
+	{
+		if (const AController* Controller = Character->GetController())
+		{
+			LastControlRotation = Controller->GetControlRotation();
+		}
+	}
+
+	// Pièces lumineuses du modèle réaliste : attachées au mesh, elles suivent le recul et la visée.
+	for (const FTransform& Part : RealGlowParts)
+	{
+		UStaticMeshComponent* Comp = NewObject<UStaticMeshComponent>(this);
+		Comp->SetStaticMesh(GlowPartMesh);
+		Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Comp->SetCastShadow(false);
+		Comp->SetupAttachment(Mesh);
+		Comp->SetRelativeTransform(Part);
+		Comp->RegisterComponent();
+		UMaterialInstanceDynamic* Mid = GlowPartMaterial ? UMaterialInstanceDynamic::Create(GlowPartMaterial, Comp) : Comp->CreateAndSetMaterialInstanceDynamic(0);
+		if (Mid)
+		{
+			Comp->SetMaterial(0, Mid);
+		}
+		GlowParts.Add(Comp);
+		GlowPartMids.Add(Mid);
+	}
+	SetDressingReal(bDressingReal);
+
 	if (BeamMaterial)
 	{
 		Beam->SetMaterial(0, BeamMaterial);
@@ -78,6 +116,10 @@ void ASpaceLaser::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(FireTimer);
 		World->GetTimerManager().ClearTimer(HeatTimer);
 		World->GetTimerManager().ClearTimer(BeamTimer);
+	}
+	if (LaserFX)
+	{
+		LaserFX->HideAll();
 	}
 	Super::EndPlay(EndPlayReason);
 }
@@ -135,7 +177,11 @@ void ASpaceLaser::FireShot()
 		DealDamage(Hit.GetActor(), DamagePerShot, IsHeadshot(Hit), false);
 	}
 
-	ShowBeam(GetActorTransform().TransformPosition(MuzzleOffset), Impact);
+	// Brûlure sur le décor seulement : un décal ne suit pas un figurant qui bouge.
+	const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
+	LaserFX->FireBeam(GetMuzzleLocation(), Impact, bHit, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
+	KickAlpha = FMath::Min(KickAlpha + 1.f, 1.6f);
+	KickYaw = FMath::FRandRange(-1.f, 1.f);
 
 	if (FireSound)
 	{
@@ -263,11 +309,126 @@ void ASpaceLaser::StopSecondary()
 
 void ASpaceLaser::SetEnabled(bool bInEnabled)
 {
+	const bool bWasEnabled = bEnabled;
 	Super::SetEnabled(bInEnabled);
 	if (!bInEnabled)
 	{
 		GetWorldTimerManager().ClearTimer(FireTimer);
 		HideBeam();
+		if (LaserFX)
+		{
+			LaserFX->HideAll();
+		}
+	}
+	else if (!bWasEnabled)
+	{
+		EquipAlpha = 0.f;   // l'arme remonte après le gel
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Modèle et animations en main
+// ---------------------------------------------------------------------------
+
+void ASpaceLaser::SetDressingReal(bool bReal)
+{
+	Super::SetDressingReal(bReal);
+	const bool bShowReal = bReal && RealMesh;
+	Mesh->SetRelativeTransform(GetBaseMeshTransform());
+	for (UStaticMeshComponent* Part : GlowParts)
+	{
+		if (Part)
+		{
+			Part->SetVisibility(bShowReal);
+		}
+	}
+}
+
+FTransform ASpaceLaser::GetBaseMeshTransform() const
+{
+	return (bDressingReal && RealMesh) ? RealMeshTransform : PropMeshTransform;
+}
+
+FVector ASpaceLaser::GetMuzzleLocation() const
+{
+	const FVector Local = (bDressingReal && RealMesh) ? RealMuzzleLocal : PropMeshTransform.InverseTransformPosition(MuzzleOffset);
+	return Mesh->GetComponentTransform().TransformPosition(Local);
+}
+
+void ASpaceLaser::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	AnimTime += DeltaSeconds;
+
+	const AReshootCharacter* Character = GetOwnerCharacter();
+	const AController* Controller = Character ? Character->GetController() : nullptr;
+
+	// Retard de l'arme quand la vue tourne (normalisé à 60 i/s pour ne pas dépendre de la cadence).
+	FRotator SwayTarget = FRotator::ZeroRotator;
+	if (Controller && DeltaSeconds > KINDA_SMALL_NUMBER)
+	{
+		const FRotator Control = Controller->GetControlRotation();
+		const FRotator Delta = (Control - LastControlRotation).GetNormalized();
+		LastControlRotation = Control;
+		const float Scale = LookSway * (1.f - 0.7f * AimAlpha) / (DeltaSeconds * 60.f);
+		SwayTarget.Pitch = FMath::Clamp(-Delta.Pitch * Scale, -MaxLookSway, MaxLookSway);
+		SwayTarget.Yaw = FMath::Clamp(-Delta.Yaw * Scale, -MaxLookSway, MaxLookSway);
+	}
+	SwayRotation = FMath::RInterpTo(SwayRotation, SwayTarget, DeltaSeconds, 9.f);
+
+	KickAlpha = FMath::FInterpTo(KickAlpha, 0.f, DeltaSeconds, KickReturnSpeed);
+	AimAlpha = FMath::FInterpTo(AimAlpha, bAiming ? 1.f : 0.f, DeltaSeconds, AimSpeed);
+	OverheatAlpha = FMath::FInterpTo(OverheatAlpha, bOverheated ? 1.f : 0.f, DeltaSeconds, 7.f);
+	EquipAlpha = FMath::Min(EquipAlpha + DeltaSeconds / FMath::Max(EquipTime, 0.01f), 1.f);
+	const float Equip = 1.f - FMath::Pow(1.f - EquipAlpha, 3.f);
+
+	// Balancement de marche.
+	float BobScale = 0.f;
+	if (Character)
+	{
+		const UCharacterMovementComponent* Move = Character->GetCharacterMovement();
+		const float Speed = Character->GetVelocity().Size2D();
+		if (Move && Move->IsMovingOnGround() && Speed > 10.f)
+		{
+			BobPhase += DeltaSeconds * PI * Speed / FMath::Max(StrideLength, 1.f);
+			BobScale = FMath::Clamp(Speed / 600.f, 0.f, 1.2f) * (1.f - 0.8f * AimAlpha);
+		}
+	}
+	const float BobSin = FMath::Sin(BobPhase);
+
+	// Visée : amène le viseur sur l'axe de la caméra (l'acteur est attaché à la caméra).
+	const FTransform Base = GetBaseMeshTransform();
+	const FVector CameraAxisInActor = -GetRootComponent()->GetRelativeLocation();
+	const FVector Sight = (bDressingReal && RealMesh) ? Base.TransformPosition(RealSightLocal) : PropMeshTransform.GetLocation() + FVector(0.f, 0.f, 8.f);
+	const FVector AimOffset(8.f, CameraAxisInActor.Y - Sight.Y, CameraAxisInActor.Z - Sight.Z);
+
+	const FVector Loc = FVector(-KickBack * KickAlpha, 0.f, 0.f)
+		+ FVector(0.f, BobSin * WalkBob * BobScale, -FMath::Abs(BobSin) * WalkBob * 0.8f * BobScale)
+		+ FVector(0.f, 0.f, FMath::Sin(AnimTime * 1.6f) * 0.18f * (1.f - AimAlpha))
+		+ AimOffset * AimAlpha
+		+ FVector(0.f, 0.f, -18.f) * (1.f - Equip)
+		+ FVector(-3.f, 2.f, -5.f) * OverheatAlpha;
+	const FRotator Rot(
+		KickPitch * KickAlpha + SwayRotation.Pitch - 35.f * (1.f - Equip) - 12.f * OverheatAlpha,
+		SwayRotation.Yaw + KickYaw * KickAlpha * 0.6f,
+		SwayRotation.Yaw * 0.6f + 25.f * OverheatAlpha);
+
+	Mesh->SetRelativeTransform(Base * FTransform(Rot, Loc));
+
+	// Pièces lumineuses : cyan au repos, orange en chauffant, clignotantes en surchauffe.
+	if (bDressingReal && GlowPartMids.Num() > 0)
+	{
+		const FLinearColor Color = FMath::Lerp(CoolColor, HotColor, Heat);
+		const float Pulse = bOverheated ? 0.55f + 0.45f * FMath::Sin(AnimTime * 18.f) : 1.f;
+		const float Intensity = GlowPartIntensity * (0.7f + 0.6f * Heat) * Pulse;
+		for (UMaterialInstanceDynamic* Mid : GlowPartMids)
+		{
+			if (Mid)
+			{
+				Mid->SetVectorParameterValue(TEXT("Color"), Color);
+				Mid->SetScalarParameterValue(TEXT("Intensity"), Intensity);
+			}
+		}
 	}
 }
 
