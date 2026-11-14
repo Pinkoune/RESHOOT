@@ -34,6 +34,14 @@ namespace
 		return Laser->IsDressingReal() && Laser->RealMesh;
 	}
 	const FLinearColor DefaultBeamColor(0.1f, 0.85f, 1.f);
+
+	// Animation selon la direction de déplacement, à pleine vitesse (cm et degrés). En dur pour rester compatible
+	// Live Coding ; à passer en UPROPERTY au prochain changement de header.
+	constexpr float MoveLagForward = 1.5f;   // l'arme recule en avançant, avance en reculant
+	constexpr float MoveLagSide = 1.0f;      // l'arme traîne à l'opposé du pas de côté
+	constexpr float MovePitch = 1.2f;        // canon un peu plus bas en avançant
+	constexpr float MoveYaw = 1.5f;
+	constexpr float MoveRoll = 5.f;          // penche du côté du pas de côté
 }
 
 ASpaceLaser::ASpaceLaser()
@@ -429,17 +437,31 @@ void ASpaceLaser::Tick(float DeltaSeconds)
 	}
 	const float BobSin = FMath::Sin(BobPhase);
 
-	// Pose en main : modèle réaliste + recul, balancement, levée, surchauffe.
+	// Inclinaison selon la direction de déplacement (clavier) : l'arme penche du côté où l'on se décale, recule
+	// un peu en avançant. La vitesse du personnage monte et descend progressivement : pas besoin de lissage.
+	float MoveForward = 0.f, MoveRight = 0.f;
+	if (Character)
+	{
+		const UCharacterMovementComponent* Move = Character->GetCharacterMovement();
+		const float MaxSpeed = Move ? FMath::Max(Move->GetMaxSpeed(), 1.f) : 600.f;
+		const FVector LocalVel = Character->GetActorTransform().InverseTransformVectorNoScale(Character->GetVelocity()) / MaxSpeed;
+		const float Damp = 1.f - 0.75f * AimAlpha;
+		MoveForward = FMath::Clamp(LocalVel.X, -1.f, 1.f) * Damp;
+		MoveRight = FMath::Clamp(LocalVel.Y, -1.f, 1.f) * Damp;
+	}
+
+	// Pose en main : modèle réaliste + recul, balancement, déplacement, levée, surchauffe.
 	const FTransform Base = GetBaseMeshTransform();
 	const FVector Loc = FVector(-KickBack * KickAlpha, 0.f, 0.f)
+		+ FVector(-MoveForward * MoveLagForward, -MoveRight * MoveLagSide, -FMath::Abs(MoveForward) * 0.4f)
 		+ FVector(0.f, BobSin * WalkBob * BobScale, -FMath::Abs(BobSin) * WalkBob * 0.8f * BobScale)
 		+ FVector(0.f, 0.f, FMath::Sin(AnimTime * 1.6f) * 0.18f)
 		+ FVector(0.f, 0.f, -18.f) * (1.f - Equip)
 		+ FVector(-3.f, 2.f, -5.f) * OverheatAlpha;
 	const FRotator Rot(
-		KickPitch * KickAlpha + SwayRotation.Pitch - 35.f * (1.f - Equip) - 12.f * OverheatAlpha,
-		SwayRotation.Yaw + KickYaw * KickAlpha * 0.6f,
-		SwayRotation.Yaw * 0.6f + 25.f * OverheatAlpha);
+		KickPitch * KickAlpha + SwayRotation.Pitch - 35.f * (1.f - Equip) - 12.f * OverheatAlpha - MoveForward * MovePitch,
+		SwayRotation.Yaw + KickYaw * KickAlpha * 0.6f - MoveRight * MoveYaw,
+		SwayRotation.Yaw * 0.6f + 25.f * OverheatAlpha + MoveRight * MoveRoll);
 	FTransform Final = Base * FTransform(Rot, Loc);
 
 	// Visée, comme dans les FPS modernes : arme dans l'axe, viseur tout près de l'œil, sur l'axe de la caméra

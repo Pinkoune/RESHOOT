@@ -166,3 +166,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : fusil réaliste rapproché de 8 cm de la caméra (X -17 → -25) : il paraissait trop long. Essai à -32 sur capture, jugé trop envahissant.
 - Comment : `POSE` dans `Tools/build_laser_fx.py`, enregistré dans `BP_SpaceLaser`.
 - Capture : aucune
+
+### 2026-11-15 00:20 — Le fusil réagit à la direction de déplacement
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : en réaliste, le fusil penche (5°) et traîne (1 cm) du côté du pas de côté, recule de 1,5 cm et baisse un peu le canon en avançant. Atténué de 75 % en visée. Le carton reste fixe.
+- Comment : calculé dans `ASpaceLaser::Tick` à partir de la vitesse du personnage dans son repère, rapportée à sa vitesse max (elle monte et descend progressivement, pas besoin de lissage). Réglages en constantes dans `SpaceLaser.cpp` pour rester compatible Live Coding ; à passer en `UPROPERTY` au prochain changement de header.
+- Capture : aucune
