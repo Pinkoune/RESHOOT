@@ -39,6 +39,8 @@ La boucle de base est la **prise** : une vague d'ennemis de 60 à 90 secondes, i
 4. **« ACTION! »** Le combat reprend avec la contrainte. La respecter rapporte plus.
 5. **Fin de prise.** Dernier figurant éliminé : commentaire du réalisateur, prise suivante.
 
+**Répétition, puis mise en scène.** La première prise de chaque scène se joue dans un décor en carton, bricolé et visiblement faux. À la fin de cette prise, le réalisateur crie « On améliore la mise en scène ! » : une transition balaie le plateau et remplace chaque objet par sa version réaliste, à la même place. Les prises suivantes se jouent dans le beau décor. L'arme du joueur et les costumes des figurants passent du carton au réaliste en même temps. Le gameplay ne change pas : murs, couverts et chemins restent identiques.
+
 Si le joueur meurt, la prise recommence au clap, avec une pénalité d'audimat. Il n'y a pas de game over.
 
 Une partie complète :
@@ -183,7 +185,7 @@ Tout le jeu se passe sur un seul plateau de tournage, rhabillé trois fois : la 
 
 **Le plateau**
 
-- Un hangar de studio d'environ 50 m sur 40 m, visible derrière les décors : murs nus, passerelles, projecteurs, câbles.
+- Un hangar de studio d'environ 50 m sur 40 m, visible derrière les décors : murs nus, passerelles, projecteurs, câbles. Il n'existe que pendant la répétition : à la transition, il disparaît et l'univers s'étend jusqu'à l'horizon.
 - Au centre, une zone de jeu avec deux niveaux de hauteur reliés par des rampes. Les rampes sont longues, pour que la glissade serve.
 - Quatre portes de plateau par où entrent les figurants.
 - Des obstacles à mi-hauteur, franchissables d'un saut, qui servent de couverts.
@@ -200,16 +202,20 @@ Tout le jeu se passe sur un seul plateau de tournage, rhabillé trois fois : la 
 
 Chaque événement se déclenche une fois par scène, annoncé par le réalisateur trois secondes avant.
 
+**Deux états par univers.** Chaque habillage existe en version carton (première prise) et en version réaliste (la suite). Le studio lui-même (hangar, projecteurs, caméras, techniciens) n'existe que dans la version carton : après la transition, le joueur est plongé dans l'univers, ciel et horizon compris, sans aucune trace du tournage. Les deux versions d'un objet ont la même taille et la même place. La collision n'est pas sur les objets de décor : elle est portée par un blockout gris invisible, commun aux deux états, ce qui garantit que le terrain ne change pas pendant la transition.
+
+**Transition « mise en scène ».** Un rideau de lumière balaie le plateau d'un bout à l'autre en 2 à 3 secondes : devant lui le carton, derrière lui le réaliste. Sur la ligne de passage, une lisière lumineuse et des étincelles, avec un son de pellicule qui s'emballe. Les deux versions sont posées l'une sur l'autre ; un matériau maître commun (`M_SetDressing`) affiche l'une ou l'autre selon la position du rideau.
+
 **Transitions.** Entre deux scènes, les panneaux de décor s'écartent ou descendent des cintres, les lumières changent, des techniciens traversent le plateau. Le joueur reste libre de bouger. Pendant le final, le changement est instantané, sur un flash de clap.
 
 **Le casting.** Une petite zone en fond vert, séparée du plateau : un couloir avec une rampe pour apprendre la glissade et trois cibles en carton pour apprendre le tir.
 
 ## Direction artistique
 
-Le jeu montre un tournage, pas un film : on voit toujours que le décor est faux.
+Le jeu montre un film en train de se faire : chaque scène commence en décor de carton, puis devient un vrai film quand le réalisateur améliore la mise en scène. Ce contraste est la signature visuelle du jeu.
 
-- **L'envers du décor est visible.** Dos des panneaux en bois brut, étais, projecteurs sur pied, perche micro, chaises de réalisateur, câbles au sol.
-- **Style des modèles.** Stylisé et lisible, formes simples, couleurs franches. Un seul style pour les trois univers, donc un seul générateur 3D principal et une consigne de style commune dans tous les prompts.
+- **Pendant la répétition, l'envers du décor est visible.** Dos des panneaux en bois brut, étais, projecteurs sur pied, perche micro, chaises de réalisateur, câbles au sol.
+- **Style des modèles.** Deux styles. Version carton : carton, contreplaqué, scotch et peinture à plat, drôle et visiblement faux. Version réaliste : crédible et soignée, matériaux physiques. Chaque style a sa consigne commune, collée dans tous les prompts (voir le guide des assets).
 - **Les figurants ont l'air de figurants.** Costumes approximatifs, même mannequin de base, un accessoire qui identifie l'univers (casque, antenne, chapeau).
 - **Ton de jeu télévisé.** Typographie grasse, couleurs saturées pour l'interface, incrustations façon régie (compteur de prise, voyant REC).
 - **Signature visuelle par univers.** Médiéval : tons chauds. Spatial : bleu et néon. Film noir : noir et blanc avec grain, seul l'audimat reste en couleur.
@@ -277,7 +283,7 @@ Le jeu livré lundi contient au minimum une scène complète avec le réalisateu
 | Priorité | Contenu | Échéance |
 | --- | --- | --- |
 | Indispensable | Déplacement et tir, un univers jouable, vagues, « CUT! », voix off sous-titrée, mort qui relance la prise | Vendredi soir |
-| Indispensable | Les trois univers, directives, audimat, final, menu, écran de fin | Samedi soir |
+| Indispensable | Les trois univers, transition carton vers réaliste, directives, audimat, final, menu, écran de fin | Samedi soir |
 | Important | Casting-tutoriel, événements d'univers, transitions de décor à vue, public de studio | Samedi soir |
 | Bonus | Escalade des rebords, mitraillette d'époque, second type d'ennemi en spatial et en film noir, DLSS | Dimanche, seulement si tout le reste est fini |
 

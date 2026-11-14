@@ -1,0 +1,11 @@
+newmtl tripo_material_92fbc545_0a6e_4aab_b708_cbf69c669707
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_CargoCrate_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_CargoCrate_roughness.png
+map_Pm SM_Space_CargoCrate_metallic.png
+norm SM_Space_CargoCrate_normal.png
+

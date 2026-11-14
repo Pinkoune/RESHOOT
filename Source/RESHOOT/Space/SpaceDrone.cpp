@@ -120,7 +120,23 @@ void ASpaceDrone::Steer()
 	if (Distance > StopDistance)
 	{
 		// Ligne droite : la vitesse est imposée directement, sans accélération ni navmesh.
-		GetCharacterMovement()->Velocity = ToPlayer / Distance * FlySpeed;
+		FVector Direction = ToPlayer / Distance;
+
+		// Évitement minimal : un décor bloque le passage juste devant -> on monte par-dessus
+		// (le plateau n'a pas de plafond). Pas de calcul de chemin.
+		const float LookAhead = FMath::Min(Distance, 400.f);
+		FCollisionQueryParams WallParams(SCENE_QUERY_STAT(SpaceDroneAvoid), false, this);
+		WallParams.AddIgnoredActor(Player);
+		FCollisionObjectQueryParams Walls;
+		Walls.AddObjectTypesToQuery(ECC_WorldStatic);
+		Walls.AddObjectTypesToQuery(ECC_WorldDynamic);
+		FHitResult WallHit;
+		if (GetWorld()->SweepSingleByObjectType(WallHit, GetActorLocation(), GetActorLocation() + Direction * LookAhead,
+			FQuat::Identity, Walls, FCollisionShape::MakeSphere(GetCapsuleComponent()->GetScaledCapsuleRadius()), WallParams))
+		{
+			Direction = (FVector(Direction.X, Direction.Y, 0.f) * 0.2f + FVector::UpVector).GetSafeNormal();
+		}
+		GetCharacterMovement()->Velocity = Direction * FlySpeed;
 	}
 	else
 	{

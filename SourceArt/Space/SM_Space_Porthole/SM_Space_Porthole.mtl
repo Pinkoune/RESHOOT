@@ -1,0 +1,11 @@
+newmtl tripo_material_1c09b8be_1996_4c5c_9ab7_43820b192f0d
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_Porthole_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_Porthole_roughness.png
+map_Pm SM_Space_Porthole_metallic.png
+norm SM_Space_Porthole_normal.png
+
