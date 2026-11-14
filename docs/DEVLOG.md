@@ -142,3 +142,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : arme plus proche, plus grande, partant du coin bas-droit et tournée vers le centre. En visée, elle se met dans l'axe et le guidon arrière vient à 16 cm de l'œil : on regarde le long du dessus de l'arme. Le fusil laser en carton (Tripo, à partir du prompt du guide) est importé, calé sur le réaliste (1 m, même pivot, même bout de canon).
 - Comment : retour de Jérémy, « pas dans la même position que les FPS auxquels j'ai l'habitude ». Premier essai de visée raté : redresser l'arme en la tournant autour de l'acteur la décalait de 20 cm sur le côté. La visée est maintenant une pose à part, calculée pour poser le viseur sur l'axe de la caméra, vers laquelle on fond depuis la pose en main. Deux points de visée testés sur capture : le premier mettait la crosse en plein milieu de l'écran.
 - Capture : aucune
+
+### 2026-11-14 23:00 — Tirs dans l'axe du canon, fusil en carton plus petit
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : arme décalée vers la droite. Le canon est maintenant orienté pour que son axe croise le centre de l'écran à 10 m : le tir sort tout droit du canon vers le viseur, en carton comme en réaliste. Le fusil en carton a sa propre pose, plus petite (échelle 0,92 au lieu de 1,15).
+- Comment : avant, le canon était tourné de 7° vers le centre et croisait l'axe de la caméra à 30 cm ; le rayon repartait donc en biais depuis le bout du canon. L'orientation est calculée dans `Tools/build_laser_fx.py` (`aim_pose`), vérifiée sur captures avec des rayons ralentis.
+- Capture : aucune

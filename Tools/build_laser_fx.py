@@ -107,9 +107,30 @@ def GLOW_PARTS(part):
     return [
     ]   # le fusil laser Fab a déjà ses propres lumières
 
-# Pose de l'arme en main (relative à l'acteur arme, lui-même à (30, 15, -20) de la caméra) : grande, depuis le coin bas-droit,
-# tournée vers le centre, comme dans les FPS modernes.
-POSE = unreal.Transform(unreal.Vector(-12, -4, 2), unreal.Rotator(0, 0, -7), unreal.Vector(1.15, 1.15, 1.15))
+# Pose de l'arme en main (relative à l'acteur arme, lui-même à (30, 15, -20) de la caméra) : grande, dans le coin bas-droit,
+# comme dans les FPS modernes. Le canon est orienté pour que son axe passe par le centre de l'écran à 10 m : le tir
+# sort tout droit du canon vers le viseur. Le carton est plus petit (modèle plus épais que le réaliste).
+CAM = (-30.0, -15.0, 20.0)      # caméra dans l'espace de l'acteur arme
+MUZZLE = (49.0, 0.0, 7.5)       # bout du canon dans l'espace du mesh (identique pour les deux modèles)
+CONVERGE = 1000.0               # distance où l'axe du canon croise le centre de l'écran (cm)
+
+def aim_pose(loc, scale):
+    import math
+    def rot(v, pitch, yaw):
+        x, y, z = v
+        p = math.radians(pitch); x, z = x * math.cos(p) - z * math.sin(p), x * math.sin(p) + z * math.cos(p)
+        w = math.radians(yaw); x, y = x * math.cos(w) - y * math.sin(w), x * math.sin(w) + y * math.cos(w)
+        return (x, y, z)
+    pitch = yaw = 0.0
+    for _ in range(20):
+        m = rot(tuple(scale * c for c in MUZZLE), pitch, yaw)
+        t = [CAM[i] + (CONVERGE if i == 0 else 0.0) - loc[i] - m[i] for i in range(3)]
+        yaw = math.degrees(math.atan2(t[1], t[0]))
+        pitch = math.degrees(math.atan2(t[2], math.hypot(t[0], t[1])))
+    return unreal.Transform(unreal.Vector(*loc), unreal.Rotator(roll=0, pitch=pitch, yaw=yaw), unreal.Vector(scale, scale, scale))
+
+POSE = aim_pose((-12, 1, 2), 1.15)          # fusil réaliste
+PROP_POSE = aim_pose((-9, 1, 0.5), 0.92)    # fusil en carton
 
 # --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---
 def setup_fx(fx, color, sparks=True):
@@ -130,14 +151,14 @@ if hasattr(unreal, 'SpaceLaserFXComponent') and cdo.get_editor_property('laser_f
     cdo.set_editor_property('glow_part_mesh', unreal.load_asset('/Engine/BasicShapes/Cube.Cube'))
     cdo.set_editor_property('glow_part_material', GLOW)
     cdo.set_editor_property('real_sight_local', unreal.Vector(-14, 0, 15))   # guidon arrière : en visée, on regarde le long du dessus de l'arme
-    # Carton : même pose et même bout de canon (le modèle carton est calé sur le réaliste : 1 m, canon vers +X)
+    # Carton : sa propre pose (plus petit), même bout de canon (le modèle carton est calé sur le réaliste : 1 m, canon vers +X)
     cdo.set_editor_property('prop_mesh', unreal.load_asset('/Game/RESHOOT/Space/Meshes/LaserRifle/Prop/SM_Space_LaserRifle_Cardboard'))
     mesh_comp = cdo.get_editor_property('mesh')
     mesh_comp.set_editor_property('static_mesh', cdo.get_editor_property('prop_mesh'))
-    mesh_comp.set_editor_property('relative_location', POSE.translation)
-    mesh_comp.set_editor_property('relative_rotation', POSE.rotation.rotator())
-    mesh_comp.set_editor_property('relative_scale3d', POSE.scale3d)
-    cdo.set_editor_property('muzzle_offset', POSE.transform_location(unreal.Vector(49, 0, 7.5)))
+    mesh_comp.set_editor_property('relative_location', PROP_POSE.translation)
+    mesh_comp.set_editor_property('relative_rotation', PROP_POSE.rotation.rotator())
+    mesh_comp.set_editor_property('relative_scale3d', PROP_POSE.scale3d)
+    cdo.set_editor_property('muzzle_offset', PROP_POSE.transform_location(unreal.Vector(*MUZZLE)))
     cdo.get_editor_property('laser_fx').set_editor_property('muzzle_flash_size', 4.5)
     cdo.get_editor_property('laser_fx').set_editor_property('core_intensity', 30.0)
     # Pièces lumineuses sur le fusil (espace du mesh : canon vers +Y, haut = +Z) : bandes le long du garde-main, cellule d'énergie
