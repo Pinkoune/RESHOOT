@@ -220,7 +220,22 @@ void ASpaceDrone::TryFire()
 	const FVector Impact = bHit ? FVector(Hit.ImpactPoint) : End;
 	const bool bHitPlayer = bHit && Hit.GetActor() == Player;
 	const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
-	LaserFX->FireBeam(Start, Impact, bHit && !bHitPlayer, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
+	if (IsDressingReal())
+	{
+		LaserFX->FireBeam(Start, Impact, bHit && !bHitPlayer, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
+	}
+	else if (const float Length = FVector::Distance(Start, Impact); Length > KINDA_SMALL_NUMBER)
+	{
+		// Carton : un simple tube, sans effet.
+		const FVector Delta = Impact - Start;
+		ShotBeam->SetWorldLocationAndRotation(Start + Delta * 0.5f, FRotationMatrix::MakeFromZ(Delta / Length).Rotator());
+		ShotBeam->SetWorldScale3D(FVector(0.04f, 0.04f, Length / 100.f));
+		ShotBeam->SetHiddenInGame(false);
+		GetWorldTimerManager().SetTimer(ShotBeamTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			ShotBeam->SetHiddenInGame(true);
+		}), 0.06f, false);
+	}
 
 	if (FireSound)
 	{

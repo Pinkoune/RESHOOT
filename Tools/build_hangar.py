@@ -432,7 +432,9 @@ keep_free('PlayerStart', (-1950, 0, 420), (180, 180, 120))
 # =====================================================================================
 # 2) L_Stage : studio de tournage (phase carton, commun aux univers)
 # =====================================================================================
-P = dict(folder='Dressing_Prop/Studio', tags=('DressingProp',))
+# Matériel de tournage : ses matériaux (kit Hollywood, modèles générés) ne réagissent pas au rideau,
+# donc chaque objet bascule d'un coup au passage du rideau (DressingSwitch) au lieu d'attendre la fin du balayage.
+P = dict(folder='Dressing_Prop/Studio', tags=('DressingProp', 'DressingSwitch'))
 for lbl, tr in block.items():
     s = tr.scale3d
     if lbl.startswith('Floor'): m = MAT_STUDIO_FLOOR

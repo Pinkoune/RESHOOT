@@ -27,6 +27,12 @@ namespace
 	}
 
 	constexpr float HeatTickInterval = 0.05f;
+
+	/** Modèle réaliste affiché : effets, visée et animations. En carton, rien de tout ça. */
+	bool IsRealLook(const ASpaceLaser* Laser)
+	{
+		return Laser->IsDressingReal() && Laser->RealMesh;
+	}
 	const FLinearColor DefaultBeamColor(0.1f, 0.85f, 1.f);
 }
 
@@ -177,11 +183,19 @@ void ASpaceLaser::FireShot()
 		DealDamage(Hit.GetActor(), DamagePerShot, IsHeadshot(Hit), false);
 	}
 
-	// Brûlure sur le décor seulement : un décal ne suit pas un figurant qui bouge.
-	const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
-	LaserFX->FireBeam(GetMuzzleLocation(), Impact, bHit, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
-	KickAlpha = FMath::Min(KickAlpha + 1.f, 1.6f);
-	KickYaw = FMath::FRandRange(-1.f, 1.f);
+	if (IsRealLook(this))
+	{
+		// Brûlure sur le décor seulement : un décal ne suit pas un figurant qui bouge.
+		const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
+		LaserFX->FireBeam(GetMuzzleLocation(), Impact, bHit, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
+		KickAlpha = FMath::Min(KickAlpha + 1.f, 1.6f);
+		KickYaw = FMath::FRandRange(-1.f, 1.f);
+	}
+	else
+	{
+		// Carton : un simple tube gris, sans effet.
+		ShowBeam(GetMuzzleLocation(), Impact);
+	}
 
 	if (FireSound)
 	{
@@ -286,6 +300,10 @@ void ASpaceLaser::Refill()
 void ASpaceLaser::StartSecondary()
 {
 	Super::StartSecondary();
+	if (!IsRealLook(this))
+	{
+		return;   // pas de visée avec le fusil en carton
+	}
 	bAiming = true;
 	if (AReshootCharacter* Character = GetOwnerCharacter())
 	{
@@ -334,6 +352,14 @@ void ASpaceLaser::SetDressingReal(bool bReal)
 {
 	Super::SetDressingReal(bReal);
 	const bool bShowReal = bReal && RealMesh;
+	if (!bShowReal && bAiming)
+	{
+		StopSecondary();
+	}
+	if (!bShowReal && LaserFX)
+	{
+		LaserFX->HideAll();
+	}
 	Mesh->SetRelativeTransform(GetBaseMeshTransform());
 	for (UStaticMeshComponent* Part : GlowParts)
 	{
@@ -346,7 +372,7 @@ void ASpaceLaser::SetDressingReal(bool bReal)
 
 FTransform ASpaceLaser::GetBaseMeshTransform() const
 {
-	return (bDressingReal && RealMesh) ? RealMeshTransform : PropMeshTransform;
+	return IsRealLook(this) ? RealMeshTransform : PropMeshTransform;
 }
 
 FVector ASpaceLaser::GetMuzzleLocation() const
@@ -359,6 +385,13 @@ void ASpaceLaser::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	AnimTime += DeltaSeconds;
+
+	// Carton : arme fixe, sans animation.
+	if (!IsRealLook(this))
+	{
+		Mesh->SetRelativeTransform(PropMeshTransform);
+		return;
+	}
 
 	const AReshootCharacter* Character = GetOwnerCharacter();
 	const AController* Controller = Character ? Character->GetController() : nullptr;
@@ -400,7 +433,7 @@ void ASpaceLaser::Tick(float DeltaSeconds)
 	const FTransform Base = GetBaseMeshTransform();
 	const FVector CameraAxisInActor = -GetRootComponent()->GetRelativeLocation();
 	const FVector Sight = (bDressingReal && RealMesh) ? Base.TransformPosition(RealSightLocal) : PropMeshTransform.GetLocation() + FVector(0.f, 0.f, 8.f);
-	const FVector AimOffset(8.f, CameraAxisInActor.Y - Sight.Y, CameraAxisInActor.Z - Sight.Z);
+	const FVector AimOffset(16.f, CameraAxisInActor.Y - Sight.Y, CameraAxisInActor.Z - Sight.Z);
 
 	const FVector Loc = FVector(-KickBack * KickAlpha, 0.f, 0.f)
 		+ FVector(0.f, BobSin * WalkBob * BobScale, -FMath::Abs(BobSin) * WalkBob * 0.8f * BobScale)

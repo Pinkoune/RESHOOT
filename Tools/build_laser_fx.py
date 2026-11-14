@@ -102,13 +102,10 @@ SPARKS = unreal.load_asset(NS)
 USE_SPARKS = False   # le modèle DirectionalBurst fait des gerbes de 2 m, trop grosses : désactivé tant qu'il n'est pas réglé
 out['assets'] = [BEAM.get_path_name(), GLOW.get_path_name(), SCORCH.get_path_name(), SPARKS.get_path_name() if SPARKS else None]
 
-# Pièces lumineuses du fusil, dans l'espace du mesh SM_Rifle (canon vers +Y, haut = +Z), tailles en cm.
+# Pièces lumineuses ajoutées sur le fusil (espace du mesh, tailles en cm). Vide : le fusil Fab est déjà lumineux.
 def GLOW_PARTS(part):
     return [
-        part((3.1, 30.0, 3.0), (0.3, 16.0, 0.6)),     # bande, garde-main droit
-        part((-3.1, 30.0, 3.0), (0.3, 16.0, 0.6)),    # bande, garde-main gauche
-        part((0.0, 47.0, 4.0), (2.2, 0.3, 2.2)),      # anneau à la bouche
-    ]
+    ]   # le fusil laser Fab a déjà ses propres lumières
 
 # --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---
 def setup_fx(fx, color, sparks=True):
@@ -121,10 +118,14 @@ bp = unreal.load_asset('/Game/RESHOOT/Space/Weapons/BP_SpaceLaser')
 cdo = unreal.get_default_object(bp.generated_class())
 if hasattr(unreal, 'SpaceLaserFXComponent') and cdo.get_editor_property('laser_fx'):
     setup_fx(cdo.get_editor_property('laser_fx'), (0.1, 0.75, 1.0))
-    cdo.set_editor_property('real_mesh', unreal.load_asset('/Game/Weapons/Rifle/Meshes/SM_Rifle'))
+    # Fusil laser Fab (canon vers +X, bout du canon à 49 cm, rail de visée à 13,5 cm de haut)
+    cdo.set_editor_property('real_mesh', unreal.load_asset('/Game/Fab/Laserrifle/laserrifle/StaticMeshes/laserrifle'))
+    cdo.set_editor_property('real_mesh_transform', unreal.Transform(unreal.Vector(2, -9, -1), unreal.Rotator(0, 0, -3), unreal.Vector(1, 1, 1)))
+    cdo.set_editor_property('real_muzzle_local', unreal.Vector(49, 0, 7.5))
+    cdo.set_editor_property('aim_fov', 75.0)
     cdo.set_editor_property('glow_part_mesh', unreal.load_asset('/Engine/BasicShapes/Cube.Cube'))
     cdo.set_editor_property('glow_part_material', GLOW)
-    cdo.set_editor_property('real_sight_local', unreal.Vector(0, 5, 15.7))
+    cdo.set_editor_property('real_sight_local', unreal.Vector(12, 0, 13.5))
     cdo.get_editor_property('laser_fx').set_editor_property('muzzle_flash_size', 4.5)
     cdo.get_editor_property('laser_fx').set_editor_property('core_intensity', 30.0)
     # Pièces lumineuses sur le fusil (espace du mesh : canon vers +Y, haut = +Z) : bandes le long du garde-main, cellule d'énergie

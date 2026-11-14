@@ -77,7 +77,12 @@ void ASetDressingSweep::BeginPlay()
 		const EShootPhase Phase = Director->GetPhase();
 		if (Phase == EShootPhase::Finale || Phase == EShootPhase::Wrap)
 		{
-			return;   // le final reste en réaliste
+			if (!bReal && Phase == EShootPhase::Finale)
+			{
+				UE_LOG(LogReshoot, Log, TEXT("Set dressing: finale -> upgrade"));
+				UpgradeDressing();   // le final se joue en réaliste
+			}
+			return;
 		}
 		const int32 Scene = Director->GetSceneIndex();
 		if (Scene != LastScene && Scene != INDEX_NONE)
