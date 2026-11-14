@@ -1,0 +1,11 @@
+newmtl tripo_material_a613ad83_3a5b_41ba_8c8d_767b43723e83
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Cart_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Cart_roughness.png
+map_Pm SM_Medieval_Cart_metallic.png
+norm SM_Medieval_Cart_normal.png
+

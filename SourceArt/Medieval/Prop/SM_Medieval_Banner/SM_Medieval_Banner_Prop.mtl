@@ -1,0 +1,11 @@
+newmtl tripo_material_3b9b358c_88fb_4ce7_82ae_a201f238a5e9
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Banner_Prop_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Banner_Prop_roughness.png
+map_Pm SM_Medieval_Banner_Prop_metallic.png
+norm SM_Medieval_Banner_Prop_normal.png
+

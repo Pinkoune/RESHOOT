@@ -1,0 +1,11 @@
+newmtl tripo_material_e147c584_e331_4ba4_82bd_2cc662cd4739
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_Cables_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_Cables_roughness.png
+map_Pm SM_Stage_Cables_metallic.png
+norm SM_Stage_Cables_normal.png
+

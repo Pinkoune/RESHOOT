@@ -1,0 +1,11 @@
+newmtl tripo_material_f124d8d9_fe3e_4f27_a97d_03f16fa5f876
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Torch_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Torch_roughness.png
+map_Pm SM_Medieval_Torch_metallic.png
+norm SM_Medieval_Torch_normal.png
+
