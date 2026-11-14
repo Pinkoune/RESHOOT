@@ -424,8 +424,10 @@ bool AReshootCharacter::CanStartSlide() const
 {
 	const UCharacterMovementComponent* Move = GetCharacterMovement();
 	const float Now = GetWorld()->GetTimeSeconds();
+	// L'élan suffit (vitesse de sprint) : on peut lâcher Maj juste avant d'appuyer sur accroupi, comme dans Apex.
 	return !bSliding
-		&& IsSprinting()
+		&& !bIsCrouched
+		&& (IsSprinting() || GetHorizontalSpeed() >= SlideMinStartSpeed)
 		&& Move->IsMovingOnGround()
 		&& GetHorizontalSpeed() >= SlideMinStartSpeed
 		&& Now - LastSlideEndTime >= SlideCooldown;
@@ -633,6 +635,8 @@ void AReshootCharacter::EnsureDefaultInput()
 
 	Context->MapKey(JumpAction, EKeys::SpaceBar);
 	Context->MapKey(CrouchAction, EKeys::LeftControl);
+	// C aussi : petit doigt sur Maj, index sur C, la glissade se fait sans se tordre la main (standard FPS).
+	Context->MapKey(CrouchAction, EKeys::C);
 	Context->MapKey(SprintAction, EKeys::LeftShift);
 	Context->MapKey(PrimaryAction, EKeys::LeftMouseButton);
 	Context->MapKey(SecondaryAction, EKeys::RightMouseButton);

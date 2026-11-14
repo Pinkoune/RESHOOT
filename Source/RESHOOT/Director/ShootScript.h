@@ -161,6 +161,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
 	FName CastingIntroLineId = TEXT("CastingIntro");
 
+	/** Sous-niveau du studio de casting : chargé au début du casting, déchargé quand la scène 1 commence. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
+	FName CastingSubLevelName = TEXT("L_Casting");
+
 	/** Réplique quand le tutoriel est fini, juste avant la scène 1. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Casting")
 	FName CastingDoneLineId = TEXT("CastingDone");

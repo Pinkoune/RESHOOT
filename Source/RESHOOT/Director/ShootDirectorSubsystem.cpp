@@ -44,6 +44,22 @@ namespace ReshootDirector
 		return ShortName.Equals(SubLevelName.ToString(), ESearchCase::IgnoreCase);
 	}
 
+	/** Charge (et affiche) ou décharge un sous-niveau déclaré dans le niveau persistant. Vrai s'il existe. */
+	static bool SetSubLevelLoaded(UWorld* World, FName SubLevelName, bool bLoaded)
+	{
+		bool bFound = false;
+		for (ULevelStreaming* Streaming : World->GetStreamingLevels())
+		{
+			if (IsSubLevel(Streaming, SubLevelName))
+			{
+				Streaming->SetShouldBeLoaded(bLoaded);
+				Streaming->SetShouldBeVisible(bLoaded);
+				bFound = true;
+			}
+		}
+		return bFound;
+	}
+
 	/** Une réplique au hasard (NAME_None si la liste est vide). */
 	static FName PickLine(const TArray<FName>& LineIds)
 	{
@@ -316,6 +332,14 @@ void UShootDirectorSubsystem::StartCasting()
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
 	{
 		SetPhase(EShootPhase::Casting);
+		// Le studio de casting (et son départ, ses cibles) est dans son propre sous-niveau.
+		if (Script && !Script->CastingSubLevelName.IsNone())
+		{
+			if (ReshootDirector::SetSubLevelLoaded(GetWorld(), Script->CastingSubLevelName, true))
+			{
+				GetWorld()->FlushLevelStreaming();
+			}
+		}
 		bCastingSlid = false;
 		bCastingDone = false;
 		CastingTargetsHit = 0;
@@ -613,6 +637,11 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
 	SetStagingState(false, 0.f);
 	ResetPlayerToStart(Scene.PlayerStartTag);
+	// Le joueur a quitté le studio de casting : on le décharge.
+	if (!Script->CastingSubLevelName.IsNone())
+	{
+		ReshootDirector::SetSubLevelLoaded(GetWorld(), Script->CastingSubLevelName, false);
+	}
 	// Personne ne bouge pendant l'annonce du réalisateur ; BeginTake dégèle au « Action! ».
 	FreezeAll(true);
 	const float Delay = PlayLine(Scene.IntroLineId);

@@ -81,7 +81,7 @@ Film noir + audio
 Réalisateur (Enzo)
 - [x] Les 8 directives du GDD et `UAudienceRating` (+ 40 prise réussie) (8 directives dans `Content/RESHOOT/Director/Directives`, testées en PIE)
 - [x] Final : bascule d'univers toutes les 20 s (Médiéval ⇄ Noir testé dans `L_Stage`, vagues en boucle)
-- [x] Casting : zone en fond vert derrière le mur ouest de `L_Stage` (estrade, rampe, 3 `ACastingTarget`, PlayerStart `Casting`), glissade + 3 cibles puis scène 1 ; `OnCastingProgress` pour l'UI. Nom du joueur : côté interface (`AReshootGameState::SetPlayerName`)
+- [x] Casting : studio de cinéma dans le sous-niveau `L_Casting` (chargé et déchargé par le réalisateur ; estrade, toboggan, tapis rouge, cyclo vert, 3 `ACastingTarget`, PlayerStart `Casting`), glissade + 3 cibles puis scène 1 ; `OnCastingProgress` pour l'UI. Nom du joueur : côté interface (`AReshootGameState::SetPlayerName`)
 - [x] Intégration des trois univers dans `UShootScript` (`SS_Main` : Médiéval, Spatial, Noir, final sur les trois ; testé dans `L_Stage`)
 
 Univers
@@ -121,4 +121,6 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
   - Jules : 9 lignes ajoutées à `DT_DirectorLines` (sous-titres seuls) : `Dir_NoShield`, `Dir_NoBow`, `Dir_LaserCost`, `Staging_Improve`, `CastingIntro`, `CastingDone`, `EventSpace`, `Event_Medieval`, `Event_Noir` ; `EventLineId` de `DA_Noir` = `Event_Noir`.
   - Iléana : `EventLineId` de `DA_Medieval` = `Event_Medieval` ; `AutoStartInterval` du convoi à 0 dans `L_Medieval` (c'est le réalisateur qui le lance).
 - [ ] Enzo → équipe : transition « carton → réaliste » (GDD) prête côté réalisateur. À la fin de la 1re prise de chaque scène, `MPC_SetDressing.StagingReveal` passe de 0 à 1 en 2,5 s (le matériau maître `M_SetDressing` doit le lire), les acteurs tagués `SetDressing_Prop` disparaissent et ceux tagués `SetDressing_Real` apparaissent au passage du rideau, et `OnStagingImproved` est diffusé. Le final est en version réaliste. Il suffit de taguer les décors.
+- [ ] Enzo → Iléana (Interface) : pendant le casting (phase `Casting`), le HUD affiche « Scène 1 – Prise 1 », le REC et l'audimat. À masquer ou à remplacer par la fiche d'acteur ; `OnCastingProgress(bSlid, TargetsHit, TargetsTotal)` donne l'avancement du tutoriel.
+- [ ] Enzo → Jérémy (socle) : `ReshootCharacter.cpp` retouché (accord d'Enzo) : touche C ajoutée à l'accroupi/glissade, et `CanStartSlide` accepte la vitesse de sprint même Maj relâché. Possible amélioration : un délai de grâce (~0,3 s) après le relâchement de Maj, qui demande une variable dans le header.
 
