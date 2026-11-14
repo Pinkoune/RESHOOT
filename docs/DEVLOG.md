@@ -160,3 +160,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : fusil réaliste en main décollé du bord droit, rapproché de la caméra et presque droit face à elle (pose 2 parmi trois proposées en capture). Plan de coupe proche passé de 10 à 2 cm (`NearClipPlane` dans `Config/DefaultEngine.ini`) : l'arrière du fusil n'est plus coupé au bord de l'écran.
 - Comment : le fusil fait plus d'un mètre et sa crosse passe derrière la caméra ; à 10 cm, le plan de coupe tranchait le tube lumineux encore visible en bas à droite. Testé en jeu avec `r.SetNearClipPlane 2` avant de l'écrire dans la config (pris en compte au prochain lancement).
 - Capture : aucune
+
+### 2026-11-15 00:00 — Fusil réaliste encore rapproché
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : fusil réaliste rapproché de 8 cm de la caméra (X -17 → -25) : il paraissait trop long. Essai à -32 sur capture, jugé trop envahissant.
+- Comment : `POSE` dans `Tools/build_laser_fx.py`, enregistré dans `BP_SpaceLaser`.
+- Capture : aucune
