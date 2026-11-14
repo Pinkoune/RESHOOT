@@ -114,7 +114,7 @@ CAM = (-30.0, -15.0, 20.0)      # caméra dans l'espace de l'acteur arme
 MUZZLE = (49.0, 0.0, 7.5)       # bout du canon dans l'espace du mesh (identique pour les deux modèles)
 CONVERGE = 1000.0               # distance où l'axe du canon croise le centre de l'écran (cm)
 
-def aim_pose(loc, scale):
+def aim_pose(loc, scale, extra_yaw=0.0):
     import math
     def rot(v, pitch, yaw):
         x, y, z = v
@@ -127,9 +127,9 @@ def aim_pose(loc, scale):
         t = [CAM[i] + (CONVERGE if i == 0 else 0.0) - loc[i] - m[i] for i in range(3)]
         yaw = math.degrees(math.atan2(t[1], t[0]))
         pitch = math.degrees(math.atan2(t[2], math.hypot(t[0], t[1])))
-    return unreal.Transform(unreal.Vector(*loc), unreal.Rotator(roll=0, pitch=pitch, yaw=yaw), unreal.Vector(scale, scale, scale))
+    return unreal.Transform(unreal.Vector(*loc), unreal.Rotator(roll=0, pitch=pitch, yaw=yaw + extra_yaw), unreal.Vector(scale, scale, scale))
 
-POSE = aim_pose((-12, 1, 2), 1.15)          # fusil réaliste
+POSE = aim_pose((-12, 1, 2), 1.15, -5.0)    # fusil réaliste, pivoté de 5° vers la gauche en plus pour le style
 PROP_POSE = aim_pose((-9, 1, 0.5), 0.92)    # fusil en carton
 
 # --- Blueprints (seulement si les classes compilées ont les nouvelles propriétés) ---

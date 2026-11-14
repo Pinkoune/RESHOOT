@@ -148,3 +148,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : arme décalée vers la droite. Le canon est maintenant orienté pour que son axe croise le centre de l'écran à 10 m : le tir sort tout droit du canon vers le viseur, en carton comme en réaliste. Le fusil en carton a sa propre pose, plus petite (échelle 0,92 au lieu de 1,15).
 - Comment : avant, le canon était tourné de 7° vers le centre et croisait l'axe de la caméra à 30 cm ; le rayon repartait donc en biais depuis le bout du canon. L'orientation est calculée dans `Tools/build_laser_fx.py` (`aim_pose`), vérifiée sur captures avec des rayons ralentis.
 - Capture : aucune
+
+### 2026-11-14 23:20 — Fusil réaliste pivoté vers la gauche
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : le fusil réaliste en main est pivoté de 5° vers la gauche en plus de l'orientation vers le centre (`extra_yaw` dans `Tools/build_laser_fx.py`). Le carton et la visée ne changent pas.
+- Comment : 3° et 6° testés sur capture ; à 5°, le rayon reste dans le prolongement du canon à l'œil.
+- Capture : aucune
