@@ -87,6 +87,68 @@ if not eal.does_asset_exist(FF):
     mel.recompile_material(m); eal.save_loaded_asset(m)
 MAT_FF = unreal.load_asset(FF)
 
+PLANET_C = (9000.0, 42000.0, -7000.0)     # sous la baie, à droite : on voit l'horizon de la planète
+PLANET_R = 19000.0
+SUN_DIR = (-0.55, -0.55, 0.63)            # soleil en haut à gauche, côté hangar : la face visible est éclairée
+
+def planet_materials():
+    """Planète procédurale (éteinte, éclairage calculé dans le matériau) et son atmosphère additive."""
+    out_ = []
+    for name, build in (('M_Space_Planet', 'planet'), ('M_Space_Atmosphere', 'atmo')):
+        path = '/Game/RESHOOT/Space/Materials/' + name
+        if eal.does_asset_exist(path):
+            eal.delete_asset(path)
+        m = at.create_asset(name, '/Game/RESHOOT/Space/Materials', unreal.Material, unreal.MaterialFactoryNew())
+        m.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
+        E = lambda cls, x, y: mel.create_material_expression(m, cls, x, y)
+        C = mel.connect_material_expressions
+        def const3(v, x, y):
+            e = E(unreal.MaterialExpressionConstant3Vector, x, y); e.set_editor_property('constant', unreal.LinearColor(*v, 1)); return e
+        def const(v, x, y):
+            e = E(unreal.MaterialExpressionConstant, x, y); e.set_editor_property('r', v); return e
+        def op(cls, a, b, x, y, ia='A', ib='B'):
+            e = E(cls, x, y); C(a, '', e, ia)
+            if b is not None: C(b, '', e, ib)
+            return e
+        nrm = E(unreal.MaterialExpressionVertexNormalWS, -1400, 0)
+        light_ = op(unreal.MaterialExpressionDotProduct, nrm, const3(SUN_DIR, -1400, 150), -1200, 50)
+        if build == 'planet':
+            # jour / nuit : terminateur doux
+            day = E(unreal.MaterialExpressionSaturate, -900, 50); C(op(unreal.MaterialExpressionAdd, op(unreal.MaterialExpressionMultiply, light_, const(2.2, -1200, 200), -1050, 50), const(0.15, -1050, 200), -950, 60), '', day, '')
+            wp = E(unreal.MaterialExpressionWorldPosition, -1700, 400)
+            def noise(scale, levels, x, y):
+                # l'échelle se règle sur le nœud lui-même (il lit la position monde par défaut)
+                n = E(unreal.MaterialExpressionNoise, x, y)
+                n.set_editor_property('scale', 1.0 / scale); n.set_editor_property('levels', levels)
+                n.set_editor_property('output_min', 0.0); n.set_editor_property('output_max', 1.0)
+                n.set_editor_property('quality', 1)
+                n.set_editor_property('turbulence', False)
+                n.set_editor_property('level_scale', 2.0)
+                return n
+            land = noise(30000.0, 7, -1250, 400)
+            landmask = E(unreal.MaterialExpressionSaturate, -900, 400)
+            C(op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionSubtract, land, const(0.5, -1100, 520), -1050, 420), const(10.0, -1100, 600), -980, 430), '', landmask, '')
+            surf = E(unreal.MaterialExpressionLinearInterpolate, -750, 300)
+            C(const3((0.004, 0.022, 0.07), -900, 250), '', surf, 'A'); C(const3((0.11, 0.12, 0.07), -900, 330), '', surf, 'B'); C(landmask, '', surf, 'Alpha')
+            cl = noise(9000.0, 7, -1250, 700)
+            cloud = E(unreal.MaterialExpressionSaturate, -900, 700)
+            C(op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionSubtract, cl, const(0.55, -1100, 820), -1050, 720), const(2.2, -1100, 900), -980, 730), '', cloud, '')
+            col = E(unreal.MaterialExpressionLinearInterpolate, -600, 400)
+            C(surf, '', col, 'A'); C(const3((0.7, 0.73, 0.78), -750, 500), '', col, 'B'); C(cloud, '', col, 'Alpha')
+            lit = op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionMultiply, col, day, -450, 250), const(4.5, -600, 150), -300, 250)
+            mel.connect_material_property(lit, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        else:
+            m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_ADDITIVE)
+            m.set_editor_property('two_sided', False)
+            fres = E(unreal.MaterialExpressionFresnel, -1000, 300)
+            fres.set_editor_property('exponent', 4.0)
+            day = E(unreal.MaterialExpressionSaturate, -900, 50); C(op(unreal.MaterialExpressionAdd, light_, const(0.35, -1100, 200), -1000, 60), '', day, '')
+            glow = op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionMultiply, fres, day, -700, 200), const3((0.25, 0.55, 1.6), -850, 400), -500, 250)
+            mel.connect_material_property(glow, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        mel.recompile_material(m); eal.save_loaded_asset(m)
+        out_.append(m)
+    return out_
+
 # =====================================================================================
 # Contrôle des placements
 # =====================================================================================
@@ -370,7 +432,12 @@ for wall in ('S', 'E', 'W'):
     for a, width, is_door in bl:
         if is_door:
             top = fz + DOOR_H
-            panel(f'Lintel_{wall}', wall, a, width, top, H - top)
+            if top <= 400:      # porte au sol : le linteau reprend le rang du milieu
+                panel(f'Lintel_{wall}', wall, a, width, 400, 400)
+            else:               # porte sur quai (700) : un panneau de 4 m au-dessus, légèrement étiré
+                panel(f'Lintel_{wall}', wall, a, width, top, 1000 - top)
+            spawn(f'UpperPanel_{wall}_door', SM('SM_Sci_fi_wall_straight_01'), wpos(wall, a, -15, 1100 if top > 400 else 1000), yaw=wyaw(wall, 90),
+                  scale=(1, width / 331, (200 if top > 400 else 400) / 329), **K)
             continue
         for r in range(2):
             panel(f'Panel_{wall}_{a:.0f}_{r}', wall, a, width, 400 * r, 400)
@@ -417,9 +484,11 @@ for wall in WALLS:
     spawn(f'CorDoorway_{wall}', SM('SM_Doorway_01'), wpos(wall, 0, -100 - CORRIDOR_DEPTH + 45, fz + 166), yaw=wyaw(wall), scale=(400 / 341, 1, 1), **K)
     for side in (-1, 1):
         spawn(f'CorDoor_{wall}_{side}', SM('SM_Door_half_01'), wpos(wall, side * 36, -100 - CORRIDOR_DEPTH + 45, fz + 110), yaw=wyaw(wall, 0 if side < 0 else 180), **K)
+    spawn(f'CorEndTop_{wall}', SM('SM_Sci_fi_wall_straight_01'), wpos(wall, 0, -100 - CORRIDOR_DEPTH + 15, fz + 332 + 90), yaw=wyaw(wall, 90),
+          scale=(1, 420 / 331, 190 / 329), **K)
     spawn(f'CorFixture_{wall}', SM('SM_Ceiling_light_01'), wpos(wall, 0, -400, fz + 490), yaw=wyaw(wall), **K)
     light(f'CorLight_{wall}', unreal.PointLight, wpos(wall, 0, -400, fz + 440), color=(235, 242, 255), intensity=2500, radius=900, shadows=False)
-    light(f'GateBeacon_{wall}', unreal.PointLight, wpos(wall, 0, 60, fz + DOOR_H + 60), color=(255, 50, 30), intensity=500, radius=450, shadows=False)
+    light(f'GateBeacon_{wall}', unreal.PointLight, wpos(wall, 0, 120, fz + DOOR_H + 30), color=(255, 50, 30), intensity=120, radius=380, shadows=False)
 
 # --- Mezzanines (quais) : parement en panneaux du kit ---
 for wall in ('E', 'W'):
@@ -509,8 +578,9 @@ _sky_tex = unreal.load_asset('/Game/RESHOOT/Space/Textures/T_Space_SkyPanorama')
 _sky_tex.set_editor_property('address_x', unreal.TextureAddress.TA_MIRROR); eal.save_loaded_asset(_sky_tex)
 SKY = dict(folder='Dressing_Real/Sky', tags=('DressingReal', 'DressingSwitch'), shadow=False)
 spawn('Sky_Starfield', SPHERE, (0, 0, 0), scale=(1500, 1500, 1500), mat=unreal.load_asset('/Game/RESHOOT/Space/Materials/MI_Space_Sky'), **SKY)
-spawn('Backdrop_Planet', PLANE, (2500, 24000, 2600), roll=90, scale=(260, 110, 1), mat=unreal.load_asset('/Game/RESHOOT/Space/Materials/MI_Space_PlanetBackdrop'), **SKY)
-spawn('Backdrop_Hull', PLANE, (-9000, 16000, -1200), roll=90, scale=(220, 93, 1), mat=unreal.load_asset('/Game/RESHOOT/Space/Materials/MI_Space_HullBackdrop'), **SKY)
+planet_mat, atmo_mat = planet_materials()
+spawn('Planet', SPHERE, PLANET_C, scale=(PLANET_R / 50,) * 3, mat=planet_mat, **SKY)
+spawn('Planet_Atmosphere', SPHERE, PLANET_C, scale=(PLANET_R * 1.035 / 50,) * 3, mat=atmo_mat, **SKY)
 les.save_current_level()
 les.load_level('/Game/RESHOOT/Core/Maps/L_Stage', unsaved_changes_policy=DISCARD)
 out['hangar_conflicts'] = list(REPORT)
