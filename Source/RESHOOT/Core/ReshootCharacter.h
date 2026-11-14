@@ -13,6 +13,7 @@ class AReshootWeapon;
 class UUniverseDefinition;
 class UInputAction;
 class UInputMappingContext;
+class USoundBase;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponChanged, AReshootWeapon*, NewWeapon);
@@ -287,6 +288,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0"))
 	float DefaultSpaceBraking = 150.f;
 
+	/** Décor en carton seulement : bouffées de réacteur faites à la bouche quand on se déplace en apesanteur. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
+	TArray<TObjectPtr<USoundBase>> PropThrusterSounds;
+
+	/** Écart minimal entre deux bouffées tant qu'on garde une touche de déplacement enfoncée (s). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0.05"))
+	float PropThrusterInterval = 0.7f;
+
+	/** Variation aléatoire de hauteur des bouffées (± fraction). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0", ClampMax = "0.5"))
+	float PropThrusterPitchJitter = 0.1f;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -368,4 +381,8 @@ private:
 	FTimerHandle AimFOVTimer;
 	bool bSpaceGravityOn = false;
 	bool bDressingReal = false;
+
+	/** Joue une bouffée de réacteur carton si l'écart minimal est passé. */
+	void PlayPropThruster();
+	float LastPropThrusterTime = -1000.f;
 };

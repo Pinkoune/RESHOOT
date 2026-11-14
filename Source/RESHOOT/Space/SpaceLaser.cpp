@@ -11,6 +11,7 @@
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -34,14 +35,6 @@ namespace
 		return Laser->IsDressingReal() && Laser->RealMesh;
 	}
 	const FLinearColor DefaultBeamColor(0.1f, 0.85f, 1.f);
-
-	// Animation selon la direction de déplacement, à pleine vitesse (cm et degrés). En dur pour rester compatible
-	// Live Coding ; à passer en UPROPERTY au prochain changement de header.
-	constexpr float MoveLagForward = 1.5f;   // l'arme recule en avançant, avance en reculant
-	constexpr float MoveLagSide = 1.0f;      // l'arme traîne à l'opposé du pas de côté
-	constexpr float MovePitch = 1.2f;        // canon un peu plus bas en avançant
-	constexpr float MoveYaw = 1.5f;
-	constexpr float MoveRoll = 5.f;          // penche du côté du pas de côté
 }
 
 ASpaceLaser::ASpaceLaser()
@@ -205,9 +198,20 @@ void ASpaceLaser::FireShot()
 		ShowBeam(GetMuzzleLocation(), Impact);
 	}
 
-	if (FireSound)
+	if (IsRealLook(this))
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		if (FireSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		}
+	}
+	else if (PropFireSounds.Num() > 0)
+	{
+		// Carton : un des sons faits à la bouche, au hasard, hauteur légèrement variée.
+		if (USoundBase* Sound = PropFireSounds[FMath::RandHelper(PropFireSounds.Num())])
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation(), 1.f, 1.f + FMath::FRandRange(-PropPitchJitter, PropPitchJitter));
+		}
 	}
 
 	// Recul : léger coup vers le haut sur la rotation de contrôle (pitch positif = vers le haut).

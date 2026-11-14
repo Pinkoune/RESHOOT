@@ -13,6 +13,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -237,9 +238,20 @@ void ASpaceDrone::TryFire()
 		}), 0.06f, false);
 	}
 
-	if (FireSound)
+	if (IsDressingReal())
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Start);
+		if (FireSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, Start);
+		}
+	}
+	else if (PropFireSounds.Num() > 0)
+	{
+		// Carton : un des sons faits à la bouche, au hasard, hauteur légèrement variée.
+		if (USoundBase* Sound = PropFireSounds[FMath::RandHelper(PropFireSounds.Num())])
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, Start, 1.f, 1.f + FMath::FRandRange(-PropPitchJitter, PropPitchJitter));
+		}
 	}
 }
 

@@ -13,6 +13,8 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
 #include "EnhancedInputComponent.h"
@@ -689,6 +691,10 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 		const FRotationMatrix ViewMatrix(ViewRotation);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::X), Axis.Y);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::Y), Axis.X);
+		if (!Axis.IsNearlyZero())
+		{
+			PlayPropThruster();
+		}
 	}
 	else
 	{
@@ -733,6 +739,26 @@ void AReshootCharacter::OnJumpTriggered()
 	if (!bFrozen && IsInSpaceMode())
 	{
 		AddMovementInput(FVector::UpVector, 1.f);
+		PlayPropThruster();
+	}
+}
+
+void AReshootCharacter::PlayPropThruster()
+{
+	// Décor en carton seulement : en réaliste, les réacteurs n'ont pas (encore) de son.
+	if (bDressingReal || PropThrusterSounds.Num() == 0)
+	{
+		return;
+	}
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastPropThrusterTime < PropThrusterInterval)
+	{
+		return;
+	}
+	LastPropThrusterTime = Now;
+	if (USoundBase* Sound = PropThrusterSounds[FMath::RandHelper(PropThrusterSounds.Num())])
+	{
+		UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f + FMath::FRandRange(-PropThrusterPitchJitter, PropThrusterPitchJitter));
 	}
 }
 

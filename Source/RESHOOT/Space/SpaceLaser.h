@@ -86,8 +86,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Feel")
 	TObjectPtr<UMaterialInterface> BeamMaterial;
 
+	/** Son de tir du modèle réaliste. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Audio")
 	TObjectPtr<USoundBase> FireSound;
+
+	/** Carton seulement : sons de tir faits à la bouche, un tiré au hasard à chaque tir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Audio")
+	TArray<TObjectPtr<USoundBase>> PropFireSounds;
+
+	/** Variation aléatoire de hauteur des sons carton (± fraction), pour qu'ils ne se répètent pas à l'identique. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Audio", meta = (ClampMin = "0", ClampMax = "0.5"))
+	float PropPitchJitter = 0.08f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Audio")
 	TObjectPtr<USoundBase> OverheatSound;
@@ -163,6 +172,26 @@ public:
 	/** Vitesse de passage en visée. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
 	float AimSpeed = 12.f;
+
+	/** Selon la direction de déplacement, à pleine vitesse : l'arme recule en avançant (cm)... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
+	float MoveLagForward = 1.5f;
+
+	/** ... traîne à l'opposé du pas de côté (cm)... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
+	float MoveLagSide = 1.f;
+
+	/** ... baisse le canon en avançant (degrés)... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
+	float MovePitch = 1.2f;
+
+	/** ... tourne (degrés)... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
+	float MoveYaw = 1.5f;
+
+	/** ... et penche du côté du pas de côté (degrés). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser|Anim", meta = (ClampMin = "0"))
+	float MoveRoll = 5.f;
 
 	/** Effets du tir : rayon, trait, éclairs, impacts. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Laser")

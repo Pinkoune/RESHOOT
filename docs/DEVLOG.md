@@ -172,3 +172,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : en réaliste, le fusil penche (5°) et traîne (1 cm) du côté du pas de côté, recule de 1,5 cm et baisse un peu le canon en avançant. Atténué de 75 % en visée. Le carton reste fixe.
 - Comment : calculé dans `ASpaceLaser::Tick` à partir de la vitesse du personnage dans son repère, rapportée à sa vitesse max (elle monte et descend progressivement, pas besoin de lissage). Réglages en constantes dans `SpaceLaser.cpp` pour rester compatible Live Coding ; à passer en `UPROPERTY` au prochain changement de header.
 - Capture : aucune
+
+### 2026-11-15 00:50 — Sons du carton faits à la bouche (Spatial)
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : en décor carton seulement, tir du fusil, tir des drones et bouffées de réacteur en apesanteur, enregistrés à la bouche par Jérémy (deux prises par son, une tirée au hasard, hauteur variée de ±8 à 10 %). Réacteurs : une bouffée dès qu'on appuie sur une touche de déplacement ou Espace, puis toutes les 0,7 s tant qu'on la garde. Le réaliste reste muet en attendant ses sons. Réglages d'animation du fusil (déplacement) passés en `UPROPERTY`.
+- Comment : nouvelles propriétés `PropFireSounds` (`ASpaceLaser`, `ASpaceDrone`) et `PropThrusterSounds` (`AReshootCharacter`), `FireSound` réservé au réaliste. Le joueur n'avait pas de Blueprint : `BP_ReshootCharacter` (enfant de `AReshootCharacter`, assets seulement) est créé et devient le pion de `BP_ReshootGameMode`. Branchement par `Tools/setup_prop_sounds.py`. mp3 sources dans `SourceArt/Space/Audio/Prop/`, sortis de `Content`. Compilation complète, câblage vérifié en jeu (pion, sons assignés au fusil, aux 4 drones et au joueur) ; pas d'écoute possible de mon côté.
+- Capture : aucune

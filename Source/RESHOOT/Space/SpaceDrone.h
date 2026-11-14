@@ -68,8 +68,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Feel", meta = (ClampMin = "0"))
 	float MuzzleForward = 50.f;
 
+	/** Son de tir du drone réaliste. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Audio")
 	TObjectPtr<USoundBase> FireSound;
+
+	/** Carton seulement : sons de tir faits à la bouche, un tiré au hasard à chaque tir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Audio")
+	TArray<TObjectPtr<USoundBase>> PropFireSounds;
+
+	/** Variation aléatoire de hauteur des sons carton (± fraction). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Audio", meta = (ClampMin = "0", ClampMax = "0.5"))
+	float PropPitchJitter = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drone|Audio")
 	TObjectPtr<USoundBase> DeathSound;
