@@ -15,6 +15,8 @@ class UAudienceRating;
 class UDirectorVoice;
 class AUniverseEvent;
 class AReshootCharacter;
+class UAudioComponent;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootPhaseChanged, EShootPhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootUniverseChanged, EUniverse, NewUniverse);
@@ -126,6 +128,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Director")
 	int32 GetTakeIndex() const { return TakeIndex; }
 
+	/** Vrai quand le public s'ennuie (pas d'élimination depuis AudienceBoredDelay) : l'audimat baisse. */
+	UFUNCTION(BlueprintPure, Category = "Director")
+	bool IsAudienceBored() const { return bAudienceBored; }
+
+	/** Événement d'univers vu par l'interface : 0 = aucun, 1 = annoncé, 2 = en cours, 3 = réussi (bonus), 4 = raté. */
+	int32 GetEventHudState() const { return EventHudState; }
+	/** Secondes avant le déclenchement (annoncé) ou avant la fin (en cours). */
+	float GetEventHudTimeLeft() const;
+	/** Définition de l'univers de l'événement en cours ou récent (titre, consigne). */
+	const UUniverseDefinition* GetEventHudDefinition() const { return EventHudDefinition.Get(); }
+	float GetEventHudBonus() const { return EventHudBonus; }
+
 	/** « CUT! » : gel général, réplique, nouvelle directive (peut être nulle), puis « Action! » après CutDuration. */
 	UFUNCTION(BlueprintCallable, Category = "Director")
 	void CallCut(UDirective* NewDirective);
@@ -176,9 +190,28 @@ private:
 	void StopUniverseEvent();
 
 	// Transition carton -> réaliste
-	void ImproveStaging();
-	void StepStagingSweep();
-	void SetStagingState(bool bReal, float SweepAlpha);
+	/** « On améliore la mise en scène ! » : la réplique d'abord, puis le balayage du rideau quand elle se termine.
+	    Retourne la durée totale (réplique + balayage). */
+	float ImproveStaging();
+	/** Lance le balayage du rideau (appelé à la fin de la réplique de mise en scène). */
+	void StartStagingSweep();
+	/** Tous les quarts de seconde pendant les prises : public qui s'ennuie, fin de l'événement d'univers. */
+	void TickAudience();
+	/** Fin de l'événement d'univers : bonus si le joueur n'est pas mort pendant. */
+	void FinishEventHud(bool bSurvived);
+	/** Remet le décor en carton (début de scène) ou le passe en réaliste (final), via le rideau du socle. */
+	void SetStagingState(bool bReal);
+	/** Le réalisateur pilote le rideau : coupe le suivi automatique (reshoot.Dressing.AutoFromDirector). */
+	void TakeControlOfStaging();
+
+	// Musique
+	/** Joue la boucle de l'univers en fondu enchaîné (sans effet si c'est déjà elle). Nulle = fondu vers le silence. */
+	void PlayMusic(USoundBase* Music);
+	void SetMusicPaused(bool bPaused);
+
+	/** Relance la musique à la fin (boucle même si l'asset sonore ne boucle pas lui-même). */
+	UFUNCTION()
+	void HandleMusicFinished();
 
 	// Casting
 	void CheckCastingSlide();
@@ -224,21 +257,35 @@ private:
 	UPROPERTY()
 	TObjectPtr<AUniverseEvent> ActiveEvent;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> MusicComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> CurrentMusic;
+
 	bool bPlayerDiedThisTake = false;
 
 	/** Le CUT! en pleine prise a eu lieu (une prise ne se termine pas sans lui). */
 	bool bMidTakeCutDone = false;
 
 	bool bStagingReal = false;
-	float StagingSweepAlpha = 0.f;
-	bool bStagingSwapped = false;
+
+	// Public et événement, pour l'interface
+	double LastKillTime = 0.0;
+	bool bAudienceBored = false;
+	int32 EventHudState = 0;
+	double EventHudTime = 0.0;
+	float EventHudBonus = 0.f;
+	bool bPlayerDiedDuringEvent = false;
+	TWeakObjectPtr<const UUniverseDefinition> EventHudDefinition;
+	FTimerHandle AudienceTimer;
+	FTimerHandle StagingTimer;
 
 	bool bCastingSlid = false;
 	bool bCastingDone = false;
 	int32 CastingTargetsHit = 0;
 	int32 CastingTargetsTotal = 0;
 
-	FTimerHandle StagingTimer;
 	FTimerHandle CastingTimer;
 	FTimerHandle PhaseTimer;
 	FTimerHandle CutTimer;

@@ -61,6 +61,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Universe")
 	FName EventLineId;
 
+	/** Nom de l'événement affiché à l'écran (« HORSE CONVOY »). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Universe")
+	FText EventTitle;
+
+	/** Consigne affichée pendant l'événement (« Dodge the wooden horses! »). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Universe")
+	FText EventHint;
+
 	/** Boucle musicale de l'univers. Peut être nulle. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	TObjectPtr<USoundBase> Music;

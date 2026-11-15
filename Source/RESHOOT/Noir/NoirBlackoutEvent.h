@@ -48,5 +48,4 @@ protected:
 	TObjectPtr<UPostProcessComponent> ExposureLock;
 
 	TArray<TPair<TWeakObjectPtr<ULightComponentBase>, float>> SavedIntensities;
-	FTimerHandle StopTimer;
 };

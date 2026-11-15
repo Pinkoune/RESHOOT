@@ -75,6 +75,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health", meta = (ClampMin = "0"))
 	float HeadshotMultiplier = 2.f;
 
+	/** Multiplie tous les dégâts reçus (réglage de difficulté ; le joueur le règle depuis AReshootCharacter). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health", meta = (ClampMin = "0"))
+	float DamageTakenMultiplier = 1.f;
+
 	/** Demi-angle du cône de protection frontale, en degrés. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health", meta = (ClampMin = "0", ClampMax = "180"))
 	float FrontalBlockHalfAngle = 60.f;

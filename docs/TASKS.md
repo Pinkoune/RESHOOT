@@ -45,7 +45,7 @@ Spatial
 
 Film noir + audio
 - [x] Revolver hitscan avec chargeur (testé en PIE sur `L_NoirTest` : 40 dégâts, x2 à la tête, recharge auto)
-- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte fait : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix en attente des crédits fal
+- [x] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix « George » (ElevenLabs via fal)
 
 Tous
 - [ ] Réclamer les crédits (SpaceXSI, Tripo, Hyper3D, fal, Diversion)
@@ -72,7 +72,7 @@ Spatial
 Film noir + audio
 - [x] Gangster à couvert, post-process noir et blanc (testés sur `L_NoirTest` ; `M_PP_Noir` reste à appliquer par le réalisateur via `DA_Noir`)
 - [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
-- [ ] Répliques générées, `DT_DirectorLines` remplie — table créée (`Content/RESHOOT/Audio/DT_DirectorLines`, 40 lignes, sous-titres seulement), sons en attente des crédits fal
+- [x] Répliques générées, `DT_DirectorLines` remplie — 49 répliques anglaises, voix « George » (Eleven v4 via fal), `Content/RESHOOT/Audio/DirectorVoice/`, branchées par `Tools/setup_director_voice.py` (Jérémy + Claude, 15/11)
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
 
@@ -85,7 +85,7 @@ Réalisateur (Enzo)
 - [x] Intégration des trois univers dans `UShootScript` (`SS_Main` : Médiéval, Spatial, Noir, final sur les trois ; testé dans `L_Stage`)
 
 Univers
-- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire ; Médiéval : convoi de chevaux de bois fait (`AMedievalHorseConvoyEvent` dans `L_Medieval`, branché dans `DA_Medieval`), habillage à faire
+- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage fait (ruelle de nuit et décor en carton, `Tools/build_noir_set.py`) ; Médiéval : convoi de chevaux de bois fait (`AMedievalHorseConvoyEvent` dans `L_Medieval`, branché dans `DA_Medieval`), habillage à faire
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
@@ -97,25 +97,25 @@ Interface
 
 - [ ] Corrections issues du test
 - [ ] Éclairage et rendu, DLSS si carte RTX disponible
-- [ ] Sons, musiques, mixage
+- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules) — Noir : « Hard Boiled » de Kevin MacLeod (CC-BY 4.0) dans `DA_Noir`, testé en jeu. Bruitages du Noir faits (tir, recharge, clic à vide, tirs des gangsters, coupure et retour du courant : `Tools/synth_noir_sfx.py`, branchés par `Tools/setup_noir_sounds.py`). Médiéval : « Master of the Feast », Spatial : « Space Fighter Loop » (même auteur, même licence), testés en jeu.
 - [ ] Build de secours en ligne à 20h
-- [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…)
+- [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…) — brouillon complet en anglais dans `docs/ITCH_PAGE.md` (Jules, 15/11), points [À VÉRIFIER] à relire par l'équipe
 - [ ] Dev log finalisé
 - [ ] Build final
 
 ## Décor carton -> réaliste (13/11)
 
 - [x] Socle : `ASetDressingSweep`, `MPC_SetDressing`, `M_SetDressing`, armes et accessoires en deux versions, test dans `L_Space` (Jérémy + Claude)
-- [ ] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 (Enzo, voir `docs/HANDOFF-Director.md`)
-- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
+- [x] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 et au final (Enzo, fait le 15/11, testé en PIE ; suivi automatique du rideau coupé par le réalisateur)
+- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant (Noir fait : décor, `SM_Noir_Pistol_Prop`/`_Real`, costume des gangsters), rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
 - [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
 - [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
 - [x] Rendu : exposition figée dans les deux phases
-- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
+- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (Noir fait le 15/11 : `Tools/build_noir_set.py`, 192 acteurs dans `L_Noir`) (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
 - [ ] Compléter `docs/CREDITS.md` (titres Fab exacts) avant la soumission
 - [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
 - [x] Spatial : ciel et planète procéduraux, fusil laser réaliste animé, effets de tir du fusil et des drones (`USpaceLaserFXComponent`, `Tools/build_laser_fx.py`)
-- [ ] Spatial : étincelles d'impact laser (le modèle Niagara est désactivé, trop gros), sons définitifs du mode réaliste (Jules ; des sons provisoires sont branchés). Carton fait (sons à la bouche de Jérémy)
+- [ ] Spatial : étincelles d'impact laser (le modèle Niagara est désactivé, trop gros), sons du mode réaliste (Jules, 15/11 : synthétisés par `Tools/synth_space_real_sfx.py`, remplacés sous les mêmes noms par `Tools/setup_space_real_sounds.py`). Carton fait (sons à la bouche de Jérémy)
 - [x] Spatial : fusil laser en carton (Tripo), posé comme `PropMesh` de `BP_SpaceLaser`
 
 ## Demandes au socle
@@ -128,15 +128,17 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 
 - [ ] @ileanasaintpaul : j'ai besoin de `AReshootCharacter::SetSprintBlocked(bool)` (ou d'un multiplicateur de vitesse) pour empêcher le sprint bouclier levé. En attendant, `AMedievalSword` rabaisse `MaxWalkSpeed` toutes les 0,05 s.
 - [ ] Enzo (fusion de `space`) : deux correctifs minimaux faits hors de mon périmètre pour que le projet compile avec le nouveau socle. À vérifier par leurs propriétaires :
-  - Jules : `ANoirBlackoutEvent::Duration` supprimé, il masquait `AUniverseEvent::Duration` (même défaut 10 s). La coupure utilise maintenant celle du socle, et le socle programme aussi son propre arrêt : vérifier qu'il n'y a pas de double arrêt.
+  - Jules : `ANoirBlackoutEvent::Duration` supprimé, il masquait `AUniverseEvent::Duration` (même défaut 10 s). La coupure utilise maintenant celle du socle, et le socle programme aussi son propre arrêt : vérifier qu'il n'y a pas de double arrêt.  — Vérifié par Jules (15/11) : le minuteur propre à la coupure est retiré, seul celui du socle reste ; testé en PIE, la coupure reste active pendant la pause du CUT! et s'arrête après la reprise.
   - Iléana : `AMedievalSword::GetMode()` renommé `GetMedievalMode()` (et ses 3 appels dans `ReshootHUD.cpp`, `GetModeCount` = 3 avec les poings) (il entrait en conflit avec `AReshootWeapon::GetMode()` du socle) ; ajout de `GetMode()` / `GetModeCount()` en override (0 = épée, 1 = arc). Pas de `SelectMode` : les touches 1 / 2 du socle ne changent pas encore de mode.
 - [x] @ileanasaintpaul : j'ai besoin que le réalisateur déclenche l'événement d'univers (`UUniverseDefinition::EventClass`) une fois par scène : chercher un acteur de cette classe déjà posé dans le sous-niveau (le convoi médiéval `AMedievalHorseConvoyEvent` est posé dans `L_Medieval` avec ses rails), sinon le faire apparaître, puis appeler `StartEvent()` 3 s après la réplique d'annonce. L'événement s'arrête tout seul (`StopEvent`) et se fige au CUT!.  Penser à remettre `AutoStartInterval` du convoi à 0 dans `L_Medieval` à ce moment-là (il se relance seul toutes les 20 s pour les tests). — Fait : prise 2 de chaque scène, 15 s après « Action! », annonce puis `StartEvent()` 3 s plus tard, figé au CUT!, arrêté en fin de prise. `AutoStartInterval` du convoi remis à 0 dans `L_Medieval`.
 - [x] @ileanasaintpaul (Interface) : j'ai besoin que `AReshootGameMode` utilise `AReshootHUD` (`HUDClass = AReshootHUD::StaticClass()` dans son constructeur, `#include "UI/ReshootHUD.h"`) pour afficher le HUD dans le vrai jeu. En attendant, il est branché sur le GameMode de test médiéval. — Pour `L_Stage` : fait via `BP_StageGameMode` (HUDClass). Reste valable pour les autres cartes.
 - [ ] Enzo (réalisateur, 14/11) : retouches hors de mon périmètre, à vérifier par leurs propriétaires :
-  - Jules : 9 lignes ajoutées à `DT_DirectorLines` (sous-titres seuls) : `Dir_NoShield`, `Dir_NoBow`, `Dir_LaserCost`, `Staging_Improve`, `CastingIntro`, `CastingDone`, `EventSpace`, `Event_Medieval`, `Event_Noir` ; `EventLineId` de `DA_Noir` = `Event_Noir`.
+  - Jules : 9 lignes ajoutées à `DT_DirectorLines` (sous-titres seuls) : `Dir_NoShield`, `Dir_NoBow`, `Dir_LaserCost`, `Staging_Improve`, `CastingIntro`, `CastingDone`, `EventSpace`, `Event_Medieval`, `Event_Noir` ; `EventLineId` de `DA_Noir` = `Event_Noir`. — Vérifié par Jules (15/11).
   - Iléana : `EventLineId` de `DA_Medieval` = `Event_Medieval` ; `AutoStartInterval` du convoi à 0 dans `L_Medieval` (c'est le réalisateur qui le lance).
-- [ ] Enzo → équipe : transition « carton → réaliste » (GDD) prête côté réalisateur. À la fin de la 1re prise de chaque scène, `MPC_SetDressing.StagingReveal` passe de 0 à 1 en 2,5 s (le matériau maître `M_SetDressing` doit le lire), les acteurs tagués `SetDressing_Prop` disparaissent et ceux tagués `SetDressing_Real` apparaissent au passage du rideau, et `OnStagingImproved` est diffusé. Le final est en version réaliste. Il suffit de taguer les décors.
+- [x] Enzo → Jérémy : transition carton → réaliste branchée sur `ASetDressingSweep`. Le réalisateur appelle `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la 1re prise (« On améliore la mise en scène ! », le gel du CUT! dure le temps du balayage + 0,5 s) et au final, et met `reshoot.Dressing.AutoFromDirector` à 0. Tags du décor : ceux du socle (`DressingProp`, `DressingReal`, `DressingSwitch`). Mon doublon (MPC du réalisateur, tags `SetDressing_*`) est supprimé.
 - [ ] Enzo → Iléana (Interface) : pendant le casting (phase `Casting`), le HUD affiche « Scène 1 – Prise 1 », le REC et l'audimat. À masquer ou à remplacer par la fiche d'acteur ; `OnCastingProgress(bSlid, TargetsHit, TargetsTotal)` donne l'avancement du tutoriel.
 - [ ] Enzo → Jérémy (socle) : `ReshootCharacter.cpp` retouché (accord d'Enzo) : touche C ajoutée à l'accroupi/glissade, et `CanStartSlide` accepte la vitesse de sprint même Maj relâché. Possible amélioration : un délai de grâce (~0,3 s) après le relâchement de Maj, qui demande une variable dans le header.
 
 - [ ] @ileanasaintpaul → @Jérémy (info, rien à faire sauf objection) : j'ai ajouté le tag `MedievalHideReal` aux murs et linteaux du plateau dans `L_Stage` (`Plateau_Mur_*`, `Plateau_Linteau_*`). Seul le médiéval s'en sert : en réaliste, le convoi (`AMedievalHorseConvoyEvent`, qui n'existe que quand `L_Medieval` est chargé) cache ces murs pour ouvrir le plateau sur la nature ; la collision reste. Ils réapparaissent quand le médiéval est déchargé. Rien ne change pour le spatial et le film noir.
+- [x] Enzo → Jules : sous-titres du réalisateur passés en anglais (relus par Jules le 15/11, OK) (49 lignes de `DT_DirectorLines` et `DirectorLines.csv`, demande d'Enzo). Le texte français est gardé dans `Content/RESHOOT/Audio/DirectorLines_FR.csv`. Pour les voix (fal) : choisir la langue ; si elles restent en français, les sous-titres anglais servent de traduction.
+- [ ] Enzo → équipe : tout le texte visible du jeu est passé en anglais (demande d'Enzo, 15/11). Hors de mon dossier, à vérifier par leurs propriétaires : HUD (`UI/ReshootHUD.cpp` : SCENE / TAKE, RATINGS, HEALTH, CUT!, 1 SWORD 2 BOW 3 FISTS, GUARD, SHIELD UP — Iléana), noms d'armes (`MedievalSword.cpp`, `BP_MedievalSword` : Sword & shield, Bow, Fists ; `SpaceLaser.cpp`, `BP_SpaceLaser` : Laser rifle), noms d'univers (`DA_Medieval` : Medieval, `DA_Universe_Space` : Sci-fi et mots de l'affiche Orbit / Galaxy / Odyssey / Void / Stars), nom de joueur par défaut `Extra` (`ReshootGameState.h`, Jérémy). Tout nouveau texte affiché doit être écrit en anglais.

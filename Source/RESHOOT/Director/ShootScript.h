@@ -10,7 +10,6 @@
 class AReshootEnemy;
 class UDirective;
 class UUniverseDefinition;
-class UMaterialParameterCollection;
 
 /** Une vague de figurants. */
 USTRUCT(BlueprintType)
@@ -131,6 +130,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
 	float DeathPenalty = 60.f;
 
+	/** Le public s'ennuie : sans élimination pendant ce délai (s), l'audimat baisse... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float AudienceBoredDelay = 6.f;
+
+	/** ... de tant de points par seconde, jusqu'à la prochaine élimination. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float AudienceBoredRate = 12.f;
+
+	/** Bonus d'audimat pour avoir survécu à l'événement d'univers sans mourir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float EventSurvivedBonus = 100.f;
+
 	/** Le « CUT! » tombe au hasard entre CutDelayMin et CutDelayMax secondes après le clap. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDelayMin = 20.f;
@@ -141,6 +152,10 @@ public:
 	/** Durée du gel « CUT! » avant « Action! » (GDD : 4 s au plus). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDuration = 3.f;
+
+	/** Prise 1 d'une scène (en carton) : le « CUT! » qui lance la mise en scène réaliste tombe au plus tard après ce délai (s). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "1"))
+	float StagingCutDelay = 15.f;
 
 	/** Commentaires tirés au hasard au « CUT! » en pleine prise, avant l'annonce de la directive. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing")
@@ -182,29 +197,24 @@ public:
 	FName StagePlayerStartTag = TEXT("Stage");
 
 	// --- Répétition, puis mise en scène (GDD) : décor carton à la 1re prise, réaliste ensuite ---
+	// Le rideau lui-même est ASetDressingSweep (socle, posé dans L_Stage) : le réalisateur l'appelle.
 
 	/** « On améliore la mise en scène ! », à la fin de la première prise de chaque scène. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
 	FName StagingLineId = TEXT("Staging_Improve");
 
-	/** Durée du balayage du rideau de lumière. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging", meta = (ClampMin = "0.1"))
-	float StagingSweepDuration = 2.5f;
+	// --- Musique (GDD) : une boucle par univers (UUniverseDefinition::Music), coupée net au « CUT! » ---
 
-	/** Collection lue par le matériau maître M_SetDressing : StagingParameter va de 0 (carton) à 1 (réaliste). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	TObjectPtr<UMaterialParameterCollection> StagingCollection;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0", ClampMax = "2"))
+	float MusicVolume = 0.6f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName StagingParameter = TEXT("StagingReveal");
+	/** Fondu d'entrée d'une musique (début de scène, bascule du final). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0"))
+	float MusicFadeIn = 1.f;
 
-	/** Acteurs visibles seulement en version carton (décor carton, studio, projecteurs). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName PropActorTag = TEXT("SetDressing_Prop");
-
-	/** Acteurs visibles seulement en version réaliste (décor réaliste, ciel, horizon). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName RealActorTag = TEXT("SetDressing_Real");
+	/** Fondu de sortie de la musique précédente (changement d'univers, fin de partie). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0"))
+	float MusicFadeOut = 0.75f;
 
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))

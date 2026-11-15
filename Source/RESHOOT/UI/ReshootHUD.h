@@ -9,6 +9,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "Core/ReshootTypes.h"
 #include "ReshootHUD.generated.h"
 
 class UFont;
@@ -32,6 +33,14 @@ public:
 	/** Taille de texte de base, multipliée par la hauteur d'écran / 1080. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD", meta = (ClampMin = "0.1"))
 	float TextScale = 1.f;
+
+	/** Style de la police (nom d'une typographie de la police composite : Bold, Regular...). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD")
+	FName FontTypeface = TEXT("Bold");
+
+	/** Taille en pixels d'un texte d'échelle 1 à 1080p. Le texte est rendu à sa taille réelle : il reste net. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD", meta = (ClampMin = "4"))
+	float FontPixelSize = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD")
 	FLinearColor AccentColor = FLinearColor(1.f, 0.78f, 0.25f, 1.f);
@@ -67,6 +76,17 @@ private:
 	void DrawReticle();
 	void DrawDamageFlash();
 	void DrawCutBars();
+	void DrawEventBanner();
+	/** Clap de début de scène (et petit clap à chaque bascule du final). */
+	void DrawSlate();
+	/** Repère les changements de phase, d'univers, de directive et d'événement (départ des animations). */
+	void TrackChanges();
+	/** Police vectorielle à la bonne taille, avec contour. */
+	struct FSlateFontInfo MakeFont(float Scale) const;
+	/** Police selon le texte : titres en capitales (police d'affiche), phrases en police de lecture. */
+	struct FSlateFontInfo MakeFontFor(const FString& Text, float Scale) const;
+	/** Carte sombre avec un liseré de couleur à gauche : fond commun des blocs du HUD. */
+	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe);
 
 	// Écoute
 	void TryBind();
@@ -84,6 +104,24 @@ private:
 
 	UFUNCTION()
 	void HandleEnemyHealthChanged(UHealthComponent* HealthComponent, float NewHealth, float Delta);
+
+	UFUNCTION()
+	void HandleKillScored(const FKillInfo& Kill, float Points, bool bDirectiveRespected);
+
+	bool bBoundDirector = false;
+	double BoredSince = -1.0;
+
+	// Animations
+	EShootPhase LastPhase = EShootPhase::Menu;
+	double PhaseChangeTime = -100.0;
+	EUniverse LastUniverse = EUniverse::None;
+	double UniverseChangeTime = -100.0;
+	TWeakObjectPtr<const class UDirective> LastDirective;
+	double DirectiveChangeTime = -100.0;
+	int32 LastEventState = 0;
+	double EventStateTime = -100.0;
+	float ShownRating = 0.f;
+	double LastDrawTime = 0.0;
 
 	double Now() const;
 
@@ -104,6 +142,7 @@ private:
 	{
 		FString Text;
 		double StartTime = 0.0;
+		FLinearColor Color = FLinearColor::White;
 	};
 	TArray<FFloatingGain> FloatingGains;
 };

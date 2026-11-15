@@ -11,6 +11,7 @@
 #include "Core/HealthComponent.h"
 #include "Core/UniverseDefinition.h"
 #include "Core/UniverseEvent.h"
+#include "Core/SetDressingSweep.h"
 #include "RESHOOT.h"
 
 #include "EngineUtils.h"
@@ -22,14 +23,27 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMaterialLibrary.h"
 #include "Materials/MaterialInterface.h"
-#include "Materials/MaterialParameterCollection.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 
 namespace ReshootDirector
 {
+	/** Fondu de la caméra du joueur (transitions entre univers, flash des bascules du final). */
+	static void FadeCamera(UWorld* World, float From, float To, float Duration, const FLinearColor& Color, bool bHold)
+	{
+		APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+		if (PC && PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(From, To, Duration, Color, false, bHold);
+		}
+	}
+
 	/** Tag du volume de post-process géré par le réalisateur (créé à la volée, sans borne). */
 	static const FName UniversePostProcessTag(TEXT("ReshootUniversePostProcess"));
 
@@ -106,8 +120,15 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(FinaleEndTimer);
 		World->GetTimerManager().ClearTimer(CutTimer);
 		World->GetTimerManager().ClearTimer(EventTimer);
+		World->GetTimerManager().ClearTimer(AudienceTimer);
 		World->GetTimerManager().ClearTimer(StagingTimer);
 		World->GetTimerManager().ClearTimer(CastingTimer);
+	}
+	if (MusicComponent)
+	{
+		MusicComponent->OnAudioFinished.RemoveAll(this);
+		MusicComponent->Stop();
+		MusicComponent = nullptr;
 	}
 	Super::Deinitialize();
 }
@@ -175,7 +196,66 @@ void UShootDirectorSubsystem::SetPhase(EShootPhase NewPhase)
 	}
 	Phase = NewPhase;
 	UE_LOG(LogReshoot, Log, TEXT("Director phase -> %s"), *UEnum::GetValueAsString(NewPhase));
+	// GDD : au « CUT! », la musique s'arrête net ; elle reprend avec l'action.
+	SetMusicPaused(NewPhase == EShootPhase::Cut);
 	OnPhaseChanged.Broadcast(NewPhase);
+}
+
+// ---------------------------------------------------------------------------
+// Musique : une boucle par univers, fondu enchaîné aux changements, coupée au CUT!
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::PlayMusic(USoundBase* Music)
+{
+	if (Music == CurrentMusic && MusicComponent && (MusicComponent->IsPlaying() || MusicComponent->bIsPaused))
+	{
+		return;
+	}
+	const float FadeOut = Script ? Script->MusicFadeOut : 0.75f;
+	if (MusicComponent)
+	{
+		// L'ancienne musique s'efface puis se détruit seule.
+		MusicComponent->OnAudioFinished.RemoveAll(this);
+		MusicComponent->bAutoDestroy = true;
+		MusicComponent->SetPaused(false);
+		MusicComponent->FadeOut(FMath::Max(FadeOut, 0.01f), 0.f);
+		MusicComponent = nullptr;
+	}
+	CurrentMusic = Music;
+	if (!Music)
+	{
+		return;
+	}
+	MusicComponent = UGameplayStatics::CreateSound2D(this, Music, 1.f, 1.f, 0.f, nullptr, false, false);
+	if (!MusicComponent)
+	{
+		return;
+	}
+	MusicComponent->OnAudioFinished.AddDynamic(this, &UShootDirectorSubsystem::HandleMusicFinished);
+	MusicComponent->FadeIn(FMath::Max(Script ? Script->MusicFadeIn : 1.f, 0.01f), Script ? Script->MusicVolume : 0.6f);
+	if (Phase == EShootPhase::Cut)
+	{
+		MusicComponent->SetPaused(true);
+	}
+	UE_LOG(LogReshoot, Log, TEXT("Music -> %s"), *GetNameSafe(Music));
+}
+
+void UShootDirectorSubsystem::SetMusicPaused(bool bPaused)
+{
+	if (MusicComponent && MusicComponent->bIsPaused != bPaused)
+	{
+		MusicComponent->SetPaused(bPaused);
+	}
+}
+
+void UShootDirectorSubsystem::HandleMusicFinished()
+{
+	// Boucle, même si l'asset sonore n'est pas réglé en boucle.
+	if (MusicComponent && CurrentMusic && Phase != EShootPhase::Wrap)
+	{
+		MusicComponent->SetVolumeMultiplier(Script ? Script->MusicVolume : 0.6f);
+		MusicComponent->Play();
+	}
 }
 
 float UShootDirectorSubsystem::SetDirective(UDirective* NewDirective)
@@ -275,6 +355,9 @@ void UShootDirectorSubsystem::SetUniverse(EUniverse NewUniverse)
 			Volume->Settings.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, PostProcess));
 		}
 	}
+
+	// Boucle musicale de l'univers (au final, elle change avec lui).
+	PlayMusic(Definition ? Definition->Music.Get() : nullptr);
 
 	OnUniverseChanged.Broadcast(NewUniverse);
 }
@@ -516,6 +599,11 @@ void UShootDirectorSubsystem::AnnounceUniverseEvent()
 		return;
 	}
 	UE_LOG(LogReshoot, Log, TEXT("Universe event announced: %s"), *GetNameSafe(ActiveEvent));
+	EventHudState = 1;
+	EventHudTime = GetWorld()->GetTimeSeconds();
+	EventHudDefinition = Definition;
+	EventHudBonus = 0.f;
+	bPlayerDiedDuringEvent = false;
 	OnUniverseEventAnnounced.Broadcast(ActiveEvent);
 	PlayLine(Definition->EventLineId);
 	GetWorld()->GetTimerManager().SetTimer(EventTimer, this, &UShootDirectorSubsystem::TriggerUniverseEvent, FMath::Max(Script ? Script->EventWarningTime : 3.f, 0.1f), false);
@@ -527,12 +615,23 @@ void UShootDirectorSubsystem::TriggerUniverseEvent()
 	{
 		UE_LOG(LogReshoot, Log, TEXT("Universe event started: %s"), *GetNameSafe(ActiveEvent));
 		ActiveEvent->StartEvent();
+		EventHudState = 2;
+		EventHudTime = GetWorld()->GetTimeSeconds();
 	}
 }
 
 void UShootDirectorSubsystem::StopUniverseEvent()
 {
 	GetWorld()->GetTimerManager().ClearTimer(EventTimer);
+	// Prise terminée pendant l'événement, sans mourir : il compte comme réussi. Annoncé mais pas lancé : rien.
+	if (EventHudState == 2)
+	{
+		FinishEventHud(!bPlayerDiedDuringEvent);
+	}
+	else if (EventHudState == 1)
+	{
+		EventHudState = 0;
+	}
 	if (ActiveEvent && ActiveEvent->IsEventActive())
 	{
 		ActiveEvent->SetEventPaused(false);
@@ -545,60 +644,120 @@ void UShootDirectorSubsystem::StopUniverseEvent()
 // Répétition, puis mise en scène : décor carton à la 1re prise, rideau de lumière, décor réaliste
 // ---------------------------------------------------------------------------
 
-void UShootDirectorSubsystem::SetStagingState(bool bReal, float SweepAlpha)
+void UShootDirectorSubsystem::TakeControlOfStaging()
+{
+	// Le rideau (ASetDressingSweep, socle) suit le déroulé tout seul tant que ce réglage vaut 1 ;
+	// le réalisateur l'appelle lui-même, au bon moment (fin de la 1re prise, pas au début de la 2e).
+	if (IConsoleVariable* AutoFollow = IConsoleManager::Get().FindConsoleVariable(TEXT("reshoot.Dressing.AutoFromDirector")))
+	{
+		AutoFollow->Set(0, ECVF_SetByCode);
+	}
+}
+
+void UShootDirectorSubsystem::SetStagingState(bool bReal)
 {
 	bStagingReal = bReal;
-	StagingSweepAlpha = SweepAlpha;
-	if (!Script)
+	ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
+	if (!Sweep)
 	{
 		return;
 	}
-	if (Script->StagingCollection)
+	if (bReal)
 	{
-		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, SweepAlpha);
+		Sweep->UpgradeDressing();	// sans effet s'il est déjà réaliste
 	}
-	// Sans le matériau M_SetDressing, les deux versions s'échangent par visibilité (tags d'acteur).
-	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	else if (Sweep->IsDressingReal() || Sweep->IsSweeping())
 	{
-		if (!Script->PropActorTag.IsNone() && It->ActorHasTag(Script->PropActorTag))
-		{
-			It->SetActorHiddenInGame(bReal);
-		}
-		else if (!Script->RealActorTag.IsNone() && It->ActorHasTag(Script->RealActorTag))
-		{
-			It->SetActorHiddenInGame(!bReal);
-		}
+		Sweep->ResetDressing();
 	}
 }
 
-void UShootDirectorSubsystem::ImproveStaging()
+float UShootDirectorSubsystem::ImproveStaging()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Staging improved: cardboard -> real."));
-	PlayLine(Script ? Script->StagingLineId : NAME_None);
-	OnStagingImproved.Broadcast(CurrentUniverse);
-	StagingSweepAlpha = 0.f;
-	bStagingSwapped = false;
-	GetWorld()->GetTimerManager().SetTimer(StagingTimer, this, &UShootDirectorSubsystem::StepStagingSweep, 1.f / 30.f, true);
+	// La réplique d'abord (« Let's improve the staging! »), le rideau part quand elle se termine :
+	// sinon la phrase, mise en file derrière celle du CUT!, tombait après la transition.
+	bStagingReal = true;
+	const float LineDuration = PlayLine(Script ? Script->StagingLineId : NAME_None);
+	const float SweepDelay = FMath::Max(LineDuration - 0.3f, 0.f);
+	if (SweepDelay > KINDA_SMALL_NUMBER)
+	{
+		GetWorld()->GetTimerManager().SetTimer(StagingTimer, this, &UShootDirectorSubsystem::StartStagingSweep, SweepDelay, false);
+	}
+	else
+	{
+		StartStagingSweep();
+	}
+	const ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
+	if (!Sweep)
+	{
+		UE_LOG(LogReshoot, Warning, TEXT("ImproveStaging: no ASetDressingSweep in the level, nothing to sweep."));
+	}
+	return SweepDelay + (Sweep ? Sweep->Duration : 0.f);
 }
 
-void UShootDirectorSubsystem::StepStagingSweep()
+void UShootDirectorSubsystem::StartStagingSweep()
 {
-	const float Duration = Script ? FMath::Max(Script->StagingSweepDuration, 0.1f) : 2.5f;
-	StagingSweepAlpha = FMath::Min(StagingSweepAlpha + (1.f / 30.f) / Duration, 1.f);
-	if (Script && Script->StagingCollection)
+	OnStagingImproved.Broadcast(CurrentUniverse);
+	SetStagingState(true);
+}
+
+void UShootDirectorSubsystem::TickAudience()
+{
+	UWorld* World = GetWorld();
+	if (!World || !Script)
 	{
-		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, StagingSweepAlpha);
+		return;
 	}
-	// Échange des versions au passage du rideau (milieu du balayage).
-	if (!bStagingSwapped && StagingSweepAlpha >= 0.5f)
+	const double Now = World->GetTimeSeconds();
+	// Public qui s'ennuie : sans élimination depuis AudienceBoredDelay, l'audimat baisse jusqu'à la prochaine.
+	const bool bRolling = Phase == EShootPhase::TakeRunning || Phase == EShootPhase::Finale;
+	bAudienceBored = bRolling && Script->AudienceBoredRate > 0.f && Now - LastKillTime > Script->AudienceBoredDelay;
+	if (bAudienceBored)
 	{
-		bStagingSwapped = true;
-		SetStagingState(true, StagingSweepAlpha);
+		if (UAudienceRating* Rating = GetAudienceRating())
+		{
+			Rating->Add(-Script->AudienceBoredRate * 0.25f);
+		}
 	}
-	if (StagingSweepAlpha >= 1.f)
+	// L'événement d'univers s'arrête tout seul au bout de sa durée : on le constate ici.
+	if (EventHudState == 2 && (!ActiveEvent || !ActiveEvent->IsEventActive()))
 	{
-		GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
+		FinishEventHud(!bPlayerDiedDuringEvent);
 	}
+	else if ((EventHudState == 3 || EventHudState == 4) && Now - EventHudTime > 3.5)
+	{
+		EventHudState = 0;
+	}
+}
+
+void UShootDirectorSubsystem::FinishEventHud(bool bSurvived)
+{
+	EventHudTime = GetWorld()->GetTimeSeconds();
+	EventHudBonus = bSurvived && Script ? Script->EventSurvivedBonus : 0.f;
+	EventHudState = bSurvived ? 3 : 4;
+	if (EventHudBonus > 0.f)
+	{
+		if (UAudienceRating* Rating = GetAudienceRating())
+		{
+			Rating->Add(EventHudBonus);
+		}
+	}
+	UE_LOG(LogReshoot, Log, TEXT("Universe event over: %s (+%.0f)"), bSurvived ? TEXT("survived") : TEXT("failed"), EventHudBonus);
+}
+
+float UShootDirectorSubsystem::GetEventHudTimeLeft() const
+{
+	const double Elapsed = GetWorld() ? GetWorld()->GetTimeSeconds() - EventHudTime : 0.0;
+	if (EventHudState == 1)
+	{
+		return FMath::Max(static_cast<float>((Script ? Script->EventWarningTime : 3.f) - Elapsed), 0.f);
+	}
+	if (EventHudState == 2)
+	{
+		return FMath::Max(static_cast<float>((ActiveEvent ? ActiveEvent->Duration : 10.f) - Elapsed), 0.f);
+	}
+	return 0.f;
 }
 
 void UShootDirectorSubsystem::StartShoot()
@@ -612,6 +771,7 @@ void UShootDirectorSubsystem::StartShoot()
 	{
 		Rating->ResetRating();
 	}
+	GetWorld()->GetTimerManager().SetTimer(AudienceTimer, this, &UShootDirectorSubsystem::TickAudience, 0.25f, true);
 	// Une frame plus tard : avec bAutoStartShoot, le BeginPlay du joueur passe après celui du GameMode
 	// et remettrait son univers de départ (None) par-dessus celui de la première scène.
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
@@ -631,12 +791,15 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 	const FSceneDef& Scene = Script->Scenes[SceneIndex];
 
 	StopUniverseEvent();
+	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
 	SetPhase(EShootPhase::SceneIntro);
 	SetUniverse(Scene.UniverseDefinition ? Scene.UniverseDefinition->Universe : EUniverse::None);
 	// Chaque scène commence en répétition, dans le décor en carton.
-	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
-	SetStagingState(false, 0.f);
+	TakeControlOfStaging();
+	SetStagingState(false);
 	ResetPlayerToStart(Scene.PlayerStartTag);
+	// Sortie du noir sur le nouvel univers (le HUD montre le clap de la scène).
+	ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.9f, FLinearColor::Black, false);
 	// Le joueur a quitté le studio de casting : on le décharge.
 	if (!Script->CastingSubLevelName.IsNone())
 	{
@@ -658,8 +821,15 @@ void UShootDirectorSubsystem::BeginTake(int32 NewTakeIndex)
 	const FSceneDef& Scene = Script->Scenes[SceneIndex];
 	if (!Scene.Takes.IsValidIndex(NewTakeIndex))
 	{
+		// Transition entre univers : tout se fige, fondu au noir, puis la scène suivante s'ouvre sur son clap.
 		SetPhase(EShootPhase::SceneTransition);
-		BeginScene(SceneIndex + 1);
+		FreezeAll(true);
+		ReshootDirector::FadeCamera(GetWorld(), 0.f, 1.f, 0.6f, FLinearColor::Black, true);
+		const int32 NextScene = SceneIndex + 1;
+		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateWeakLambda(this, [this, NextScene]()
+		{
+			BeginScene(NextScene);
+		}), 0.75f, false);
 		return;
 	}
 
@@ -683,6 +853,7 @@ void UShootDirectorSubsystem::StartTakeAction()
 
 	FreezeAll(false);
 	PlayLine(Take.ActionLineId);
+	LastKillTime = GetWorld()->GetTimeSeconds();
 	SetPhase(EShootPhase::TakeRunning);
 	OnAction.Broadcast();
 	ScheduleMidTakeCut();
@@ -699,7 +870,15 @@ void UShootDirectorSubsystem::ScheduleMidTakeCut()
 	// PhaseTimer est libre pendant la prise : il sera remplacé si la prise se termine ou si le joueur meurt avant.
 	const float MinDelay = Script ? Script->CutDelayMin : 20.f;
 	const float MaxDelay = Script ? FMath::Max(Script->CutDelayMax, MinDelay) : 40.f;
-	const float Delay = FMath::Max(FMath::FRandRange(MinDelay, MaxDelay), 0.1f);
+	float Delay = FMath::Max(FMath::FRandRange(MinDelay, MaxDelay), 0.1f);
+	// Répétition (1re prise en carton d'une scène qui en a d'autres) : ce CUT! lance la mise en scène réaliste,
+	// on ne fait pas attendre le joueur trop longtemps dans le carton.
+	const bool bStagingCut = Script && !bStagingReal && TakeIndex == 0
+		&& Script->Scenes.IsValidIndex(SceneIndex) && Script->Scenes[SceneIndex].Takes.Num() > 1;
+	if (bStagingCut)
+	{
+		Delay = FMath::Min(Delay, Script->StagingCutDelay);
+	}
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::MidTakeCut, Delay, false);
 }
 
@@ -735,8 +914,17 @@ void UShootDirectorSubsystem::MidTakeCut()
 	OnCut.Broadcast();
 	FreezeAll(true);
 
-	const TArray<FName>& Comments = Script->MidTakeCutLineIds;
-	const float CommentDuration = Comments.Num() > 0 ? PlayLine(Comments[FMath::RandRange(0, Comments.Num() - 1)]) : 0.f;
+	float CommentDuration = 0.f;
+	if (!bStagingReal && TakeIndex == 0 && Script->Scenes[SceneIndex].Takes.Num() > 1)
+	{
+		// Répétition : « On améliore la mise en scène ! » dès ce CUT!, la suite de la prise se joue en réaliste.
+		CommentDuration = ImproveStaging() + 0.5f;
+	}
+	else
+	{
+		const TArray<FName>& Comments = Script->MidTakeCutLineIds;
+		CommentDuration = Comments.Num() > 0 ? PlayLine(Comments[FMath::RandRange(0, Comments.Num() - 1)]) : 0.f;
+	}
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::AnnounceMidTakeDirective, FMath::Max(CommentDuration, 0.1f), false);
 }
 
@@ -827,7 +1015,8 @@ void UShootDirectorSubsystem::EndTake()
 	}
 	StopUniverseEvent();
 	const FSceneDef* Scene = Script && Script->Scenes.IsValidIndex(SceneIndex) ? &Script->Scenes[SceneIndex] : nullptr;
-	if (Scene && Scene->Takes.IsValidIndex(TakeIndex))
+	const bool bWillImproveStaging = Scene && TakeIndex == 0 && Scene->Takes.Num() > 1 && !bStagingReal;
+	if (Scene && Scene->Takes.IsValidIndex(TakeIndex) && !bWillImproveStaging)
 	{
 		PlayLine(Scene->Takes[TakeIndex].CutLineId);
 	}
@@ -839,8 +1028,9 @@ void UShootDirectorSubsystem::EndTake()
 	// Fin de la répétition (1re prise d'une scène qui en a d'autres) : « On améliore la mise en scène ! »
 	if (Scene && TakeIndex == 0 && Scene->Takes.Num() > 1 && !bStagingReal)
 	{
-		ImproveStaging();
-		CutDuration = FMath::Max(CutDuration, (Script ? Script->StagingSweepDuration : 2.5f) + 0.5f);
+		// Le gel dure le temps du balayage, plus une demi-seconde pour admirer le décor.
+		const float SweepDuration = ImproveStaging();
+		CutDuration = FMath::Max(CutDuration, SweepDuration + 0.5f);
 	}
 	const int32 NextTake = TakeIndex + 1;
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateWeakLambda(this, [this, NextTake]()
@@ -864,12 +1054,15 @@ void UShootDirectorSubsystem::CallCut(UDirective* NewDirective)
 void UShootDirectorSubsystem::CallAction()
 {
 	FreezeAll(false);
+	LastKillTime = GetWorld()->GetTimeSeconds();
 	SetPhase(EShootPhase::TakeRunning);
 	OnAction.Broadcast();
 }
 
 void UShootDirectorSubsystem::NotifyKill(const FKillInfo& Kill)
 {
+	LastKillTime = GetWorld()->GetTimeSeconds();
+	bAudienceBored = false;
 	bool bRespected = false;
 	float Points = Script ? Script->BaseKillRating : 10.f;
 	if (CurrentDirective)
@@ -898,6 +1091,11 @@ void UShootDirectorSubsystem::NotifyPlayerDeath()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Player died: retake."));
 	bPlayerDiedThisTake = true;
+	if (EventHudState == 1 || EventHudState == 2)
+	{
+		bPlayerDiedDuringEvent = true;
+		FinishEventHud(false);
+	}
 	if (UAudienceRating* Rating = GetAudienceRating())
 	{
 		Rating->Add(-(Script ? Script->DeathPenalty : 60.f));
@@ -938,10 +1136,12 @@ void UShootDirectorSubsystem::BeginFinale()
 	SetPhase(EShootPhase::Finale);
 	SetDirective(nullptr);
 	// Le final se joue dans le « vrai » film : décors réalistes.
-	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
-	SetStagingState(true, 1.f);
+	TakeControlOfStaging();
+	SetStagingState(true);
 	// On peut arriver ici depuis une intro de scène (gelée) si la scène n'a aucune prise.
 	FreezeAll(false);
+	ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.9f, FLinearColor::Black, false);
+	LastKillTime = GetWorld()->GetTimeSeconds();
 	FinaleUniverseIndex = 0;
 	FinaleSwitchUniverse();
 	PlayLine(Script ? Script->FinaleIntroLineId : NAME_None);
@@ -978,6 +1178,8 @@ void UShootDirectorSubsystem::FinaleSwitchUniverse()
 	// La première bascule a lieu à l'entrée du final, annoncée par FinaleIntroLineId.
 	if (!bFirstSwitch)
 	{
+		// Bascule du final : flash blanc de clap (GDD), le HUD montre un petit clap.
+		ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.35f, FLinearColor::White, false);
 		PlayLine(ReshootDirector::PickLine(Script->FinaleSwitchLineIds));
 	}
 	if (AWaveSpawner* WaveSpawner = FindSpawner())
@@ -998,6 +1200,8 @@ void UShootDirectorSubsystem::Wrap()
 		WaveSpawner->KillAll();
 	}
 	SetDirective(nullptr);
+	// Fin du tournage : la musique s'éteint en fondu, sous le verdict du réalisateur.
+	PlayMusic(nullptr);
 	if (Script)
 	{
 		const UAudienceRating* Rating = GetAudienceRating();

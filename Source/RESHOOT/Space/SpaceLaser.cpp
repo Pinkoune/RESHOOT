@@ -39,7 +39,7 @@ namespace
 
 ASpaceLaser::ASpaceLaser()
 {
-	DisplayName = NSLOCTEXT("Reshoot", "SpaceLaser", "Fusil laser");
+	DisplayName = NSLOCTEXT("Reshoot", "SpaceLaser", "Laser rifle");
 
 	// Tick : animations de l'arme en main (recul, balancement, visée) ; pas de logique de jeu ici.
 	PrimaryActorTick.bCanEverTick = true;

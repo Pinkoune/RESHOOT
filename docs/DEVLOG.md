@@ -353,3 +353,121 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : au chargement de `L_Medieval` par le réalisateur, la forêt et l'herbe réalistes (matériaux des packs Fab, hors `M_SetDressing`) étaient visibles dès la prise 1, mélangées au studio : le rideau fait son inventaire au lancement de la partie, avant le chargement du sous-niveau. Le convoi médiéval aligne désormais, hors balayage, la visibilité des acteurs tagués de `L_Medieval` (et le poids des volumes d'exposition) sur l'état du rideau. Pas encore vérifié en jeu : build complet en attente (Live Coding bloqué par Windows).
 - Comment : trouvé grâce à une capture d'Ileana en vraie partie ; mes tests précédents relançaient le rideau à la main (`ResetDressing`) et masquaient le problème. Leçon : tester le vrai déroulé, pas un raccourci.
 - Capture : aucune
+
+### 2026-11-15 — Réalisateur : le rideau de Jérémy piloté par le réalisateur
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : Jérémy et Enzo avaient chacun codé la transition « On améliore la mise en scène ! ». Le réalisateur pilote maintenant le rideau du socle (`ASetDressingSweep` : balayage, étincelles, armes et figurants qui changent) : retour au carton au début de chaque scène, balayage à la fin de la 1re prise avec la réplique, réaliste au final. Le suivi automatique du rideau est coupé quand le réalisateur prend la main. Le doublon d'Enzo (paramètre de matériau et tags à lui) est retiré. Vérifié en PIE sur deux scènes : carton, balayage à 5,9 s, réaliste à 8,4 s, retour au carton à la scène 2, nouveau balayage.
+- Comment : branche `dev-enzo` d'abord avancée sur `main` (21 commits de Jérémy), éditeur fermé ; compilation et relance faites par l'IA. Le gel du CUT! de fin de prise dure maintenant la durée du balayage lue sur le rideau, plus 0,5 s.
+- Capture : aucune
+
+### 2026-11-15 15:30 — Film noir : deux correctifs après l'intégration
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : la coupure de courant n'a plus son propre minuteur (il doublait celui du socle et ne se mettait pas en pause au CUT!). Le gangster baissé s'accroupit pour de vrai (`Crouch()`, capsule de 68 cm) : avec le tir du socle qui s'arrête sur les capsules, sa capsule dépassait de la caisse et prenait les balles alors qu'il était caché.
+- Comment : bugs trouvés en relisant ce que l'équipe a changé autour du Noir depuis jeudi, puis vérifiés en PIE sur `L_NoirTest` : tir juste au-dessus de la caisse d'un gangster baissé (vie 80 → 80), coupure de 4 s mise en pause 6 s puis reprise (toujours active, puis arrêtée). Travail sur la branche `jules/noir`.
+- Capture : aucune
+
+### 2026-11-15 — Réalisateur : musique des univers, sous-titres en anglais
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : le réalisateur joue la boucle musicale de chaque univers (`UUniverseDefinition::Music`) : fondu enchaîné au changement d'univers et à chaque bascule du final, coupée net au « CUT! » et reprise à l'action (GDD), fondu de sortie en fin de partie ; elle boucle même si l'asset ne boucle pas. Volume et fondus réglables dans `SS_Main`. Les 49 sous-titres du réalisateur sont en anglais ; le français est gardé à part. Vérifié en PIE avec deux sons provisoires du Spatial assignés en mémoire : musique du Médiéval puis du Noir au changement de scène, sous-titres anglais avec apostrophes correctes.
+- Comment : aucune musique n'existe encore dans le projet, d'où le test avec des sons de réacteur. Piège évité : l'export JSON de la table échappe les apostrophes (`'`), à ne pas recopier tel quel dans les CSV.
+- Capture : aucune
+
+### 2026-11-15 — Tout le jeu en anglais
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : tout le texte visible passé en anglais : HUD (SCENE / TAKE, RATINGS, HEALTH, CUT!, modes et garde médiévaux), titres des 12 directives (« Go for the head, it looks better! », « Put that bow away! »…), noms d'armes et d'univers, mots de l'affiche du Spatial, 23 panneaux du studio de casting (« QUIET ON SET! », « SLIDE! », affiches « THE CURSED KNIGHT », « ZERO GRAVITY », « NIGHT OF THE REVOLVER »), nom de joueur par défaut (Extra). Vérifié en PIE par capture : HUD entièrement en anglais.
+- Comment : recensement par recherche dans le code (chaînes affichées) et par script dans l'éditeur (titres, noms, mots d'affiche, textes 3D des niveaux). Les commentaires et le journal restent en français (lus par l'équipe). Le nom de joueur par défaut est dans un header du socle : recompilation complète faite par l'IA.
+- Capture : docs/devlog-media/2026-11-15-hud-anglais.png
+
+### 2026-11-15 17:15 — Film noir habillé : du carton à la ruelle de nuit
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : `L_Noir` habillé dans les deux phases par `Tools/build_noir_set.py` (192 acteurs). Carton : châssis de contreplaqué peint contre les murs, piles de cartons sur les couverts des gangsters, lampadaires et voitures en carton peint. Réaliste : ruelle de nuit, sol en asphalte, façades de briques de 10 m avec rideaux de fer et appliques, six lampadaires allumés, deux voitures bâchées, poubelles, tonneaux, bouches d'incendie, caisses en bois sur les couverts, brume. Les couverts restent le blockout (invisible en jeu), les voitures ont leur boîte de collision invisible.
+- Comment : pas de crédits Tripo ni fal de ce côté, donc modèles et textures Poly Haven (CC0) récupérés par Blender piloté par l'IA (MCP for Blender), exportés en GLB avec le pivot en bas, importés et posés par script dans l'éditeur. Testé deux fois : dans `L_NoirTest` avec un rideau de test, puis dans `L_Stage` en forçant l'univers Noir. Raté instructif : dans `L_Stage`, la ruelle était en plein jour (le soleil, le ciel et la lumière d'ambiance du plateau restent allumés dans toutes les phases). Sans toucher à `L_Stage`, un plafond noir posé au-dessus de la ruelle, en phase réaliste seulement, cache le ciel et fait de l'ombre au soleil : c'est devenu la nuit. Projecteurs et exposition propres à la phase carton retirés : ils doublaient ceux du studio et surexposaient tout. Ombres des appliques coupées (trop de lumières à ombres au même endroit).
+- Capture : docs/devlog-media/2026-11-15-noir-carton.jpg, docs/devlog-media/2026-11-15-noir-ruelle.jpg
+
+### 2026-11-15 17:30 — Film noir : une boucle de jazz
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : « Hard Boiled » de Kevin MacLeod (incompetech.com, CC-BY 4.0, crédit dans `docs/CREDITS.md`) importé dans `Content/RESHOOT/Audio/Music/SW_Noir_Music_HardBoiled` et branché comme `Music` de `DA_Noir`. Vérifié en PIE dans `L_Stage` : en passant dans l'univers Noir, le réalisateur la lance.
+- Comment : ElevenLabs inutilisable (plus de crédits), donc une musique libre sous licence CC-BY. Le MP3 a été converti en WAV par Blender (module audio `aud`) faute d'outil de conversion sur le poste.
+- Capture : aucune
+
+### 2026-11-15 17:45 — Une musique pour chaque univers
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : « Master of the Feast » (médiéval, fanfare d'époque) et « Space Fighter Loop » (spatial, synthé) de Kevin MacLeod, CC-BY 4.0, branchés comme `Music` de `DA_Medieval` et `DA_Universe_Space`. Avec le jazz du Noir, les trois univers ont leur boucle ; vérifié en PIE dans `L_Stage` (chaque changement d'univers lance la bonne musique, l'ancienne s'éteint en fondu).
+- Comment : même chaîne que pour le Noir (MP3 incompetech, conversion WAV par Blender, import par script). Crédit exact pour itch.io dans `docs/CREDITS.md`.
+- Capture : aucune
+
+### 2026-11-15 18:00 — Film noir : ruelle mouillée et bruitages
+- Qui : Jules (« polish tout ça ») + Claude (Claude Code, Opus 5.5)
+- Fait : la ruelle a un asphalte mouillé où se reflètent lampadaires et appliques, des halos de lumière dans une brume un peu plus dense, et une vingtaine d'objets de rue en plus le long des murs. Seuls deux lampadaires projettent des ombres : l'alerte « trop de lumières à ombres » a disparu. Bruitages du Noir : tir du revolver, clic à vide, recharge (barillet ouvert, six cartouches, barillet refermé), tirs des gangsters (plus lointains), coupure et retour du courant (disjoncteur, ronflement, néons qui grésillent). Branchés sur trois Blueprints enfants (`BP_NoirRevolver`, `BP_NoirGangster`, `BP_NoirBlackoutEvent`), comme pour le spatial ; `DA_Noir` et les gangsters posés dans `L_Noir` utilisent ces Blueprints. Vérifié en PIE dans `L_Stage`.
+- Comment : sans crédits pour générer des sons, ils sont synthétisés en Python (numpy, dans Blender) : bruit blanc filtré avec enveloppes exponentielles, basse qui chute pour le « boum », écho de ruelle et retour sur les façades. Le générateur (`Tools/synth_noir_sfx.py`) et les WAV (`SourceArt/Noir/Audio`) sont dans le dépôt pour pouvoir les retoucher.
+- Capture : docs/devlog-media/2026-11-15-noir-ruelle-mouillee.jpg
+
+### 2026-11-15 18:15 — Film noir : une vraie arme en main
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : la boîte grise du joueur est remplacée par un pistolet de service des années 40 (Poly Haven, CC0) : `SM_Noir_Pistol_Real` (métal et crosse en bois) après le rideau, `SM_Noir_Pistol_Prop` (même modèle en carton peint) avant. Branchés comme `RealMesh` / `PropMesh` de `BP_NoirRevolver`. Vérifié en PIE dans `L_Stage`, dans les deux phases.
+- Comment : pas de revolver sur Poly Haven, le pistolet de l'époque fait l'affaire. Variante à crosse en bois gardée, chargeur et balle séparés retirés dans Blender, origine laissée sur la poignée pour la prise en main.
+- Capture : aucune
+
+### 2026-11-15 18:45 — Film noir : les gangsters changent de costume au rideau
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : `ANoirGangster::OnDressingChanged` change les matériaux du corps, du chapeau et du visage quand le rideau passe : silhouette en carton peint en phase carton, costume anthracite, feutre sombre et visage couleur peau en phase réaliste. Matériaux réglés sur `BP_NoirGangster` par `Tools/setup_noir_gangster_look.py`. Vérifié en PIE dans `L_Stage` dans les deux phases.
+- Comment : un header modifié (cinq matériaux et la surcharge), donc éditeur fermé, compilation, éditeur rouvert. Le crochet `OnDressingChanged` du socle était déjà prévu pour ça.
+- Capture : aucune
+
+### 2026-11-15 19:00 — Spatial : sons réalistes refaits
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : les quatre sons réalistes provisoires du Spatial sont remplacés : tir du fusil laser (décharge qui chute de 2,4 kHz à 180 Hz, coup sourd, écho du hangar), tir des drones (plus aigu, plus sec, plus lointain), deux sorties d'air comprimé pour les réacteurs. Mêmes noms d'assets, donc `BP_SpaceLaser`, `BP_SpaceDrone` et `BP_ReshootCharacter` les utilisent sans rien rebrancher (vérifié dans l'éditeur).
+- Comment : synthèse numpy dans Blender, comme les bruitages du Noir (`Tools/synth_space_real_sfx.py`, WAV dans `SourceArt/Space/Audio/Real`). Les MP3 provisoires restent à côté pour revenir en arrière.
+- Capture : aucune
+
+### 2026-11-15 19:30 — Film noir : fenêtres, enseignes, mort théâtrale
+- Qui : Jules (« rends noir super ») + Claude (Claude Code, Opus 5.5)
+- Fait : fenêtres sur deux étages de toutes les façades, environ 4 sur 10 allumées en jaune chaud (elles se reflètent dans l'asphalte mouillé), les autres sombres et brillantes ; quatre enseignes lumineuses en drapeau (HOTEL, JAZZ, BAR, PAWN) avec cadre néon, lettres et halo. Mort théâtrale des gangsters (GDD) : bascule en arrière à l'opposé du tireur en pivotant, et sur un tir à la tête le chapeau s'envole en cloche (timer, pas de Tick, code dans le `.cpp` seulement : Live Coding).
+- Comment : premier essai des fenêtres raté, toutes restaient noires : `M_SetDressing` multiplie `EmissiveColor` par `EmissiveMap`, il faut lui donner la texture blanche du socle (`T_SetDressing_WhiteMask`). Fenêtres et enseignes vérifiées en PIE dans `L_Stage` ; la chute des gangsters compile mais n'a pas encore été vue en jeu.
+- Capture : docs/devlog-media/2026-11-15-noir-fenetres.jpg
+
+### 2026-11-15 20:00 — Film noir : une vraie ville de nuit
+- Qui : Jules (« met le paquet sur l'habillage, ça doit rendre incroyable ») + Claude (Claude Code, Opus 5.5)
+- Fait : la ruelle devient une ville. Les murs plats sont remplacés par 30 immeubles de 9,5 à 17 m (trois briques, corniches, bandeaux d'étage, pilastres, socles), des fenêtres sur tous les étages avec appuis et linteaux, des climatiseurs, des vitrines éclairées avec marquise au rez-de-chaussée. Cinq escaliers de secours en fer, des fils électriques et des cordes à linge en travers des angles, trois braseros, des armoires électriques, des trottoirs en dalles, des flaques qui reflètent les lumières. Au-dessus des toits, la ville : immeubles lointains sur trois profondeurs, fenêtres allumées en hauteur, réservoirs d'eau en silhouette sur un ciel de ville gris. Plus de 1 000 acteurs, tous posés par `Tools/build_noir_set.py`.
+- Comment : modèles Poly Haven (CC0) en plus : escalier de secours modulaire, climatiseur, armoire électrique, brasero, texture de trottoir. La ville entière est enfermée dans une boîte « ciel » (plafond et horizon) visible seulement en phase réaliste : elle cache le ciel de jour de `L_Stage` et bloque son soleil sans y toucher. Trois allers-retours de réglage en jeu : flaques d'abord noires comme des trous, puis trop claires (reflet du ciel), enfin sombres et brillantes ; lampadaires sans ombres pour faire disparaître l'alerte des ombres virtuelles. Bug du script trouvé au premier essai : une petite fonction locale des enseignes masquait celle des immeubles.
+- Capture : docs/devlog-media/2026-11-15-noir-ville-angle.jpg, docs/devlog-media/2026-11-15-noir-ville-sud.jpg
+
+### 2026-11-15 18:45 — Le réalisateur a une voix
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : les 49 répliques du réalisateur (casting, intros, Action!, CUT!, directives, reprises, compliments, final, fin de tournage) sont doublées en anglais par une seule voix, « George » d'ElevenLabs, et branchées dans `DT_DirectorLines`. Le réalisateur attend déjà la fin du son pour enchaîner (la durée du son l'emporte sur celle du sous-titre). Vérifié en PIE dans `L_Stage` : la réplique du casting se joue au lancement.
+- Comment : Jules n'avait pas eu les crédits fal. Jérémy a branché le serveur MCP de fal sur Claude Code, et Claude a tout fait de là : casting de 4 voix sur la même réplique (Roger, George, Bill, Callum), choix de George par Jérémy à l'écoute, puis génération ligne par ligne avec Eleven v4. Le texte reste celui des sous-titres, mais chaque ligne porte des indications de jeu entre crochets (`[shouting] CUT! [exasperated] No, no, no…`), lues comme de la direction d'acteur et non prononcées. Coût : moins de 0,30 $ pour 2 700 caractères. Sortie en PCM brut, faute de ffmpeg sur le poste : un petit script Python sans dépendance (`Tools/director_voice_to_wav.py`) en fait des WAV, coupe les silences et normalise. Import et remplissage de la table par `Tools/setup_director_voice.py`, via le MCP de l'éditeur. Les voix durent 1,6 à 8,7 s, plus que les sous-titres prévus (2 à 4,5 s) : le rythme des CUT! est un peu plus lent, à surveiller pendant l'équilibrage.
+- Capture : aucune
+
+### 2026-11-15 21:45 — Studio carton du Spatial rendu par la fusion, plafond ajouté
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : la scène carton du Spatial n'avait plus que des murs de 3 m sous le ciel du plateau. La fusion avait perdu 113 acteurs du plateau côté space (studio : trusses, projecteurs, câbles, caméras ; coque : murs, rampes, mezzanines ; couloirs) : ils sont recopiés, puis déplacés avec les 14 projecteurs dans `L_Space`, pour ne plus apparaître en Médiéval ni en Noir. Plafond noir de studio ajouté au-dessus du plateau carton (`Studio_Ceiling`, caché en réaliste).
+- Comment : la comparaison faite pendant la fusion indexait les acteurs par nom sur tous les niveaux chargés ; les acteurs de `L_Stage` qui portaient le même nom qu'un acteur de `L_Space` étaient masqués. Refait niveau par niveau (comparaison par classe, nom affiché et position). Vérifié en jeu sur la partie complète : Médiéval et Noir inchangés, Spatial en studio fermé en carton puis hangar en réaliste.
+- Capture : aucune
+
+### 2026-11-15 22:30 — Retours du test : difficulté, audimat, événements, HUD, revolver, mise en scène plus tôt
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5), avec l'accord de Jérémy pour toucher aux dossiers Director, UI, Noir et aux données des univers
+- Fait :
+  - Mise en scène : le CUT! de la prise 1 tombe au plus tard 15 s après « Action! » (`StagingCutDelay`) et c'est lui qui lance le réaliste ; la réplique « Let's improve the staging! » passe avant le rideau (elle tombait après, mise en file derrière celle du CUT!).
+  - Difficulté : le joueur prend 55 % des dégâts (`AReshootCharacter::DamageTakenMultiplier`), sa vie remonte de 12 par seconde après 4 s sans être touché, vagues de `SS_Main` réduites d'un tiers (3 à 6 figurants au lieu de 4 à 10), final 5 et 6.
+  - Audimat : il baisse de 12 par seconde après 6 s sans élimination (public qui s'ennuie) ; le HUD dit pourquoi il bouge (« BORED! KILL TO WIN THEM BACK », « +25 DIRECTOR LOVES IT », « +100 BONUS », « -60 RETAKE »).
+  - Événements d'univers : titre, consigne et compte à rebours à l'écran, +100 d'audimat si on y survit (`EventSurvivedBonus`), textes dans `DA_Medieval`, `DA_Universe_Space`, `DA_Noir`.
+  - HUD : blocs sur fond sombre avec liseré de couleur (prise, ordre du réalisateur, audimat, vie), « CASTING » pendant le tutoriel, pas d'audimat avant le tournage.
+  - Revolver : il n'avait aucun modèle (invisible au casting et dans toute la scène noire). Modelé par Geometry Script (`Tools/build_noir_revolver.py`), version carton et version acier, posé sur `BP_NoirRevolver`.
+  - Musique : `SS_Main.MusicVolume` 0,6 -> 0,35. Réglages dans `Tools/tune_shoot.py` (à ne lancer qu'une fois : il réduit les vagues à chaque passage).
+- Comment : vérifié en jeu (prise 1 : CUT! à 15 s, réplique puis rideau 3,2 s plus tard ; bandeau du convoi médiéval ; audimat qui baisse ; revolver visible dans les deux versions).
+- Capture : aucune
+
+### 2026-11-15 23:30 — HUD net et animé, transitions entre univers
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait :
+  - Textes nets : le HUD dessinait la police bitmap du moteur agrandie 1,7 fois (flou). Il utilise maintenant la police vectorielle (Roboto Bold) rendue à sa taille réelle, avec contour noir et ombre douce (`FontPixelSize`, `FontTypeface` sur `AReshootHUD`).
+  - Effets : CUT! qui claque (échelle qui retombe, tremblement, flash), directive et bandeau d'événement qui apparaissent avec un rebond, points gagnés qui claquent, audimat qui roule vers sa valeur, chiffre de vie qui tressaute quand on est touché.
+  - Transitions entre univers : fondu au noir à la fin d'une scène, puis la suivante s'ouvre sur un clap animé (ardoise qui monte, claquette qui se rabat avec un flash : « SCENE 2 · SCI-FI · TAKE 1 »). Au final, chaque bascule d'univers fait un flash blanc et un petit clap « DIRECTOR'S CUT ».
+- Comment : vérifié en jeu (clap de la scène 1, CUT!, passage médiéval -> spatial). Pendant le clap, le HUD n'affiche plus la prise ni la directive de la scène précédente.
+- Capture : aucune
+
+### 2026-11-15 23:50 — Police d'affiche pour le HUD
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : titres et étiquettes du HUD en Bebas Neue (police d'affiche de cinéma, SIL OFL), phrases (sous-titres, consignes) en Roboto pour rester lisibles : le HUD choisit selon que le texte contient des minuscules.
+- Comment : TTF téléchargée depuis le dépôt Google Fonts, rangée avec sa licence dans `SourceArt/UI/Fonts/`, importée en `FF_BebasNeue`. La police composite est construite dans le constructeur du HUD (l'API Python ne sait pas remplir une police composite) ; sous-objet du HUD, elle est cuite avec le jeu. Crédit ajouté dans `docs/CREDITS.md`.
+- Capture : aucune
