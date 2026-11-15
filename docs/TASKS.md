@@ -45,7 +45,7 @@ Spatial
 
 Film noir + audio
 - [x] Revolver hitscan avec chargeur (testé en PIE sur `L_NoirTest` : 40 dégâts, x2 à la tête, recharge auto)
-- [ ] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte fait : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix en attente des crédits fal
+- [x] Liste des 40 répliques du réalisateur (texte) — texte fait (49 lignes en anglais, `DirectorLines.csv`) ; voix : Jérémy s'en charge (coupon fal du jam épuisé)
 
 Tous
 - [ ] Réclamer les crédits (SpaceXSI, Tripo, Hyper3D, fal, Diversion)
@@ -72,7 +72,7 @@ Spatial
 Film noir + audio
 - [x] Gangster à couvert, post-process noir et blanc (testés sur `L_NoirTest` ; `M_PP_Noir` reste à appliquer par le réalisateur via `DA_Noir`)
 - [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
-- [ ] Répliques générées, `DT_DirectorLines` remplie — table créée (`Content/RESHOOT/Audio/DT_DirectorLines`, 40 lignes, sous-titres seulement), sons en attente des crédits fal
+- [ ] Répliques générées, `DT_DirectorLines` remplie — table remplie (49 lignes, sous-titres anglais) ; voix : Jérémy
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
 
@@ -99,7 +99,7 @@ Interface
 - [ ] Éclairage et rendu, DLSS si carte RTX disponible
 - [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules) — Noir : « Hard Boiled » de Kevin MacLeod (CC-BY 4.0) dans `DA_Noir`, testé en jeu. Bruitages du Noir faits (tir, recharge, clic à vide, tirs des gangsters, coupure et retour du courant : `Tools/synth_noir_sfx.py`, branchés par `Tools/setup_noir_sounds.py`). Médiéval : « Master of the Feast », Spatial : « Space Fighter Loop » (même auteur, même licence), testés en jeu.
 - [ ] Build de secours en ligne à 20h
-- [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…)
+- [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…) — brouillon complet en anglais dans `docs/ITCH_PAGE.md` (Jules, 15/11), points [À VÉRIFIER] à relire par l'équipe
 - [ ] Dev log finalisé
 - [ ] Build final
 
@@ -107,7 +107,7 @@ Interface
 
 - [x] Socle : `ASetDressingSweep`, `MPC_SetDressing`, `M_SetDressing`, armes et accessoires en deux versions, test dans `L_Space` (Jérémy + Claude)
 - [x] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 et au final (Enzo, fait le 15/11, testé en PIE ; suivi automatique du rideau coupé par le réalisateur)
-- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
+- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant (Noir fait : décor, `SM_Noir_Pistol_Prop`/`_Real`, costume des gangsters), rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
 - [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
 - [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
 - [x] Rendu : exposition figée dans les deux phases
@@ -133,10 +133,10 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 - [x] @ileanasaintpaul : j'ai besoin que le réalisateur déclenche l'événement d'univers (`UUniverseDefinition::EventClass`) une fois par scène : chercher un acteur de cette classe déjà posé dans le sous-niveau (le convoi médiéval `AMedievalHorseConvoyEvent` est posé dans `L_Medieval` avec ses rails), sinon le faire apparaître, puis appeler `StartEvent()` 3 s après la réplique d'annonce. L'événement s'arrête tout seul (`StopEvent`) et se fige au CUT!.  Penser à remettre `AutoStartInterval` du convoi à 0 dans `L_Medieval` à ce moment-là (il se relance seul toutes les 20 s pour les tests). — Fait : prise 2 de chaque scène, 15 s après « Action! », annonce puis `StartEvent()` 3 s plus tard, figé au CUT!, arrêté en fin de prise. `AutoStartInterval` du convoi remis à 0 dans `L_Medieval`.
 - [x] @ileanasaintpaul (Interface) : j'ai besoin que `AReshootGameMode` utilise `AReshootHUD` (`HUDClass = AReshootHUD::StaticClass()` dans son constructeur, `#include "UI/ReshootHUD.h"`) pour afficher le HUD dans le vrai jeu. En attendant, il est branché sur le GameMode de test médiéval. — Pour `L_Stage` : fait via `BP_StageGameMode` (HUDClass). Reste valable pour les autres cartes.
 - [ ] Enzo (réalisateur, 14/11) : retouches hors de mon périmètre, à vérifier par leurs propriétaires :
-  - Jules : 9 lignes ajoutées à `DT_DirectorLines` (sous-titres seuls) : `Dir_NoShield`, `Dir_NoBow`, `Dir_LaserCost`, `Staging_Improve`, `CastingIntro`, `CastingDone`, `EventSpace`, `Event_Medieval`, `Event_Noir` ; `EventLineId` de `DA_Noir` = `Event_Noir`.
+  - Jules : 9 lignes ajoutées à `DT_DirectorLines` (sous-titres seuls) : `Dir_NoShield`, `Dir_NoBow`, `Dir_LaserCost`, `Staging_Improve`, `CastingIntro`, `CastingDone`, `EventSpace`, `Event_Medieval`, `Event_Noir` ; `EventLineId` de `DA_Noir` = `Event_Noir`. — Vérifié par Jules (15/11).
   - Iléana : `EventLineId` de `DA_Medieval` = `Event_Medieval` ; `AutoStartInterval` du convoi à 0 dans `L_Medieval` (c'est le réalisateur qui le lance).
 - [x] Enzo → Jérémy : transition carton → réaliste branchée sur `ASetDressingSweep`. Le réalisateur appelle `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la 1re prise (« On améliore la mise en scène ! », le gel du CUT! dure le temps du balayage + 0,5 s) et au final, et met `reshoot.Dressing.AutoFromDirector` à 0. Tags du décor : ceux du socle (`DressingProp`, `DressingReal`, `DressingSwitch`). Mon doublon (MPC du réalisateur, tags `SetDressing_*`) est supprimé.
 - [ ] Enzo → Iléana (Interface) : pendant le casting (phase `Casting`), le HUD affiche « Scène 1 – Prise 1 », le REC et l'audimat. À masquer ou à remplacer par la fiche d'acteur ; `OnCastingProgress(bSlid, TargetsHit, TargetsTotal)` donne l'avancement du tutoriel.
 - [ ] Enzo → Jérémy (socle) : `ReshootCharacter.cpp` retouché (accord d'Enzo) : touche C ajoutée à l'accroupi/glissade, et `CanStartSlide` accepte la vitesse de sprint même Maj relâché. Possible amélioration : un délai de grâce (~0,3 s) après le relâchement de Maj, qui demande une variable dans le header.
-- [ ] Enzo → Jules : sous-titres du réalisateur passés en anglais (49 lignes de `DT_DirectorLines` et `DirectorLines.csv`, demande d'Enzo). Le texte français est gardé dans `Content/RESHOOT/Audio/DirectorLines_FR.csv`. Pour les voix (fal) : choisir la langue ; si elles restent en français, les sous-titres anglais servent de traduction.
+- [x] Enzo → Jules : sous-titres du réalisateur passés en anglais (relus par Jules le 15/11, OK) (49 lignes de `DT_DirectorLines` et `DirectorLines.csv`, demande d'Enzo). Le texte français est gardé dans `Content/RESHOOT/Audio/DirectorLines_FR.csv`. Pour les voix (fal) : choisir la langue ; si elles restent en français, les sous-titres anglais servent de traduction.
 - [ ] Enzo → équipe : tout le texte visible du jeu est passé en anglais (demande d'Enzo, 15/11). Hors de mon dossier, à vérifier par leurs propriétaires : HUD (`UI/ReshootHUD.cpp` : SCENE / TAKE, RATINGS, HEALTH, CUT!, 1 SWORD 2 BOW 3 FISTS, GUARD, SHIELD UP — Iléana), noms d'armes (`MedievalSword.cpp`, `BP_MedievalSword` : Sword & shield, Bow, Fists ; `SpaceLaser.cpp`, `BP_SpaceLaser` : Laser rifle), noms d'univers (`DA_Medieval` : Medieval, `DA_Universe_Space` : Sci-fi et mots de l'affiche Orbit / Galaxy / Odyssey / Void / Stars), nom de joueur par défaut `Extra` (`ReshootGameState.h`, Jérémy). Tout nouveau texte affiché doit être écrit en anglais.
