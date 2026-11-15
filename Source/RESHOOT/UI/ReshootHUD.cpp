@@ -8,6 +8,8 @@
 #include "Director/Directive.h"
 #include "Director/DirectorVoice.h"
 #include "Director/ShootDirectorSubsystem.h"
+#include "Director/ShootScript.h"
+#include "Core/UniverseDefinition.h"
 #include "Medieval/MedievalSword.h"
 #include "RESHOOT.h"
 
@@ -78,6 +80,14 @@ void AReshootHUD::TryBind()
 			bBoundGlobal = true;
 		}
 	}
+	if (!bBoundDirector)
+	{
+		if (UShootDirectorSubsystem* Director = GetWorld() ? GetWorld()->GetSubsystem<UShootDirectorSubsystem>() : nullptr)
+		{
+			Director->OnKillScored.AddUniqueDynamic(this, &AReshootHUD::HandleKillScored);
+			bBoundDirector = true;
+		}
+	}
 
 	// Le pion du joueur change à chaque reprise : on se rebranche sur sa vie si besoin.
 	const AReshootCharacter* Player = Cast<AReshootCharacter>(GetOwningPawn());
@@ -117,8 +127,25 @@ void AReshootHUD::HandleRatingChanged(float NewRating, float Delta)
 	if (Delta > 0.f)
 	{
 		RatingPulseTime = Now();
-		FloatingGains.Add({ FString::Printf(TEXT("+ %d"), FMath::RoundToInt(Delta)), Now() });
 	}
+	// Les éliminations arrivent par HandleKillScored ; ici les gros mouvements : bonus de prise ou d'événement, reprise.
+	if (Delta >= 30.f)
+	{
+		FloatingGains.Add({ FString::Printf(TEXT("+%d  BONUS"), FMath::RoundToInt(Delta)), Now(), FLinearColor(0.45f, 1.f, 0.5f, 1.f) });
+	}
+	else if (Delta <= -30.f)
+	{
+		FloatingGains.Add({ FString::Printf(TEXT("%d  RETAKE"), FMath::RoundToInt(Delta)), Now(), RecColor });
+	}
+}
+
+void AReshootHUD::HandleKillScored(const FKillInfo& Kill, float Points, bool bDirectiveRespected)
+{
+	const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>();
+	const bool bHasDirective = Director && Director->GetCurrentDirective();
+	const TCHAR* Label = !bHasDirective ? TEXT("KILL") : (bDirectiveRespected ? TEXT("DIRECTOR LOVES IT") : TEXT("IGNORED ORDER"));
+	const FLinearColor Color = !bHasDirective ? FLinearColor::White : (bDirectiveRespected ? AccentColor : FLinearColor(0.65f, 0.65f, 0.65f, 1.f));
+	FloatingGains.Add({ FString::Printf(TEXT("+%d  %s"), FMath::RoundToInt(Points), Label), Now(), Color });
 }
 
 void AReshootHUD::HandleSubtitle(FName LineId, const FText& Subtitle, float Duration)
@@ -191,6 +218,12 @@ void AReshootHUD::DrawBar(float X, float Y, float W, float H, float Pct, const F
 	DrawRect(Fill, X, Y, W * FMath::Clamp(Pct, 0.f, 1.f), H);
 }
 
+void AReshootHUD::DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe)
+{
+	DrawRect(FLinearColor(0.02f, 0.02f, 0.03f, 0.62f), X, Y, W, H);
+	DrawRect(Stripe, X, Y, 5.f * UIScale(), H);
+}
+
 // ---------------------------------------------------------------------------
 
 void AReshootHUD::DrawHUD()
@@ -215,6 +248,7 @@ void AReshootHUD::DrawHUD()
 	DrawDamageFlash();
 	DrawTake();
 	DrawDirective();
+	DrawEventBanner();
 	DrawAudience();
 	DrawHealth();
 	DrawWeapon();
@@ -255,19 +289,35 @@ void AReshootHUD::DrawDamageFlash()
 void AReshootHUD::DrawTake()
 {
 	const float S = UIScale();
-	const float X = 40.f * S, Y = 32.f * S;
+	const float X = 32.f * S, Y = 28.f * S;
 	const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>();
 	const int32 Scene = Director ? FMath::Max(Director->GetSceneIndex(), 0) + 1 : 1;
 	const int32 Take = Director ? FMath::Max(Director->GetTakeIndex(), 0) + 1 : 1;
 	const EShootPhase Phase = Director ? Director->GetPhase() : EShootPhase::TakeRunning;
 
+	FString Label;
+	if (Phase == EShootPhase::Casting)
+	{
+		Label = TEXT("CASTING");
+	}
+	else if (Phase == EShootPhase::Finale)
+	{
+		Label = TEXT("DIRECTOR'S CUT");
+	}
+	else
+	{
+		Label = FString::Printf(TEXT("SCENE %d  ·  TAKE %d"), Scene, Take);
+	}
+	const FVector2D LabelSize = MeasureText(Label, 1.05f);
+	DrawPanel(X, Y, LabelSize.X + 110.f * S, 50.f * S, RecColor);
+
 	// Voyant REC : clignote pendant que la caméra tourne, fixe et gris sinon.
-	const bool bRolling = (Phase == EShootPhase::TakeRunning || Phase == EShootPhase::Finale || Phase == EShootPhase::Menu);
+	const bool bRolling = (Phase == EShootPhase::TakeRunning || Phase == EShootPhase::Finale);
 	const bool bBlinkOn = FMath::Fmod(Now(), 1.0) < 0.6;
-	const float Dot = 18.f * S;
-	DrawRect(bRolling ? (bBlinkOn ? RecColor : RecColor * 0.35f) : FLinearColor(0.35f, 0.35f, 0.35f, 1.f), X, Y + 6.f * S, Dot, Dot);
-	DrawTextAt(TEXT("REC"), X + Dot + 10.f * S, Y, 1.f, bRolling ? FLinearColor::White : FLinearColor(0.6f, 0.6f, 0.6f, 1.f));
-	DrawTextAt(FString::Printf(TEXT("SCENE %d   -   TAKE %d"), Scene, Take), X, Y + 36.f * S, 1.1f, AccentColor);
+	const float Dot = 14.f * S;
+	DrawRect(bRolling ? (bBlinkOn ? RecColor : RecColor * 0.35f) : FLinearColor(0.35f, 0.35f, 0.35f, 1.f), X + 20.f * S, Y + 18.f * S, Dot, Dot);
+	DrawTextAt(TEXT("REC"), X + 42.f * S, Y + 11.f * S, 0.85f, bRolling ? FLinearColor::White : FLinearColor(0.6f, 0.6f, 0.6f, 1.f));
+	DrawTextAt(Label, X + 92.f * S, Y + 9.f * S, 1.05f, AccentColor);
 }
 
 void AReshootHUD::DrawDirective()
@@ -280,70 +330,145 @@ void AReshootHUD::DrawDirective()
 	}
 	const float S = UIScale();
 	const FString Text = Directive->Title.ToString();
-	const FVector2D Size = MeasureText(Text, 1.4f);
-	const float Cx = Canvas->ClipX * 0.5f, Y = 30.f * S;
-	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.55f), Cx - Size.X * 0.5f - 18.f * S, Y - 6.f * S, Size.X + 36.f * S, Size.Y + 12.f * S);
-	DrawTextAt(Text, Cx, Y, 1.4f, AccentColor, true);
+	const FString Sub = TEXT("DIRECTOR'S ORDER  ·  OBEY IT FOR +25 PER KILL");
+	const FVector2D Size = MeasureText(Text, 1.45f);
+	const FVector2D SubSize = MeasureText(Sub, 0.7f);
+	const float W = FMath::Max(Size.X, SubSize.X) + 60.f * S;
+	const float Cx = Canvas->ClipX * 0.5f, Y = 26.f * S;
+	DrawPanel(Cx - W * 0.5f, Y, W, Size.Y + SubSize.Y + 24.f * S, AccentColor);
+	DrawTextAt(Sub, Cx, Y + 8.f * S, 0.7f, FLinearColor(0.75f, 0.75f, 0.75f, 1.f), true);
+	DrawTextAt(Text, Cx, Y + 10.f * S + SubSize.Y, 1.45f, AccentColor, true);
+}
+
+void AReshootHUD::DrawEventBanner()
+{
+	const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>();
+	const int32 State = Director ? Director->GetEventHudState() : 0;
+	const UUniverseDefinition* Definition = Director ? Director->GetEventHudDefinition() : nullptr;
+	// Pendant un CUT!, l'événement est figé : le bandeau revient avec « Action! ».
+	if (State == 0 || !Definition || (State == 2 && Director->GetPhase() == EShootPhase::Cut))
+	{
+		return;
+	}
+	const float S = UIScale();
+	const UShootScript* Script = Director->GetShootScript();
+	const int32 Bonus = FMath::RoundToInt(Script ? Script->EventSurvivedBonus : 100.f);
+	const FString Title = Definition->EventTitle.IsEmpty() ? FString(TEXT("PRODUCER'S SURPRISE")) : Definition->EventTitle.ToString().ToUpper();
+	const FString Hint = Definition->EventHint.ToString();
+	const float TimeLeft = Director->GetEventHudTimeLeft();
+
+	FString Line1, Line2;
+	FLinearColor Color = FLinearColor(0.4f, 0.8f, 1.f, 1.f);
+	if (State == 1)
+	{
+		Line1 = FString::Printf(TEXT("INCOMING: %s  %.0f"), *Title, FMath::CeilToFloat(TimeLeft));
+		Line2 = FString::Printf(TEXT("%s  ·  Survive it: +%d audience"), *Hint, Bonus);
+	}
+	else if (State == 2)
+	{
+		Line1 = FString::Printf(TEXT("%s  ·  %.0f s"), *Title, FMath::CeilToFloat(TimeLeft));
+		Line2 = FString::Printf(TEXT("%s  ·  Survive it: +%d audience"), *Hint, Bonus);
+	}
+	else if (State == 3)
+	{
+		Line1 = FString::Printf(TEXT("%s SURVIVED!"), *Title);
+		Line2 = FString::Printf(TEXT("+%d audience"), FMath::RoundToInt(Director->GetEventHudBonus()));
+		Color = FLinearColor(0.45f, 1.f, 0.5f, 1.f);
+	}
+	else
+	{
+		Line1 = FString::Printf(TEXT("%s FAILED"), *Title);
+		Line2 = TEXT("No bonus this time");
+		Color = RecColor;
+	}
+	const bool bBlink = State == 1 && FMath::Fmod(Now(), 0.5) < 0.25;
+	const FVector2D S1 = MeasureText(Line1, 1.3f);
+	const FVector2D S2 = MeasureText(Line2, 0.85f);
+	const float W = FMath::Max(S1.X, S2.X) + 60.f * S;
+	const float Cx = Canvas->ClipX * 0.5f;
+	const float Y = Canvas->ClipY * 0.2f;
+	DrawPanel(Cx - W * 0.5f, Y, W, S1.Y + S2.Y + 26.f * S, Color);
+	DrawTextAt(Line1, Cx, Y + 8.f * S, 1.3f, bBlink ? FLinearColor::White : Color, true);
+	DrawTextAt(Line2, Cx, Y + 12.f * S + S1.Y, 0.85f, FLinearColor(0.9f, 0.9f, 0.9f, 1.f), true);
+	if (State == 2)
+	{
+		const float Total = 10.f;
+		DrawBar(Cx - W * 0.5f + 5.f * S, Y + S1.Y + S2.Y + 22.f * S, W - 5.f * S, 4.f * S, TimeLeft / Total, Color, FLinearColor(0.f, 0.f, 0.f, 0.5f));
+	}
 }
 
 void AReshootHUD::DrawAudience()
 {
+	const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>();
+	if (Director && Director->GetPhase() == EShootPhase::Casting)
+	{
+		return;	// pas encore de public pendant le casting
+	}
 	const float S = UIScale();
-	const float W = 380.f * S, H = 20.f * S;
-	const float X = Canvas->ClipX - W - 40.f * S, Y = 40.f * S;
+	const float W = 360.f * S, H = 14.f * S;
+	const float PanelX = Canvas->ClipX - W - 64.f * S, PanelY = 28.f * S;
+	const float X = PanelX + 20.f * S, Y = PanelY + 46.f * S;
 
 	const AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>();
 	const UAudienceRating* Rating = GameState ? GameState->GetAudienceRating() : nullptr;
 	const float Pct = Rating ? Rating->GetRatingPct() : 0.f;
 	const float Value = Rating ? Rating->GetRating() : 0.f;
-	const float MaxValue = Rating ? Rating->MaxRating : 1000.f;
+	const bool bBored = Director && Director->IsAudienceBored();
 
-	// Pulse à chaque gain.
+	// Pulse à chaque gain, rouge quand le public décroche.
 	const float PulseAge = static_cast<float>(Now() - RatingPulseTime);
 	const float Pulse = PulseAge < 0.35f ? 1.f - PulseAge / 0.35f : 0.f;
 	const float PH = H * (1.f + 0.6f * Pulse);
+	const bool bBlink = FMath::Fmod(Now(), 0.6) < 0.3;
+	const FLinearColor BarColor = bBored ? (bBlink ? RecColor : RecColor * 0.6f) : FMath::Lerp(AccentColor, FLinearColor::White, Pulse);
 
-	DrawTextAt(TEXT("RATINGS"), X, Y - 30.f * S, 0.9f, FLinearColor::White);
-	const FString Count = FString::Printf(TEXT("%d / %d"), FMath::RoundToInt(Value), FMath::RoundToInt(MaxValue));
-	DrawTextAt(Count, X + W - MeasureText(Count, 0.9f).X, Y - 30.f * S, 0.9f, FLinearColor(0.8f, 0.8f, 0.8f, 1.f));
-	DrawBar(X, Y - (PH - H) * 0.5f, W, PH, Pct, FMath::Lerp(AccentColor, FLinearColor::White, Pulse), FLinearColor(0.f, 0.f, 0.f, 0.6f));
+	DrawPanel(PanelX, PanelY, W + 40.f * S, 118.f * S, bBored ? RecColor : AccentColor);
+	DrawTextAt(TEXT("AUDIENCE"), X, PanelY + 10.f * S, 0.95f, FLinearColor::White);
+	const FString Count = FString::Printf(TEXT("%d"), FMath::RoundToInt(Value));
+	DrawTextAt(Count, X + W - MeasureText(Count, 0.95f).X, PanelY + 10.f * S, 0.95f, BarColor);
+	DrawBar(X, Y - (PH - H) * 0.5f, W, PH, Pct, BarColor, FLinearColor(1.f, 1.f, 1.f, 0.12f));
 
-	// Paliers d'étoiles.
+	// Paliers d'étoiles : la note du film à la fin.
 	if (Rating)
 	{
 		const int32 Stars = Rating->GetStars();
 		for (int32 i = 0; i < Rating->StarThresholds.Num(); ++i)
 		{
-			const float TX = X + W * FMath::Clamp(Rating->StarThresholds[i] / MaxValue, 0.f, 1.f);
-			DrawRect(FLinearColor(1.f, 1.f, 1.f, 0.7f), TX - 1.f, Y - 4.f * S, 2.f, H + 8.f * S);
-			const float Box = 14.f * S;
-			DrawRect(i < Stars ? AccentColor : FLinearColor(0.25f, 0.25f, 0.25f, 0.9f), X + i * (Box + 6.f * S), Y + H + 10.f * S, Box, Box);
+			const float TX = X + W * FMath::Clamp(Rating->StarThresholds[i] / Rating->MaxRating, 0.f, 1.f);
+			DrawRect(FLinearColor(1.f, 1.f, 1.f, 0.5f), TX - 1.f, Y - 3.f * S, 2.f, H + 6.f * S);
+			DrawTextAt(TEXT("*"), TX + 2.f * S, Y + H, 0.8f, i < Stars ? AccentColor : FLinearColor(0.35f, 0.35f, 0.35f, 1.f));
 		}
 	}
 
-	// « + 25 » qui s'envolent vers la jauge.
+	// Ce qui fait monter ou descendre la jauge, dit en une ligne.
+	const UDirective* Directive = Director ? Director->GetCurrentDirective() : nullptr;
+	const FString Hint = bBored ? TEXT("BORED! KILL TO WIN THEM BACK")
+		: (Directive ? TEXT("FOLLOW THE ORDER FOR MORE POINTS") : TEXT("KILLS KEEP THEM WATCHING"));
+	DrawTextAt(Hint, X, Y + H + 24.f * S, 0.72f, bBored ? RecColor : FLinearColor(0.7f, 0.7f, 0.7f, 1.f));
+
+	// « +25 » qui montent depuis la jauge, avec leur raison.
 	const double T = Now();
-	FloatingGains.RemoveAll([T](const FFloatingGain& G) { return T - G.StartTime > 1.2; });
-	for (const FFloatingGain& Gain : FloatingGains)
+	FloatingGains.RemoveAll([T](const FFloatingGain& G) { return T - G.StartTime > 1.4; });
+	float Stack = 0.f;
+	for (int32 i = FloatingGains.Num() - 1; i >= 0; --i)
 	{
-		const float Age = static_cast<float>(T - Gain.StartTime) / 1.2f;
-		DrawTextAt(Gain.Text, X + W * Pct, Y + 60.f * S - 50.f * S * Age, 1.2f, FLinearColor(AccentColor.R, AccentColor.G, AccentColor.B, 1.f - Age), true);
+		const FFloatingGain& Gain = FloatingGains[i];
+		const float Age = static_cast<float>(T - Gain.StartTime) / 1.4f;
+		const FLinearColor C(Gain.Color.R, Gain.Color.G, Gain.Color.B, 1.f - Age * Age);
+		DrawTextAt(Gain.Text, X + W - MeasureText(Gain.Text, 1.f).X, PanelY + 132.f * S + Stack - 20.f * S * Age, 1.f, C);
+		Stack += 30.f * S;
 	}
 
 	// Combo médiéval sous l'audimat.
 	const AReshootCharacter* Player = Cast<AReshootCharacter>(GetOwningPawn());
 	const AMedievalSword* Sword = Player ? Cast<AMedievalSword>(Player->GetCurrentWeapon()) : nullptr;
-	if (Sword)
+	if (Sword && Sword->GetCombo() > 0)
 	{
-		const float CY = Y + H + 40.f * S;
-		DrawTextAt(FString::Printf(TEXT("SCORE  %d"), Sword->GetComboScore()), X, CY, 1.f, FLinearColor::White);
-		if (Sword->GetCombo() > 0)
-		{
-			const int32 Mult = Sword->GetComboMultiplier();
-			const FLinearColor C = Mult >= 4 ? FLinearColor(1.f, 0.3f, 0.15f, 1.f) : (Mult >= 2 ? AccentColor : FLinearColor::White);
-			DrawTextAt(FString::Printf(TEXT("COMBO %d   x%d"), Sword->GetCombo(), Mult), X, CY + 30.f * S, 1.3f, C);
-			DrawBar(X, CY + 70.f * S, W * 0.6f, 6.f * S, Sword->GetComboTimeLeftPct(), C, FLinearColor(0.f, 0.f, 0.f, 0.5f));
-		}
+		const float CY = PanelY + 132.f * S + Stack + 10.f * S;
+		const int32 Mult = Sword->GetComboMultiplier();
+		const FLinearColor C = Mult >= 4 ? FLinearColor(1.f, 0.3f, 0.15f, 1.f) : (Mult >= 2 ? AccentColor : FLinearColor::White);
+		DrawTextAt(FString::Printf(TEXT("COMBO %d   x%d"), Sword->GetCombo(), Mult), X, CY, 1.2f, C);
+		DrawBar(X, CY + 36.f * S, W * 0.6f, 5.f * S, Sword->GetComboTimeLeftPct(), C, FLinearColor(0.f, 0.f, 0.f, 0.5f));
 	}
 }
 
@@ -356,12 +481,16 @@ void AReshootHUD::DrawHealth()
 		return;
 	}
 	const float S = UIScale();
-	const float W = 360.f * S, H = 22.f * S;
-	const float X = 40.f * S, Y = Canvas->ClipY - 60.f * S;
+	const float W = 320.f * S, H = 12.f * S;
+	const float PanelX = 32.f * S, PanelY = Canvas->ClipY - 104.f * S;
+	const float X = PanelX + 20.f * S, Y = PanelY + 62.f * S;
 	const float Pct = Health->GetHealthPct();
-	const FLinearColor Fill = Pct > 0.5f ? FLinearColor(0.9f, 0.9f, 0.9f, 1.f) : (Pct > 0.25f ? AccentColor : RecColor);
-	DrawTextAt(FString::Printf(TEXT("HEALTH  %d"), FMath::RoundToInt(Health->GetHealth())), X, Y - 34.f * S, 1.f, FLinearColor::White);
-	DrawBar(X, Y, W, H, Pct, Fill, FLinearColor(0.f, 0.f, 0.f, 0.6f));
+	const FLinearColor Fill = Pct > 0.5f ? FLinearColor(0.92f, 0.92f, 0.92f, 1.f) : (Pct > 0.25f ? AccentColor : RecColor);
+	DrawPanel(PanelX, PanelY, W + 40.f * S, 86.f * S, Fill);
+	DrawTextAt(TEXT("HEALTH"), X, PanelY + 10.f * S, 0.8f, FLinearColor(0.7f, 0.7f, 0.7f, 1.f));
+	const FString Value = FString::Printf(TEXT("%d"), FMath::RoundToInt(Health->GetHealth()));
+	DrawTextAt(Value, X + W - MeasureText(Value, 1.3f).X, PanelY + 4.f * S, 1.3f, FLinearColor::White);
+	DrawBar(X, Y, W, H, Pct, Fill, FLinearColor(1.f, 1.f, 1.f, 0.12f));
 }
 
 void AReshootHUD::DrawWeapon()

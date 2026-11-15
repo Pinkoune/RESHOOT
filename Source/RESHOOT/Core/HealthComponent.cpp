@@ -22,7 +22,7 @@ float UHealthComponent::ApplyDamage(float Damage, AActor* DamageInstigator, bool
 		return 0.f;
 	}
 
-	float FinalDamage = Damage;
+	float FinalDamage = Damage * DamageTakenMultiplier;
 	if (bHeadshot)
 	{
 		FinalDamage *= HeadshotMultiplier;

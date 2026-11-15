@@ -62,6 +62,8 @@ void AReshootCharacter::BeginPlay()
 	FirstPersonCamera->SetFieldOfView(DefaultFOV);
 	TargetAimFOV = DefaultFOV;
 	HealthComponent->OnDeath.AddDynamic(this, &AReshootCharacter::HandleDeath);
+	HealthComponent->DamageTakenMultiplier = DamageTakenMultiplier;
+	GetWorldTimerManager().SetTimer(RegenTimer, this, &AReshootCharacter::UpdateHealthRegen, 0.25f, true);
 
 	// Le réalisateur peut avoir lancé la scène avant l'apparition du joueur : on reprend son univers.
 	EUniverse InitialUniverse = StartingUniverse;
@@ -80,6 +82,7 @@ void AReshootCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(SlideTimer);
 	GetWorldTimerManager().ClearTimer(AimFOVTimer);
+	GetWorldTimerManager().ClearTimer(RegenTimer);
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Destroy();
@@ -758,6 +761,26 @@ void AReshootCharacter::OnJumpTriggered()
 	{
 		AddMovementInput(FVector::UpVector, 1.f);
 	}
+}
+
+void AReshootCharacter::UpdateHealthRegen()
+{
+	// Vie qui remonte après quelques secondes sans être touché (pas pendant un gel ni après la mort).
+	if (!HealthComponent || HealthComponent->IsDead())
+	{
+		return;
+	}
+	const float Health = HealthComponent->GetHealth();
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (LastHealthSeen >= 0.f && Health < LastHealthSeen - KINDA_SMALL_NUMBER)
+	{
+		LastDamageTime = Now;
+	}
+	if (!bFrozen && HealthRegenPerSecond > 0.f && Now - LastDamageTime >= HealthRegenDelay && Health < HealthComponent->GetMaxHealth())
+	{
+		HealthComponent->Heal(HealthRegenPerSecond * 0.25f);
+	}
+	LastHealthSeen = HealthComponent->GetHealth();
 }
 
 void AReshootCharacter::OnMoveCompleted(const FInputActionValue& Value)

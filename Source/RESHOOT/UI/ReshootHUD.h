@@ -9,6 +9,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "Core/ReshootTypes.h"
 #include "ReshootHUD.generated.h"
 
 class UFont;
@@ -67,6 +68,9 @@ private:
 	void DrawReticle();
 	void DrawDamageFlash();
 	void DrawCutBars();
+	void DrawEventBanner();
+	/** Carte sombre avec un liseré de couleur à gauche : fond commun des blocs du HUD. */
+	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe);
 
 	// Écoute
 	void TryBind();
@@ -84,6 +88,12 @@ private:
 
 	UFUNCTION()
 	void HandleEnemyHealthChanged(UHealthComponent* HealthComponent, float NewHealth, float Delta);
+
+	UFUNCTION()
+	void HandleKillScored(const FKillInfo& Kill, float Points, bool bDirectiveRespected);
+
+	bool bBoundDirector = false;
+	double BoredSince = -1.0;
 
 	double Now() const;
 
@@ -104,6 +114,7 @@ private:
 	{
 		FString Text;
 		double StartTime = 0.0;
+		FLinearColor Color = FLinearColor::White;
 	};
 	TArray<FFloatingGain> FloatingGains;
 };

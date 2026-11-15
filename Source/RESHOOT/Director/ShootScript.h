@@ -130,6 +130,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
 	float DeathPenalty = 60.f;
 
+	/** Le public s'ennuie : sans élimination pendant ce délai (s), l'audimat baisse... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float AudienceBoredDelay = 6.f;
+
+	/** ... de tant de points par seconde, jusqu'à la prochaine élimination. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float AudienceBoredRate = 12.f;
+
+	/** Bonus d'audimat pour avoir survécu à l'événement d'univers sans mourir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scoring", meta = (ClampMin = "0"))
+	float EventSurvivedBonus = 100.f;
+
 	/** Le « CUT! » tombe au hasard entre CutDelayMin et CutDelayMax secondes après le clap. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDelayMin = 20.f;
@@ -140,6 +152,10 @@ public:
 	/** Durée du gel « CUT! » avant « Action! » (GDD : 4 s au plus). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float CutDuration = 3.f;
+
+	/** Prise 1 d'une scène (en carton) : le « CUT! » qui lance la mise en scène réaliste tombe au plus tard après ce délai (s). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "1"))
+	float StagingCutDelay = 15.f;
 
 	/** Commentaires tirés au hasard au « CUT! » en pleine prise, avant l'annonce de la directive. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing")

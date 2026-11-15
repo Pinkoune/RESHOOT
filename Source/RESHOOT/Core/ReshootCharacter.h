@@ -288,6 +288,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0"))
 	float DefaultSpaceBraking = 150.f;
 
+	// --- Réglages : difficulté ---
+
+	/** Multiplie les dégâts reçus par le joueur (1 = valeurs des figurants telles quelles). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Difficulty", meta = (ClampMin = "0"))
+	float DamageTakenMultiplier = 0.55f;
+
+	/** Délai sans être touché avant que la vie remonte (s). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Difficulty", meta = (ClampMin = "0"))
+	float HealthRegenDelay = 4.f;
+
+	/** Vie regagnée par seconde après ce délai (0 = pas de regain). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Difficulty", meta = (ClampMin = "0"))
+	float HealthRegenPerSecond = 12.f;
+
 	/** Sortie d'air en apesanteur, jouée à chaque appui sur une touche de direction : décor en carton (faite à la bouche)... */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
 	TArray<TObjectPtr<USoundBase>> PropThrusterSounds;
@@ -388,4 +402,10 @@ private:
 	void OnMoveCompleted(const FInputActionValue& Value);
 	/** Dernier axe de déplacement reçu, pour repérer un nouvel appui de touche. */
 	FVector2D PrevMoveAxis = FVector2D::ZeroVector;
+
+	/** Regain de vie : minuteur, dernière vie vue, dernier coup reçu. */
+	void UpdateHealthRegen();
+	FTimerHandle RegenTimer;
+	float LastHealthSeen = -1.f;
+	double LastDamageTime = -100.0;
 };
