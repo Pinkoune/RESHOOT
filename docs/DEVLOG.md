@@ -203,6 +203,108 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Comment : le test a montré que les drones nés derrière une porte latérale restaient collés au mur, puisqu'ils volent en ligne droite sans navmesh. Un balayage de sphère de 4 m devant eux suffit.
 - Capture : aucune
 
+### 2026-11-13 23:30 — « On améliore la mise en scène ! » : du carton au réaliste
+- Qui : Jérémy (idée, GDD) + Claude (Claude Code, Opus 5.5)
+- Fait : la signature visuelle du jeu marche en jeu. Chaque scène commence dans un studio en carton : lumière plate, projecteurs sur pied, caméras, perche, passerelles, techniciens, panneaux de décor en carton, fusil en carton. Un rideau de lumière balaie le plateau en 2,5 s avec une lisière orange et des étincelles. Derrière lui, le studio disparaît et le spatial apparaît à la même place : ciel étoilé, planète, néons froids, vrais objets, vrai fusil (avec un flash quand le rideau passe sur le joueur). Gameplay inchangé : la collision reste sur le blockout.
+- Comment : un seul matériau maître pour tout le décor (`M_SetDressing`). Chaque pixel compare sa position à celle du rideau, lue dans une Material Parameter Collection. Le carton s'affiche devant, le réaliste derrière, avec un fondu tramé et une lisière émissive. Les deux versions sont simplement superposées. Matériau, collection, textures et niveaux montés par script Python via le MCP de l'éditeur, sans un clic. Pièges : les dossiers de l'éditeur n'existent plus dans le jeu packagé (le rideau lit des tags) ; `DitherTemporalAA` n'est plus un nœud mais une fonction de matériau en UE5 ; le ciel, très loin, n'était jamais atteint par le rideau (il bascule désormais d'un coup, au passage du rideau sur le centre). Défaut restant : l'exposition automatique surexpose l'image pendant le balayage.
+- Capture : docs/devlog-media/2026-11-13-dressing-1-avant.png, docs/devlog-media/2026-11-13-dressing-2-pendant.png, docs/devlog-media/2026-11-13-dressing-3-apres.png
+
+### 2026-11-14 00:30 — Le spatial a ses deux habillages
+- Qui : Jérémy (génération Tripo / Rodin des versions réalistes) + Claude (Claude Code, Opus 5.5) pour l'import
+- Fait : 8 modèles réalistes importés (caisse, console, bidons, panneau, hublot, néon, alarme, fusil) avec Nanite, recentrés sur leur base et mis exactement à la taille de leur version carton. Les anciens modèles deviennent les `_Prop` (teinte carton). Dans `L_Space`, chaque objet a son jumeau réaliste posé au même endroit : 27 paires + 8 panneaux. Le fusil change de modèle au passage du rideau.
+- Comment : le panneau réaliste était debout (plus haut que large) ; il est couché à l'import par une double rotation, puis recentré automatiquement (le script mesure la boîte englobante et réimporte avec le bon décalage). Piège : une PIE restée ouverte bloquait silencieusement imports et duplications (« The Editor is currently in a play mode »). Les modèles réalistes font environ 185 000 triangles : Nanite activé, textures 4K plafonnées à 2K.
+- Capture : aucune
+
+### 2026-11-14 10:00 — Spatial habillé jusqu'à l'horizon
+- Qui : Jérémy (Tripo, fal) + Claude (Claude Code, Opus 5.5)
+- Fait : drone en carton et en réaliste (il change au passage du rideau, ceux qui arrivent après sont réalistes). Studio réel pendant la phase carton : caméras de cinéma, perche micro, 24 éléments de passerelle, câbles, sacs de sable, flight cases. Après le rideau : sol et murs de vaisseau texturés posés sur le blockout, ciel avec nébuleuse, coque géante et planète en plans peints.
+- Comment : un second matériau maître, `M_SetDressing_Tiled`, répète la texture dans le monde (projection sur les trois axes) : une image carrée de fal suffit pour 50 m de sol sans étirement. Les images lointaines utilisent un matériau additif : le fond noir disparaît, pas besoin de détourage. Le revêtement est une copie du blockout gonflée de 3 cm, créée par script à partir de `L_Stage`. Premier réglage trop chargé (motif mural répété tous les 5 m, effet papier peint) : passé à 12 m.
+- Capture : docs/devlog-media/2026-11-14-space-habille.png
+
+### 2026-11-14 15:00 — « C'est horrible, il faut tout refaire »
+- Qui : Jérémy (verdict, choix des kits Fab) + Claude (Claude Code, Fable 5.2)
+- Fait : le spatial a été refait de zéro. Avant : un cube de 50 × 40 m aux murs plats de 12 m, des objets générés posés par coordonnées, six lampes identiques. Verdict de Jérémy : trop moche, tout refaire. Après : un vrai plateau de tournage plongé dans le noir (gril de poutres, projecteurs suspendus et sur pied, rideaux noirs, décor de châssis en carton), qui devient au passage du rideau un pont d'envol sous les étoiles (murs bas, sol en dalles, sas d'où sortent les drones, planète au-dessus des murs). 120 images par seconde, 77 pendant le balayage.
+- Comment : l'IA a reconnu qu'elle savait faire la technique mais pas composer un décor. Trois décisions ont tout changé. (1) Des kits modulaires Fab (autorisés par le règlement s'ils sont déclarés, non notés) plutôt que des textures sur des cubes : un générateur Python pose 1 400 modules sur la grille de 2 m du kit, à partir du blockout. (2) Le blockout devient invisible : on ne voit plus que de l'habillage. (3) La lumière raconte quelque chose : noir de plateau et faisceaux chauds, puis lumière froide rasante et sas rouges, avec une exposition figée. Les modules du kit n'utilisent pas le matériau du rideau : ils apparaissent un par un quand le rideau passe sur eux, ce qui donne un effet de construction. Les couverts sont enfin habillés à l'endroit exact de leur collision.
+- Capture : docs/devlog-media/2026-11-14-plateau-1-studio.png, docs/devlog-media/2026-11-14-plateau-2-rideau.png, docs/devlog-media/2026-11-14-plateau-3-spatial.png
+
+### 2026-11-14 16:00 — Hangar de station, deuxième version
+- Qui : Jérémy (verdict : « pas réaliste ») + Claude (Claude Code, Opus 5.5)
+- Fait : le hangar est un vrai lieu, fermé : baie vitrée sur la planète au nord, coursives éclairées derrière les quatre portes, quais sur les mezzanines, plafond à fermes métalliques et luminaires. Sol, murs et plafond refaits avec le kit Fab le plus réaliste des trois (`Sci_fi_hallway` : panneaux métalliques, éclairages intégrés), fermes du kit Hollywood. Blockout corrigé : les portes est et ouest débouchaient dans le bloc des mezzanines (1 m de passage). Chaque objet libre est désormais contrôlé contre les zones de passage avant d'être posé.
+- Comment : on a d'abord fixé le lieu (« un hangar de station », déjà écrit dans le GDD) avant de poser quoi que ce soit, puis étudié comment la démo du kit assemble ses pièces (hauteurs, pivots, orientation) au lieu de deviner. Le générateur refuse un objet qui coupe une rampe ou bouche une porte, et le rapport arrive avant les captures. Correctif de performance : le rideau re-traitait à chaque image les 3 700 acteurs déjà basculés (15 images par seconde pendant le balayage, environ 38 après correction).
+- Capture : docs/devlog-media/2026-11-14-hangar-kit.png
+
+### 2026-11-14 17:00 — Portes réparées, planète en 3D
+- Qui : Jérémy (« les portes sont buguées, la planète fait PNG ») + Claude (Claude Code, Opus 5.5)
+- Fait : portes du hangar corrigées (on voyait les étoiles par le plafond de la coursive au-dessus de la porte du fond, panneau de linteau étiré, balise qui rougissait tout le mur). La planète et la coque, qui étaient des images à plat, sont remplacées par une vraie planète en 3D : sphère avec océans, continents, nuages, côté jour et côté nuit, atmosphère lumineuse sur le bord.
+- Comment : matériau procédural (bruit 3D pour les continents et les nuages, éclairage calculé dans le matériau). Premier essai en neige de télévision : le nœud de bruit ignorait la position mise à l'échelle et lisait la position monde brute, des dizaines de milliers de fois trop fine ; corrigé en réglant l'échelle sur le nœud lui-même.
+- Capture : docs/devlog-media/2026-11-14-hangar-planete-3d.png
+
+### 2026-11-14 21:00 — Fini l'extérieur « PS2 », un vrai fusil laser
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : ciel et planète calculés pixel par pixel (étoiles nettes, voie lactée discrète ; planète avec océans, côtes, déserts, glace, nuages en bandes, reflet du soleil, villes côté nuit, atmosphère au bord). Fusil laser réaliste : le fusil d'Epic (modèle FPS du moteur) avec des bandes lumineuses qui chauffent, animé en code (recul, retard à la rotation, balancement, visée, levée après le CUT, inclinaison en surchauffe). Tirs du joueur et des drones : rayon cœur + halo, trait qui file vers l'impact, éclair de bouche avec lumière, impact lumineux, brûlure qui refroidit.
+- Comment : verdict de Jérémy, « l'extérieur fait très PS2 ». Le flou ne venait pas que de la texture : le brouillard du hangar s'appliquait aussi à la planète, à 42 km. Il est maintenant coupé au-delà de 150 m (`fog_cutoff_distance`). La planète est un calcul rayon-sphère dans un nœud Custom HLSL : bord parfaitement rond quelle que soit la sphère support. Premier essai : nuages cotonneux ; ils sont devenus nets avec un seuil plus serré et un bruit de détail. Côté effets, tout est dans un composant partagé (`USpaceLaserFXComponent`), en pool, qui ne tique que pendant un tir. Trois ratés vus sur captures : une boule blanche devant la caméra quand le drone touche le joueur, plus d'effet d'impact dans ce cas ; une brûlure invisible parce que le décal ne descendait que de 4 cm alors que le sol visible est au-dessus du sol de collision ; des étincelles Niagara du modèle en gerbes de 2 m, désactivées.
+- Capture : `docs/devlog-media/2026-11-14-planete-procedurale.png`, `docs/devlog-media/2026-11-14-fusil-laser.png`, `docs/devlog-media/2026-11-14-tirs-drones.png`
+
+### 2026-11-14 21:45 — Le carton reste du carton, fusil laser Fab, transition réparée
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : en carton, le fusil tire de nouveau un simple tube gris, sans visée, sans animation ni effet ; les drones en carton aussi. Le réaliste prend le fusil laser Fab ajouté par Jérémy, plus grand et plus à gauche, avec une visée plus dégagée. Le passage en réaliste à la prise 2 remarche, le final se joue en réaliste, et le matériel du studio (fermes, projecteurs, caméras) disparaît au passage du rideau au lieu d'attendre la fin du balayage.
+- Comment : la transition « cassée » venait du script de test `SS_SpaceTest`, revenu à une seule prise : l'ajout de la prise 2 n'avait jamais été enregistré. Le déroulé est maintenant vérifié en PIE sans forcer le rideau (log « scene 0 reached take 1 -> upgrade »). Les fermes basculaient en retard parce que leurs matériaux (kit Hollywood) ignorent le rideau : elles ne disparaissaient qu'à la fin, quand tout le carton est masqué. Elles sont maintenant taguées pour basculer une à une. Le fusil Fab est un mesh sans repères : orientation et position du canon lues sur une capture de profil.
+- Capture : aucune
+
+### 2026-11-14 22:15 — Le fusil tenu comme dans COD
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : arme plus proche, plus grande, partant du coin bas-droit et tournée vers le centre. En visée, elle se met dans l'axe et le guidon arrière vient à 16 cm de l'œil : on regarde le long du dessus de l'arme. Le fusil laser en carton (Tripo, à partir du prompt du guide) est importé, calé sur le réaliste (1 m, même pivot, même bout de canon).
+- Comment : retour de Jérémy, « pas dans la même position que les FPS auxquels j'ai l'habitude ». Premier essai de visée raté : redresser l'arme en la tournant autour de l'acteur la décalait de 20 cm sur le côté. La visée est maintenant une pose à part, calculée pour poser le viseur sur l'axe de la caméra, vers laquelle on fond depuis la pose en main. Deux points de visée testés sur capture : le premier mettait la crosse en plein milieu de l'écran.
+- Capture : aucune
+
+### 2026-11-14 23:00 — Tirs dans l'axe du canon, fusil en carton plus petit
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : arme décalée vers la droite. Le canon est maintenant orienté pour que son axe croise le centre de l'écran à 10 m : le tir sort tout droit du canon vers le viseur, en carton comme en réaliste. Le fusil en carton a sa propre pose, plus petite (échelle 0,92 au lieu de 1,15).
+- Comment : avant, le canon était tourné de 7° vers le centre et croisait l'axe de la caméra à 30 cm ; le rayon repartait donc en biais depuis le bout du canon. L'orientation est calculée dans `Tools/build_laser_fx.py` (`aim_pose`), vérifiée sur captures avec des rayons ralentis.
+- Capture : aucune
+
+### 2026-11-14 23:20 — Fusil réaliste pivoté vers la gauche
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : le fusil réaliste en main est pivoté de 5° vers la gauche en plus de l'orientation vers le centre (`extra_yaw` dans `Tools/build_laser_fx.py`). Le carton et la visée ne changent pas.
+- Comment : 3° et 6° testés sur capture ; à 5°, le rayon reste dans le prolongement du canon à l'œil.
+- Capture : aucune
+
+### 2026-11-14 23:45 — Fusil réaliste décollé du bord, plus coupé par la caméra
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : fusil réaliste en main décollé du bord droit, rapproché de la caméra et presque droit face à elle (pose 2 parmi trois proposées en capture). Plan de coupe proche passé de 10 à 2 cm (`NearClipPlane` dans `Config/DefaultEngine.ini`) : l'arrière du fusil n'est plus coupé au bord de l'écran.
+- Comment : le fusil fait plus d'un mètre et sa crosse passe derrière la caméra ; à 10 cm, le plan de coupe tranchait le tube lumineux encore visible en bas à droite. Testé en jeu avec `r.SetNearClipPlane 2` avant de l'écrire dans la config (pris en compte au prochain lancement).
+- Capture : aucune
+
+### 2026-11-15 00:00 — Fusil réaliste encore rapproché
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : fusil réaliste rapproché de 8 cm de la caméra (X -17 → -25) : il paraissait trop long. Essai à -32 sur capture, jugé trop envahissant.
+- Comment : `POSE` dans `Tools/build_laser_fx.py`, enregistré dans `BP_SpaceLaser`.
+- Capture : aucune
+
+### 2026-11-15 00:20 — Le fusil réagit à la direction de déplacement
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : en réaliste, le fusil penche (5°) et traîne (1 cm) du côté du pas de côté, recule de 1,5 cm et baisse un peu le canon en avançant. Atténué de 75 % en visée. Le carton reste fixe.
+- Comment : calculé dans `ASpaceLaser::Tick` à partir de la vitesse du personnage dans son repère, rapportée à sa vitesse max (elle monte et descend progressivement, pas besoin de lissage). Réglages en constantes dans `SpaceLaser.cpp` pour rester compatible Live Coding ; à passer en `UPROPERTY` au prochain changement de header.
+- Capture : aucune
+
+### 2026-11-15 00:50 — Sons du carton faits à la bouche (Spatial)
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : en décor carton seulement, tir du fusil, tir des drones et bouffées de réacteur en apesanteur, enregistrés à la bouche par Jérémy (deux prises par son, une tirée au hasard, hauteur variée de ±8 à 10 %). Réacteurs : une bouffée dès qu'on appuie sur une touche de déplacement ou Espace, puis toutes les 0,7 s tant qu'on la garde. Le réaliste reste muet en attendant ses sons. Réglages d'animation du fusil (déplacement) passés en `UPROPERTY`.
+- Comment : nouvelles propriétés `PropFireSounds` (`ASpaceLaser`, `ASpaceDrone`) et `PropThrusterSounds` (`AReshootCharacter`), `FireSound` réservé au réaliste. Le joueur n'avait pas de Blueprint : `BP_ReshootCharacter` (enfant de `AReshootCharacter`, assets seulement) est créé et devient le pion de `BP_ReshootGameMode`. Branchement par `Tools/setup_prop_sounds.py`. mp3 sources dans `SourceArt/Space/Audio/Prop/`, sortis de `Content`. Compilation complète, câblage vérifié en jeu (pion, sons assignés au fusil, aux 4 drones et au joueur) ; pas d'écoute possible de mon côté.
+- Capture : aucune
+
+### 2026-11-15 01:20 — Sons provisoires du réaliste, réacteurs à l'appui seulement
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : sons provisoires du réaliste branchés (tir du fusil, tir des drones, deux sorties d'air). Les réacteurs sont des sorties d'air : un son par appui sur une touche de direction (nouvelle touche ou changement de sens), plus de répétition tant qu'on garde la touche, plus rien sur Espace.
+- Comment : `RealThrusterSounds` ajouté à `AReshootCharacter` (`PropThrusterInterval` retiré), axe précédent mémorisé et remis à zéro sur `Completed` de l'action de déplacement. mp3 dans `SourceArt/Space/Audio/Real/`, assets dans `/Game/RESHOOT/Space/Audio/Real`, branchés par `Tools/setup_prop_sounds.py`. Compilation complète, câblage vérifié en jeu, pas d'écoute de mon côté.
+- Capture : aucune
+
+### 2026-11-15 01:45 — Drones en réaliste, propulseurs moins forts
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : `SS_SpaceTest` avait de nouveau une seule prise et un final sans vague : après la première prise, on passait au final en réaliste sans aucun drone. Prise 2 rajoutée (6 drones, en réaliste) et vague de final (6 drones, remplacée à chaque changement d'univers). Sorties d'air : volume à 0,4 sur les quatre sons, et aussi jouées à l'appui de Espace (montée) et Ctrl (descente).
+- Comment : l'ajout de la prise 2 du 14/11 n'avait pas été enregistré sur disque ; cette fois l'asset est bien modifié (vérifié par `git status`). Vérifié en jeu : 6 drones réalistes visibles à la prise 2.
+- Capture : aucune
+
 ### 2026-11-14 22:30 — Réalisateur terminé : casting, événements d'univers, directives du GDD, transition carton
 - Qui : Enzo + Claude (Claude Code, Opus 5.5)
 - Fait : casting jouable (fond vert derrière le plateau, glissade sur une rampe puis 3 cibles en carton, le réalisateur lance la scène 1) ; événements d'univers déclenchés en prise 2 (annonce, déclenchement 3 s après, gel au CUT!) ; les 8 directives du GDD dont 4 qui interdisent une action (« Sans le bouclier ! », « Range cet arc ! », « Pas de coupure ! », « Le laser coûte cher ! ») ; « On améliore la mise en scène ! » à la fin de la 1re prise (paramètre de matériau + tags d'acteurs) ; une réplique ne coupe plus jamais l'autre (file d'attente, abandon au-delà de 4 s) ; un CUT! par prise garanti même si le joueur vide les vagues avant ; `SS_Main` à 3 prises par scène, vagues de 4 à 10 figurants comme le GDD. Vérifié en PIE de bout en bout, casting compris, avec de vraies entrées clavier simulées (sprint + accroupi pour la glissade, visée et tir sur les cibles) : convoi, gravité et coupure de courant déclenchés, bouclier bloqué, coût du laser ×2, rideau 0 → 1 en 2,5 s, partie jusqu'au final en 7,5 min avec un tueur automatique.
@@ -221,3 +323,8 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Comment : remarqué par Enzo en jouant ; les tests automatiques injectaient les actions sans doigts et ne pouvaient pas le voir. Reste : relâcher Maj puis appuyer sur C dans la foulée ne suffit pas (la vitesse retombe sous le seuil en 0,04 s) ; un délai de grâce demanderait une variable de plus dans `ReshootCharacter.h`.
 - Capture : aucune
 
+### 2026-11-15 02:10 — Fusion de space dans main
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : la branche space (hangar réaliste, transition carton/réaliste, fusil laser et ses effets, sons du carton et provisoires du réaliste, joueur en Blueprint) est fusionnée dans main avec le travail d'Enzo (casting, directives, sous-niveaux Médiéval et Noir, `BP_StageGameMode`). Vérifié en jeu sur la partie complète : casting, scène médiévale, puis scène spatiale en carton à la prise 1 et en réaliste à la prise 2, drones présents.
+- Comment : deux conflits. `DEVLOG.md` : les entrées des deux branches sont gardées. `L_Stage.umap` (binaire, modifié des deux côtés) : on part de la version d'Enzo, puis les 15 acteurs propres à space (rideau `SetDressingSweep`, 14 projecteurs du studio) y sont recopiés depuis la version space, chargée en sous-niveau temporaire. Les points d'entrée des drones restent ceux d'Enzo. `AReshootGameMode` prend `BP_ReshootCharacter` comme pion par défaut, pour que `BP_StageGameMode` (qui en hérite) ait les sons de réacteur sans toucher au dossier Director. Bug révélé par la fusion et corrigé : à l'intro d'une scène, le réalisateur d'Enzo garde encore l'index de prise de la scène précédente, et le rideau passait la nouvelle scène directement en réaliste ; il ne suit plus l'index que pendant les prises.
+- Capture : aucune

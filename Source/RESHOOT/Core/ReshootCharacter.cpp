@@ -1,6 +1,7 @@
 #include "Core/ReshootCharacter.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootWeapon.h"
+#include "Core/SetDressingSweep.h"
 #include "Core/UniverseDefinition.h"
 #include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
@@ -9,8 +10,11 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
 #include "EnhancedInputComponent.h"
@@ -68,6 +72,7 @@ void AReshootCharacter::BeginPlay()
 			InitialUniverse = Director->GetCurrentUniverse();
 		}
 	}
+	bDressingReal = ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
 	SetUniverse(InitialUniverse);
 }
 
@@ -125,6 +130,30 @@ void AReshootCharacter::SetUniverse(EUniverse NewUniverse)
 	OnUniverseChanged.Broadcast(NewUniverse);
 }
 
+void AReshootCharacter::SetDressingReal(bool bReal)
+{
+	if (bDressingReal == bReal)
+	{
+		return;
+	}
+	bDressingReal = bReal;
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetDressingReal(bReal);
+	}
+	// Petit flash au passage du rideau (seulement vers le réaliste).
+	if (bReal && DressingFlashTime > 0.f)
+	{
+		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (PC->PlayerCameraManager)
+			{
+				PC->PlayerCameraManager->StartCameraFade(DressingFlashAlpha, 0.f, DressingFlashTime, DressingFlashColor, false, false);
+			}
+		}
+	}
+}
+
 void AReshootCharacter::DebugUniverse(int32 UniverseIndex)
 {
 	const int32 Clamped = FMath::Clamp(UniverseIndex, 0, static_cast<int32>(EUniverse::Noir));
@@ -154,6 +183,7 @@ AReshootWeapon* AReshootCharacter::EquipWeapon(TSubclassOf<AReshootWeapon> Weapo
 			CurrentWeapon->SetActorRelativeTransform(WeaponOffset);
 			CurrentWeapon->OnWeaponEvent.AddDynamic(this, &AReshootCharacter::HandleWeaponEvent);
 			CurrentWeapon->SetEnabled(!bFrozen);
+			CurrentWeapon->SetDressingReal(bDressingReal);
 			if (!IsWeaponActionAllowed(EWeaponAction::SwitchMode))
 			{
 				CurrentWeapon->SelectMode(0);
@@ -525,6 +555,7 @@ void AReshootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	if (MoveAction)
 	{
 		Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AReshootCharacter::OnMove);
+		Input->BindAction(MoveAction, ETriggerEvent::Completed, this, &AReshootCharacter::OnMoveCompleted);
 	}
 	if (LookAction)
 	{
@@ -658,6 +689,14 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 	}
 	const FVector2D Axis = Value.Get<FVector2D>();
 
+	// Nouvel appui d'une touche de direction : un axe passe de zéro à une valeur, ou change de sens.
+	auto IsNewPress = [](float Prev, float Now)
+	{
+		return !FMath::IsNearlyZero(Now) && (FMath::IsNearlyZero(Prev) || FMath::Sign(Prev) != FMath::Sign(Now));
+	};
+	const bool bNewPress = IsNewPress(PrevMoveAxis.X, Axis.X) || IsNewPress(PrevMoveAxis.Y, Axis.Y);
+	PrevMoveAxis = Axis;
+
 	if (IsInSpaceMode())
 	{
 		// Apesanteur : la caméra donne la direction, tangage compris.
@@ -665,6 +704,10 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 		const FRotationMatrix ViewMatrix(ViewRotation);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::X), Axis.Y);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::Y), Axis.X);
+		if (bNewPress)
+		{
+			PlayThruster();   // sortie d'air : une seule par appui, pas en continu
+		}
 	}
 	else
 	{
@@ -684,9 +727,14 @@ void AReshootCharacter::OnLook(const FInputActionValue& Value)
 
 void AReshootCharacter::OnJumpStarted()
 {
-	if (bFrozen || IsInSpaceMode())
+	if (bFrozen)
 	{
-		return; // En apesanteur, Espace monte (voir OnJumpTriggered).
+		return;
+	}
+	if (IsInSpaceMode())
+	{
+		PlayThruster();   // sortie d'air à l'appui ; Espace monte (voir OnJumpTriggered)
+		return;
 	}
 
 	if (bSliding)
@@ -712,6 +760,24 @@ void AReshootCharacter::OnJumpTriggered()
 	}
 }
 
+void AReshootCharacter::OnMoveCompleted(const FInputActionValue& Value)
+{
+	PrevMoveAxis = FVector2D::ZeroVector;
+}
+
+void AReshootCharacter::PlayThruster()
+{
+	const TArray<TObjectPtr<USoundBase>>& Sounds = bDressingReal ? RealThrusterSounds : PropThrusterSounds;
+	if (Sounds.Num() == 0)
+	{
+		return;
+	}
+	if (USoundBase* Sound = Sounds[FMath::RandHelper(Sounds.Num())])
+	{
+		UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f + FMath::FRandRange(-ThrusterPitchJitter, ThrusterPitchJitter));
+	}
+}
+
 void AReshootCharacter::OnJumpCompleted()
 {
 	StopJumping();
@@ -720,9 +786,14 @@ void AReshootCharacter::OnJumpCompleted()
 void AReshootCharacter::OnCrouchStarted()
 {
 	bCrouchHeld = true;
-	if (bFrozen || IsInSpaceMode())
+	if (bFrozen)
 	{
-		return; // En apesanteur, Ctrl descend (voir OnCrouchTriggered).
+		return;
+	}
+	if (IsInSpaceMode())
+	{
+		PlayThruster();   // sortie d'air à l'appui ; Ctrl descend (voir OnCrouchTriggered)
+		return;
 	}
 
 	if (CanStartSlide())

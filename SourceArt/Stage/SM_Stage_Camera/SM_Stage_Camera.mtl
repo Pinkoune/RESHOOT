@@ -1,0 +1,11 @@
+newmtl tripo_material_b7e5268f_e9dd_42c2_b29c_16000e9e3d2d
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_Camera_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_Camera_roughness.png
+map_Pm SM_Stage_Camera_metallic.png
+norm SM_Stage_Camera_normal.png
+

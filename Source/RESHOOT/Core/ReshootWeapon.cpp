@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 
 namespace ReshootTrace
@@ -83,6 +84,15 @@ void AReshootWeapon::SetEnabled(bool bInEnabled)
 	if (bHideWhenDisabled)
 	{
 		SetActorHiddenInGame(!bEnabled);
+	}
+}
+
+void AReshootWeapon::SetDressingReal(bool bReal)
+{
+	bDressingReal = bReal;
+	if (UStaticMesh* NewMesh = bReal ? RealMesh.Get() : PropMesh.Get())
+	{
+		Mesh->SetStaticMesh(NewMesh);
 	}
 }
 

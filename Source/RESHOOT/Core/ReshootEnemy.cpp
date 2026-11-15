@@ -2,12 +2,16 @@
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
 #include "Core/ReshootWeapon.h"
+#include "Core/SetDressingSweep.h"
 #include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
 
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -19,12 +23,44 @@ AReshootEnemy::AReshootEnemy(const FObjectInitializer& ObjectInitializer)
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
+	Accessory = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Accessory"));
+	Accessory->SetupAttachment(GetMesh(), AccessorySocket);
+	Accessory->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AReshootEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	HealthComponent->OnDeath.AddDynamic(this, &AReshootEnemy::HandleDeath);
+
+	// Le socket peut avoir été changé dans le Blueprint.
+	if (GetMesh() && GetMesh()->DoesSocketExist(AccessorySocket))
+	{
+		Accessory->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, AccessorySocket);
+	}
+	// Un figurant qui entre après le rideau est directement en réaliste.
+	const bool bStartReal = ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
+	bDressingReal = !bStartReal; // pour que SetDressingReal applique le mesh dans tous les cas
+	SetDressingReal(bStartReal);
+}
+
+void AReshootEnemy::SetDressingReal(bool bReal)
+{
+	if (bDressingReal == bReal)
+	{
+		return;
+	}
+	bDressingReal = bReal;
+	if (UStaticMesh* NewMesh = bReal ? AccessoryReal.Get() : AccessoryProp.Get())
+	{
+		Accessory->SetStaticMesh(NewMesh);
+	}
+	OnDressingChanged(bReal);
+}
+
+void AReshootEnemy::OnDressingChanged(bool bReal)
+{
 }
 
 AReshootCharacter* AReshootEnemy::GetTargetPlayer() const

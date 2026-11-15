@@ -1,4 +1,5 @@
 #include "Space/SpaceDrone.h"
+#include "Space/SpaceLaserFX.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
 #include "RESHOOT.h"
@@ -8,9 +9,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -25,7 +28,6 @@ namespace
 		return Types;
 	}
 
-	constexpr float ShotBeamVisibleTime = 0.06f;
 	const FLinearColor DefaultShotColor(1.f, 0.15f, 0.1f);
 }
 
@@ -59,6 +61,14 @@ ASpaceDrone::ASpaceDrone(const FObjectInitializer& ObjectInitializer)
 		Body->SetStaticMesh(SphereMesh.Object);
 	}
 
+	LaserFX = CreateDefaultSubobject<USpaceLaserFXComponent>(TEXT("LaserFX"));
+	LaserFX->BeamColor = DefaultShotColor;
+	LaserFX->PoolSize = 2;
+	LaserFX->CoreThickness = 1.2f;
+	LaserFX->GlowThickness = 7.f;
+	LaserFX->BoltSpeed = 9000.f;   // plus lent que le joueur : on voit venir le tir
+	LaserFX->BeamLifetime = 0.18f;
+
 	ShotBeam = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShotBeam"));
 	ShotBeam->SetupAttachment(GetCapsuleComponent());
 	ShotBeam->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -89,6 +99,14 @@ void ASpaceDrone::BeginPlay()
 	else if (UMaterialInstanceDynamic* Dynamic = ShotBeam->CreateAndSetMaterialInstanceDynamic(0))
 	{
 		Dynamic->SetVectorParameterValue(TEXT("Color"), DefaultShotColor);
+	}
+
+	// Costume carton / réaliste : l'accessoire est tout le corps du drone. La sphère grise reste
+	// (invisible) pour la physique de la mort, l'accessoire la suit.
+	if (AccessoryProp || AccessoryReal)
+	{
+		Accessory->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		Body->SetVisibility(false, false);
 	}
 
 	GetWorldTimerManager().SetTimer(SteerTimer, this, &ASpaceDrone::Steer, SteerInterval, true, FMath::FRandRange(0.f, SteerInterval));
@@ -179,8 +197,8 @@ void ASpaceDrone::TryFire()
 		Target = Camera->GetComponentLocation() - FVector(0.f, 0.f, 20.f); // Le haut du torse.
 	}
 
-	const FVector Start = GetActorLocation();
-	FVector Direction = (Target - Start).GetSafeNormal();
+	FVector Direction = (Target - GetActorLocation()).GetSafeNormal();
+	const FVector Start = GetActorLocation() + Direction * MuzzleForward;
 	if (SpreadDegrees > 0.f)
 	{
 		Direction = FMath::VRandCone(Direction, FMath::DegreesToRadians(SpreadDegrees));
@@ -199,24 +217,41 @@ void ASpaceDrone::TryFire()
 		}
 	}
 
-	// Rayon visible.
-	const FVector Impact = bHit ? Hit.ImpactPoint : End;
-	const FVector Delta = Impact - Start;
-	const float Length = Delta.Size();
-	if (Length > KINDA_SMALL_NUMBER)
+	// Tir visible : rayon rouge, trait, éclair, impact (le joueur ne reçoit ni brûlure ni étincelles sur lui).
+	const FVector Impact = bHit ? FVector(Hit.ImpactPoint) : End;
+	const bool bHitPlayer = bHit && Hit.GetActor() == Player;
+	const bool bStaticSurface = bHit && Hit.GetActor() && !Hit.GetActor()->IsA<APawn>();
+	if (IsDressingReal())
 	{
+		LaserFX->FireBeam(Start, Impact, bHit && !bHitPlayer, bHit ? FVector(Hit.ImpactNormal) : FVector::ZeroVector, bStaticSurface);
+	}
+	else if (const float Length = FVector::Distance(Start, Impact); Length > KINDA_SMALL_NUMBER)
+	{
+		// Carton : un simple tube, sans effet.
+		const FVector Delta = Impact - Start;
 		ShotBeam->SetWorldLocationAndRotation(Start + Delta * 0.5f, FRotationMatrix::MakeFromZ(Delta / Length).Rotator());
 		ShotBeam->SetWorldScale3D(FVector(0.04f, 0.04f, Length / 100.f));
 		ShotBeam->SetHiddenInGame(false);
 		GetWorldTimerManager().SetTimer(ShotBeamTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
 		{
 			ShotBeam->SetHiddenInGame(true);
-		}), ShotBeamVisibleTime, false);
+		}), 0.06f, false);
 	}
 
-	if (FireSound)
+	if (IsDressingReal())
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Start);
+		if (FireSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, Start);
+		}
+	}
+	else if (PropFireSounds.Num() > 0)
+	{
+		// Carton : un des sons faits à la bouche, au hasard, hauteur légèrement variée.
+		if (USoundBase* Sound = PropFireSounds[FMath::RandHelper(PropFireSounds.Num())])
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, Start, 1.f, 1.f + FMath::FRandRange(-PropPitchJitter, PropPitchJitter));
+		}
 	}
 }
 

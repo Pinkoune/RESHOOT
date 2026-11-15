@@ -10,6 +10,7 @@
 
 class USceneComponent;
 class UStaticMeshComponent;
+class UStaticMesh;
 class AReshootCharacter;
 class UHealthComponent;
 class AReshootWeapon;
@@ -96,6 +97,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	bool IsActionAllowed(EWeaponAction Action) const;
 
+	// --- Deux versions du modèle : carton (prise 1) et réaliste (après « On améliore la mise en scène ! ») ---
+
+	/** Applique le modèle carton ou réaliste (même pivot, même position en main). Sans effet si le modèle est vide. */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Dressing")
+	virtual void SetDressingReal(bool bReal);
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Dressing")
+	bool IsDressingReal() const { return bDressingReal; }
+
+	/** Modèle carton de l'arme. Vide = garde le mesh du Blueprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Dressing")
+	TObjectPtr<UStaticMesh> PropMesh;
+
+	/** Modèle réaliste de l'arme, même pivot que PropMesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Dressing")
+	TObjectPtr<UStaticMesh> RealMesh;
+
 	/** Ce que fait l'arme : tir, coup, rechargement, bouclier, surchauffe, touche. Relayé par le porteur. */
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
 	FOnWeaponEvent OnWeaponEvent;
@@ -149,4 +167,7 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Weapon")
 	bool bSecondaryHeld = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Weapon|Dressing")
+	bool bDressingReal = false;
 };

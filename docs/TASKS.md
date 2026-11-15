@@ -103,6 +103,21 @@ Interface
 - [ ] Dev log finalisé
 - [ ] Build final
 
+## Décor carton -> réaliste (13/11)
+
+- [x] Socle : `ASetDressingSweep`, `MPC_SetDressing`, `M_SetDressing`, armes et accessoires en deux versions, test dans `L_Space` (Jérémy + Claude)
+- [ ] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 (Enzo, voir `docs/HANDOFF-Director.md`)
+- [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
+- [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
+- [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
+- [x] Rendu : exposition figée dans les deux phases
+- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
+- [ ] Compléter `docs/CREDITS.md` (titres Fab exacts) avant la soumission
+- [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
+- [x] Spatial : ciel et planète procéduraux, fusil laser réaliste animé, effets de tir du fusil et des drones (`USpaceLaserFXComponent`, `Tools/build_laser_fx.py`)
+- [ ] Spatial : étincelles d'impact laser (le modèle Niagara est désactivé, trop gros), sons définitifs du mode réaliste (Jules ; des sons provisoires sont branchés). Carton fait (sons à la bouche de Jérémy)
+- [x] Spatial : fusil laser en carton (Tripo), posé comme `PropMesh` de `BP_SpaceLaser`
+
 ## Demandes au socle
 
 Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison>`
