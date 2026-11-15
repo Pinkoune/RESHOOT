@@ -37,8 +37,10 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Morceau | Auteur | Licence | Dans le jeu |
 | --- | --- | --- | --- |
 | « Hard Boiled » | Kevin MacLeod (incompetech.com) | Creative Commons : By Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/) | `SW_Noir_Music_HardBoiled`, boucle du film noir (`DA_Noir`) |
+| « Master of the Feast » | Kevin MacLeod (incompetech.com) | Creative Commons : By Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/) | `SW_Medieval_Music_MasterOfTheFeast`, boucle du médiéval (`DA_Medieval`) |
+| « Space Fighter Loop » | Kevin MacLeod (incompetech.com) | Creative Commons : By Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/) | `SW_Space_Music_SpaceFighterLoop`, boucle du spatial (`DA_Universe_Space`) |
 
-Texte à reprendre tel quel sur la page itch.io : "Hard Boiled" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/
+Texte à reprendre tel quel sur la page itch.io : "Hard Boiled", "Master of the Feast", "Space Fighter Loop" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/
 
 ## Assets générés pendant la jam (créés par l'équipe)
 
@@ -47,4 +49,4 @@ Texte à reprendre tel quel sur la page itch.io : "Hard Boiled" Kevin MacLeod (i
 
 ## Outils
 
-Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musique du film noir : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).
+Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musiques des trois univers : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).

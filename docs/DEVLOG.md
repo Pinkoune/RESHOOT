@@ -364,3 +364,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : « Hard Boiled » de Kevin MacLeod (incompetech.com, CC-BY 4.0, crédit dans `docs/CREDITS.md`) importé dans `Content/RESHOOT/Audio/Music/SW_Noir_Music_HardBoiled` et branché comme `Music` de `DA_Noir`. Vérifié en PIE dans `L_Stage` : en passant dans l'univers Noir, le réalisateur la lance.
 - Comment : ElevenLabs inutilisable (plus de crédits), donc une musique libre sous licence CC-BY. Le MP3 a été converti en WAV par Blender (module audio `aud`) faute d'outil de conversion sur le poste.
 - Capture : aucune
+
+### 2026-11-15 17:45 — Une musique pour chaque univers
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : « Master of the Feast » (médiéval, fanfare d'époque) et « Space Fighter Loop » (spatial, synthé) de Kevin MacLeod, CC-BY 4.0, branchés comme `Music` de `DA_Medieval` et `DA_Universe_Space`. Avec le jazz du Noir, les trois univers ont leur boucle ; vérifié en PIE dans `L_Stage` (chaque changement d'univers lance la bonne musique, l'ancienne s'éteint en fondu).
+- Comment : même chaîne que pour le Noir (MP3 incompetech, conversion WAV par Blender, import par script). Crédit exact pour itch.io dans `docs/CREDITS.md`.
+- Capture : aucune
