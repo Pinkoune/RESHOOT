@@ -10,7 +10,6 @@
 class AReshootEnemy;
 class UDirective;
 class UUniverseDefinition;
-class UMaterialParameterCollection;
 
 /** Une vague de figurants. */
 USTRUCT(BlueprintType)
@@ -182,29 +181,11 @@ public:
 	FName StagePlayerStartTag = TEXT("Stage");
 
 	// --- Répétition, puis mise en scène (GDD) : décor carton à la 1re prise, réaliste ensuite ---
+	// Le rideau lui-même est ASetDressingSweep (socle, posé dans L_Stage) : le réalisateur l'appelle.
 
 	/** « On améliore la mise en scène ! », à la fin de la première prise de chaque scène. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
 	FName StagingLineId = TEXT("Staging_Improve");
-
-	/** Durée du balayage du rideau de lumière. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging", meta = (ClampMin = "0.1"))
-	float StagingSweepDuration = 2.5f;
-
-	/** Collection lue par le matériau maître M_SetDressing : StagingParameter va de 0 (carton) à 1 (réaliste). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	TObjectPtr<UMaterialParameterCollection> StagingCollection;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName StagingParameter = TEXT("StagingReveal");
-
-	/** Acteurs visibles seulement en version carton (décor carton, studio, projecteurs). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName PropActorTag = TEXT("SetDressing_Prop");
-
-	/** Acteurs visibles seulement en version réaliste (décor réaliste, ciel, horizon). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
-	FName RealActorTag = TEXT("SetDressing_Real");
 
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))

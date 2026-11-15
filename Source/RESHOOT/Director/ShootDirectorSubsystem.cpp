@@ -11,6 +11,7 @@
 #include "Core/HealthComponent.h"
 #include "Core/UniverseDefinition.h"
 #include "Core/UniverseEvent.h"
+#include "Core/SetDressingSweep.h"
 #include "RESHOOT.h"
 
 #include "EngineUtils.h"
@@ -22,9 +23,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMaterialLibrary.h"
 #include "Materials/MaterialInterface.h"
-#include "Materials/MaterialParameterCollection.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
 
@@ -106,7 +106,6 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(FinaleEndTimer);
 		World->GetTimerManager().ClearTimer(CutTimer);
 		World->GetTimerManager().ClearTimer(EventTimer);
-		World->GetTimerManager().ClearTimer(StagingTimer);
 		World->GetTimerManager().ClearTimer(CastingTimer);
 	}
 	Super::Deinitialize();
@@ -545,60 +544,46 @@ void UShootDirectorSubsystem::StopUniverseEvent()
 // Répétition, puis mise en scène : décor carton à la 1re prise, rideau de lumière, décor réaliste
 // ---------------------------------------------------------------------------
 
-void UShootDirectorSubsystem::SetStagingState(bool bReal, float SweepAlpha)
+void UShootDirectorSubsystem::TakeControlOfStaging()
 {
-	bStagingReal = bReal;
-	StagingSweepAlpha = SweepAlpha;
-	if (!Script)
+	// Le rideau (ASetDressingSweep, socle) suit le déroulé tout seul tant que ce réglage vaut 1 ;
+	// le réalisateur l'appelle lui-même, au bon moment (fin de la 1re prise, pas au début de la 2e).
+	if (IConsoleVariable* AutoFollow = IConsoleManager::Get().FindConsoleVariable(TEXT("reshoot.Dressing.AutoFromDirector")))
 	{
-		return;
-	}
-	if (Script->StagingCollection)
-	{
-		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, SweepAlpha);
-	}
-	// Sans le matériau M_SetDressing, les deux versions s'échangent par visibilité (tags d'acteur).
-	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
-	{
-		if (!Script->PropActorTag.IsNone() && It->ActorHasTag(Script->PropActorTag))
-		{
-			It->SetActorHiddenInGame(bReal);
-		}
-		else if (!Script->RealActorTag.IsNone() && It->ActorHasTag(Script->RealActorTag))
-		{
-			It->SetActorHiddenInGame(!bReal);
-		}
+		AutoFollow->Set(0, ECVF_SetByCode);
 	}
 }
 
-void UShootDirectorSubsystem::ImproveStaging()
+void UShootDirectorSubsystem::SetStagingState(bool bReal)
+{
+	bStagingReal = bReal;
+	ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
+	if (!Sweep)
+	{
+		return;
+	}
+	if (bReal)
+	{
+		Sweep->UpgradeDressing();	// sans effet s'il est déjà réaliste
+	}
+	else if (Sweep->IsDressingReal() || Sweep->IsSweeping())
+	{
+		Sweep->ResetDressing();
+	}
+}
+
+float UShootDirectorSubsystem::ImproveStaging()
 {
 	UE_LOG(LogReshoot, Log, TEXT("Staging improved: cardboard -> real."));
 	PlayLine(Script ? Script->StagingLineId : NAME_None);
 	OnStagingImproved.Broadcast(CurrentUniverse);
-	StagingSweepAlpha = 0.f;
-	bStagingSwapped = false;
-	GetWorld()->GetTimerManager().SetTimer(StagingTimer, this, &UShootDirectorSubsystem::StepStagingSweep, 1.f / 30.f, true);
-}
-
-void UShootDirectorSubsystem::StepStagingSweep()
-{
-	const float Duration = Script ? FMath::Max(Script->StagingSweepDuration, 0.1f) : 2.5f;
-	StagingSweepAlpha = FMath::Min(StagingSweepAlpha + (1.f / 30.f) / Duration, 1.f);
-	if (Script && Script->StagingCollection)
+	SetStagingState(true);
+	const ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
+	if (!Sweep)
 	{
-		UKismetMaterialLibrary::SetScalarParameterValue(this, Script->StagingCollection, Script->StagingParameter, StagingSweepAlpha);
+		UE_LOG(LogReshoot, Warning, TEXT("ImproveStaging: no ASetDressingSweep in the level, nothing to sweep."));
 	}
-	// Échange des versions au passage du rideau (milieu du balayage).
-	if (!bStagingSwapped && StagingSweepAlpha >= 0.5f)
-	{
-		bStagingSwapped = true;
-		SetStagingState(true, StagingSweepAlpha);
-	}
-	if (StagingSweepAlpha >= 1.f)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
-	}
+	return Sweep ? Sweep->Duration : 0.f;
 }
 
 void UShootDirectorSubsystem::StartShoot()
@@ -634,8 +619,8 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 	SetPhase(EShootPhase::SceneIntro);
 	SetUniverse(Scene.UniverseDefinition ? Scene.UniverseDefinition->Universe : EUniverse::None);
 	// Chaque scène commence en répétition, dans le décor en carton.
-	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
-	SetStagingState(false, 0.f);
+	TakeControlOfStaging();
+	SetStagingState(false);
 	ResetPlayerToStart(Scene.PlayerStartTag);
 	// Le joueur a quitté le studio de casting : on le décharge.
 	if (!Script->CastingSubLevelName.IsNone())
@@ -839,8 +824,9 @@ void UShootDirectorSubsystem::EndTake()
 	// Fin de la répétition (1re prise d'une scène qui en a d'autres) : « On améliore la mise en scène ! »
 	if (Scene && TakeIndex == 0 && Scene->Takes.Num() > 1 && !bStagingReal)
 	{
-		ImproveStaging();
-		CutDuration = FMath::Max(CutDuration, (Script ? Script->StagingSweepDuration : 2.5f) + 0.5f);
+		// Le gel dure le temps du balayage, plus une demi-seconde pour admirer le décor.
+		const float SweepDuration = ImproveStaging();
+		CutDuration = FMath::Max(CutDuration, SweepDuration + 0.5f);
 	}
 	const int32 NextTake = TakeIndex + 1;
 	GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateWeakLambda(this, [this, NextTake]()
@@ -938,8 +924,8 @@ void UShootDirectorSubsystem::BeginFinale()
 	SetPhase(EShootPhase::Finale);
 	SetDirective(nullptr);
 	// Le final se joue dans le « vrai » film : décors réalistes.
-	GetWorld()->GetTimerManager().ClearTimer(StagingTimer);
-	SetStagingState(true, 1.f);
+	TakeControlOfStaging();
+	SetStagingState(true);
 	// On peut arriver ici depuis une intro de scène (gelée) si la scène n'a aucune prise.
 	FreezeAll(false);
 	FinaleUniverseIndex = 0;
