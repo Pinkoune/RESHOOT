@@ -2,6 +2,7 @@
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
 #include "Core/ReshootEnemy.h"
+#include "Core/SetDressingSweep.h"
 #include "Director/ShootDirectorSubsystem.h"
 #include "RESHOOT.h"
 
@@ -176,6 +177,19 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 	{
 		GetWorldTimerManager().SetTimer(AutoStartTimer, this, &AMedievalHorseConvoyEvent::StartEvent, AutoStartInterval, true, AutoStartInterval);
 	}
+
+	// Rails de tournage : visibles en carton, remplacés par un chemin de terre en réaliste (habillage de L_Medieval).
+	FTimerHandle RailsTimer;
+	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		const bool bShowRails = !ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
+		if (RailLeft->IsVisible() != bShowRails)
+		{
+			RailLeft->SetVisibility(bShowRails);
+			RailRight->SetVisibility(bShowRails);
+			Sleepers->SetVisibility(bShowRails);
+		}
+	}), 0.25f, true, 0.f);
 }
 
 void AMedievalHorseConvoyEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
