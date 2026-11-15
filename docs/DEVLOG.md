@@ -394,3 +394,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : les quatre sons réalistes provisoires du Spatial sont remplacés : tir du fusil laser (décharge qui chute de 2,4 kHz à 180 Hz, coup sourd, écho du hangar), tir des drones (plus aigu, plus sec, plus lointain), deux sorties d'air comprimé pour les réacteurs. Mêmes noms d'assets, donc `BP_SpaceLaser`, `BP_SpaceDrone` et `BP_ReshootCharacter` les utilisent sans rien rebrancher (vérifié dans l'éditeur).
 - Comment : synthèse numpy dans Blender, comme les bruitages du Noir (`Tools/synth_space_real_sfx.py`, WAV dans `SourceArt/Space/Audio/Real`). Les MP3 provisoires restent à côté pour revenir en arrière.
 - Capture : aucune
+
+### 2026-11-15 19:30 — Film noir : fenêtres, enseignes, mort théâtrale
+- Qui : Jules (« rends noir super ») + Claude (Claude Code, Opus 5.5)
+- Fait : fenêtres sur deux étages de toutes les façades, environ 4 sur 10 allumées en jaune chaud (elles se reflètent dans l'asphalte mouillé), les autres sombres et brillantes ; quatre enseignes lumineuses en drapeau (HOTEL, JAZZ, BAR, PAWN) avec cadre néon, lettres et halo. Mort théâtrale des gangsters (GDD) : bascule en arrière à l'opposé du tireur en pivotant, et sur un tir à la tête le chapeau s'envole en cloche (timer, pas de Tick, code dans le `.cpp` seulement : Live Coding).
+- Comment : premier essai des fenêtres raté, toutes restaient noires : `M_SetDressing` multiplie `EmissiveColor` par `EmissiveMap`, il faut lui donner la texture blanche du socle (`T_SetDressing_WhiteMask`). Fenêtres et enseignes vérifiées en PIE dans `L_Stage` ; la chute des gangsters compile mais n'a pas encore été vue en jeu.
+- Capture : docs/devlog-media/2026-11-15-noir-fenetres.jpg

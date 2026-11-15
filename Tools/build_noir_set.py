@@ -62,6 +62,16 @@ MAT_BRICK = mi(MD + '/MI_Noir_Brick_Real', TILED, True, {'Roughness': 0.85, 'Met
                {'TileSize': (250, 250, 250, 1), 'BaseColorTint': (0.8, 0.8, 0.8, 1)}, {'BaseColorMap': TX + '/T_Noir_Brick_D'})
 MAT_FLAT = mi(MD + '/MI_Noir_Flat_Prop', TILED, False, {'Roughness': 0.9, 'Metallic': 0.0}, {'BaseColorTint': (0.30, 0.24, 0.18, 1)})
 MAT_NIGHT = mi(MD + '/MI_Noir_NightSky_Real', TILED, True, {'Roughness': 1.0, 'Metallic': 0.0}, {'BaseColorTint': (0.004, 0.004, 0.005, 1)})
+# Fenêtres et enseignes (matériau maître non répété, avec émissif : il faut une EmissiveMap blanche, la couleur seule ne suffit pas)
+WHITE = '/Game/RESHOOT/Core/Materials/T_SetDressing_WhiteMask'
+MAT_WIN_LIT = mi(MD + '/MI_Noir_WindowLit_Real', FLAT, True, {'RoughnessScale': 0.3, 'MetallicScale': 0.0},
+                 {'BaseColorTint': (0.05, 0.04, 0.03, 1), 'EmissiveColor': (5.0, 3.4, 1.6, 1)}, {'EmissiveMap': WHITE})
+MAT_WIN_DARK = mi(MD + '/MI_Noir_WindowDark_Real', FLAT, True, {'RoughnessScale': 0.05, 'MetallicScale': 0.0},
+                  {'BaseColorTint': (0.01, 0.01, 0.012, 1), 'EmissiveColor': (0, 0, 0, 1)})
+MAT_NEON = mi(MD + '/MI_Noir_Neon_Real', FLAT, True, {'RoughnessScale': 0.5, 'MetallicScale': 0.0},
+              {'BaseColorTint': (0.2, 0.2, 0.2, 1), 'EmissiveColor': (18.0, 15.0, 11.0, 1)}, {'EmissiveMap': WHITE})
+MAT_SIGN = mi(MD + '/MI_Noir_SignPanel_Real', FLAT, True, {'RoughnessScale': 0.6, 'MetallicScale': 0.6},
+              {'BaseColorTint': (0.03, 0.03, 0.035, 1), 'EmissiveColor': (0, 0, 0, 1)})
 MAT_PAINTED = mi(MD + '/MI_Noir_Painted_Prop', FLAT, False, {'RoughnessScale': 1.0, 'MetallicScale': 0.0}, {'BaseColorTint': (0.55, 0.45, 0.32, 1)})
 
 # =====================================================================================
@@ -155,7 +165,7 @@ def is_free(p, r=0.0):
 # =====================================================================================
 # Chantier
 # =====================================================================================
-les.load_level('/Game/RESHOOT/Noir/L_Noir')
+les.load_level('/Game/RESHOOT/Noir/L_Noir', unsaved_changes_policy=unreal.LevelEditorUnsavedChangesPolicy.DISCARD)
 for a in eas.get_all_level_actors():
     if str(a.get_folder_path()).startswith('Dressing') or a.get_actor_label().startswith(('Noir_Bloc_',)):
         eas.destroy_actor(a)
@@ -218,6 +228,55 @@ for wall, alongs in WLAMPS.items():
     for a_ in alongs:
         spawn(f'Applique_{wall}_{a_}', wlamp, wall_point(wall, a_, 30, 260), yaw=wall_yaw(wall) - 90, **RD)
         light(f'Applique_{wall}_{a_}_Lumiere', unreal.PointLight, wall_point(wall, a_, 90, 380), intensity=WALL_LAMP_CD, radius=1200, temp=2600, shadows=False)
+
+# --- Fenêtres des étages : certaines allumées (jaune chaud), les autres sombres et brillantes (elles reflètent la rue) ---
+SIGNS = [('Nord', -1500.0, 'HOTEL'), ('Sud', 1250.0, 'JAZZ'), ('Est', 650.0, 'BAR'), ('Ouest', 400.0, 'PAWN')]
+WIN_W, WIN_H, WIN_STEP = 110.0, 160.0, 380.0
+n_win = 0
+for wi, wall in enumerate(WALLS):
+    axis, doors = WALLS[wall][0], WALLS[wall][3]
+    a_ = -W + 300
+    k = 0
+    while a_ < W - 300:
+        clear_sign = all(not (sw == wall and abs(a_ - sa) < 160) for sw, sa, _ in SIGNS)
+        if clear_sign and all(abs(a_ - c) > DOOR_HALF + 80 for c in doors):
+            for row, z in enumerate((520.0, 800.0)):
+                lit = (k * 7 + row * 3 + wi * 5) % 5 in (0, 2)
+                size = (WIN_W, 6, WIN_H) if axis == 'x' else (6, WIN_W, WIN_H)
+                box(f'Fenetre_{wall}_{k}_{row}', wall_point(wall, a_, 33, z), size, MAT_WIN_LIT if lit else MAT_WIN_DARK, shadow=False, **RT)
+                n_win += 1
+        a_ += WIN_STEP; k += 1
+
+# --- Enseignes lumineuses en drapeau : panneau sombre, cadre néon, lettres éclairées ---
+SIGN_OUT, SIGN_H, SIGN_T, SIGN_Z = 150.0, 270.0, 16.0, 470.0
+for wall, along, word in SIGNS:
+    axis = WALLS[wall][0]
+    c = wall_point(wall, along, 30 + SIGN_OUT / 2, SIGN_Z)
+    def sz(perp, thick, h):                     # taille d'une pièce : `perp` vers le plateau, `thick` le long du mur
+        return (thick, perp, h) if axis == 'x' else (perp, thick, h)
+    box(f'Enseigne_{word}', c, sz(SIGN_OUT, SIGN_T, SIGN_H), MAT_SIGN, **RT)
+    box(f'Enseigne_{word}_NeonHaut', wall_point(wall, along, 30 + SIGN_OUT / 2, SIGN_Z + SIGN_H / 2 - 4), sz(SIGN_OUT, SIGN_T + 6, 8), MAT_NEON, shadow=False, **RT)
+    box(f'Enseigne_{word}_NeonBas', wall_point(wall, along, 30 + SIGN_OUT / 2, SIGN_Z - SIGN_H / 2 + 4), sz(SIGN_OUT, SIGN_T + 6, 8), MAT_NEON, shadow=False, **RT)
+    box(f'Enseigne_{word}_NeonBord', wall_point(wall, along, 30 + SIGN_OUT - 4, SIGN_Z), sz(8, SIGN_T + 6, SIGN_H), MAT_NEON, shadow=False, **RT)
+    box(f'Enseigne_{word}_Potence', wall_point(wall, along, 30 + SIGN_OUT / 2, SIGN_Z + SIGN_H / 2 + 15), sz(SIGN_OUT + 20, 6, 6), MAT_SIGN, **RT)
+    light(f'Enseigne_{word}_Lueur', unreal.PointLight, wall_point(wall, along, 30 + SIGN_OUT / 2, SIGN_Z), intensity=25.0, radius=700, temp=4500,
+          shadows=False, volumetric=3.0)
+    # Lettres empilées, une face de chaque côté du panneau
+    for side in (-1, 1):
+        try:
+            off = side * (SIGN_T / 2 + 1.5)
+            p = (c[0] + off, c[1], c[2]) if axis == 'x' else (c[0], c[1] + off, c[2])
+            yaw = (0.0 if side > 0 else 180.0) if axis == 'x' else (90.0 if side > 0 else -90.0)
+            t = eas.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(*p), unreal.Rotator(0, yaw, 0))
+            tr = t.text_render
+            tr.set_editor_property('text', unreal.Text('\n'.join(word)))
+            tr.set_editor_property('world_size', 42.0)
+            tr.set_editor_property('horizontal_alignment', unreal.HorizTextAligment.EHTA_CENTER)
+            tr.set_editor_property('vertical_alignment', unreal.VerticalTextAligment.EVRTA_TEXT_CENTER)
+            tr.set_editor_property('text_render_color', unreal.Color(r=255, g=245, b=225, a=255))
+            t.set_actor_label(f'Enseigne_{word}_Lettres_{side}'); t.set_folder_path('Dressing_Real/Ruelle'); t.tags = ['DressingReal', 'DressingSwitch']
+        except Exception as e:
+            unreal.log_warning(f'[NOIR SET] lettres de {word} non posées : {e}')
 
 # --- Lampadaires (réalistes allumés, en carton peint) ---
 lamp = SM('SM_Noir_StreetLamp_Real')
