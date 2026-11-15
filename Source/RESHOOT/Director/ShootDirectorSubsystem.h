@@ -176,9 +176,12 @@ private:
 	void StopUniverseEvent();
 
 	// Transition carton -> réaliste
-	void ImproveStaging();
-	void StepStagingSweep();
-	void SetStagingState(bool bReal, float SweepAlpha);
+	/** « On améliore la mise en scène ! » : réplique, delegate, et balayage du rideau du socle. Durée du balayage. */
+	float ImproveStaging();
+	/** Remet le décor en carton (début de scène) ou le passe en réaliste (final), via le rideau du socle. */
+	void SetStagingState(bool bReal);
+	/** Le réalisateur pilote le rideau : coupe le suivi automatique (reshoot.Dressing.AutoFromDirector). */
+	void TakeControlOfStaging();
 
 	// Casting
 	void CheckCastingSlide();
@@ -230,15 +233,12 @@ private:
 	bool bMidTakeCutDone = false;
 
 	bool bStagingReal = false;
-	float StagingSweepAlpha = 0.f;
-	bool bStagingSwapped = false;
 
 	bool bCastingSlid = false;
 	bool bCastingDone = false;
 	int32 CastingTargetsHit = 0;
 	int32 CastingTargetsTotal = 0;
 
-	FTimerHandle StagingTimer;
 	FTimerHandle CastingTimer;
 	FTimerHandle PhaseTimer;
 	FTimerHandle CutTimer;
