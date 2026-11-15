@@ -376,3 +376,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : la ruelle a un asphalte mouillé où se reflètent lampadaires et appliques, des halos de lumière dans une brume un peu plus dense, et une vingtaine d'objets de rue en plus le long des murs. Seuls deux lampadaires projettent des ombres : l'alerte « trop de lumières à ombres » a disparu. Bruitages du Noir : tir du revolver, clic à vide, recharge (barillet ouvert, six cartouches, barillet refermé), tirs des gangsters (plus lointains), coupure et retour du courant (disjoncteur, ronflement, néons qui grésillent). Branchés sur trois Blueprints enfants (`BP_NoirRevolver`, `BP_NoirGangster`, `BP_NoirBlackoutEvent`), comme pour le spatial ; `DA_Noir` et les gangsters posés dans `L_Noir` utilisent ces Blueprints. Vérifié en PIE dans `L_Stage`.
 - Comment : sans crédits pour générer des sons, ils sont synthétisés en Python (numpy, dans Blender) : bruit blanc filtré avec enveloppes exponentielles, basse qui chute pour le « boum », écho de ruelle et retour sur les façades. Le générateur (`Tools/synth_noir_sfx.py`) et les WAV (`SourceArt/Noir/Audio`) sont dans le dépôt pour pouvoir les retoucher.
 - Capture : docs/devlog-media/2026-11-15-noir-ruelle-mouillee.jpg
+
+### 2026-11-15 18:15 — Film noir : une vraie arme en main
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : la boîte grise du joueur est remplacée par un pistolet de service des années 40 (Poly Haven, CC0) : `SM_Noir_Pistol_Real` (métal et crosse en bois) après le rideau, `SM_Noir_Pistol_Prop` (même modèle en carton peint) avant. Branchés comme `RealMesh` / `PropMesh` de `BP_NoirRevolver`. Vérifié en PIE dans `L_Stage`, dans les deux phases.
+- Comment : pas de revolver sur Poly Haven, le pistolet de l'époque fait l'affaire. Variante à crosse en bois gardée, chargeur et balle séparés retirés dans Blender, origine laissée sur la poignée pour la prise en main.
+- Capture : aucune

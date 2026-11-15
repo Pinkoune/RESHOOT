@@ -29,6 +29,7 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Wooden Crate 02 | James Ray Cock, Jurita Burger | `SM_Noir_WoodCrate_Real` (couverts des gangsters) |
 | Rollershutter Window 01 | MP | `SM_Noir_Shutter_Real` (rideaux de fer) |
 | Cardboard Box 01 | Rahul Chaudhary | `SM_Noir_CardboardBox_Prop` (couverts en phase carton) |
+| Service Pistol | Mateusz Sadek | `SM_Noir_Pistol_Real` (arme du film noir ; `SM_Noir_Pistol_Prop` en carton peint) |
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
 
