@@ -34,6 +34,21 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Exterior Aircon Unit | Monsta3D | `SM_Noir_AirCon_Real` (climatiseurs) |
 | Utility Box 02 | James Ray Cock | `SM_Noir_UtilityBox_Real` (armoires électriques) |
 | Barrel Stove | MP | `SM_Noir_BarrelStove_Real` (braseros) |
+| Outdoor Table Chair Set 01 | James Ray Cock | `SM_Noir_CafeSet_Real` (terrasse du club de jazz) |
+| Standing Chalkboard 01 | ParzivalCG | `SM_Noir_Chalkboard_Real` (ardoise de la terrasse) |
+| Potted Plant 02 | Rico Cilliers | `SM_Noir_Plant_Real` (plantes devant les vitrines) |
+| Planter Box 01 | James Ray Cock | `SM_Noir_Planter_Real` (jardinières) |
+| Painted Wooden Bench | Kirill Sannikov | `SM_Noir_Bench_Real` (bancs) |
+| Old Tyre | MP | `SM_Noir_Tyre_Real` (piles de pneus) |
+| Wooden Ladder 02 | JN_3DPRINTINGNERD | `SM_Noir_Ladder_Real` (escabeau) |
+| Hand Truck | Mutanzom3D | `SM_Noir_HandTruck_Real` (diable de livraison) |
+| Vintage Suitcase | Maximilian Schuster | `SM_Noir_Suitcase_Real` (valises) |
+| Metal Jerrycan | Sean Buckley | `SM_Noir_Jerrycan_Real` (bidons) |
+| Wooden Bucket 01 | James Ray Cock | `SM_Noir_Bucket_Real` (seaux) |
+| Cement Bag | PierreB3D | `SM_Noir_Sack_Real` (sacs empilés) |
+| Wooden Crate 01 | James Ray Cock | `SM_Noir_SmallCrate_Real` (petites caisses) |
+| Wine Barrel 01 | James Ray Cock | `SM_Noir_WineBarrel_Real` (tonneaux devant le bar) |
+| Wine Bottles 01 | Jurita Burger, Rico Cilliers | `SM_Noir_Bottle_Real` (bouteilles) |
 | Concrete Pavement 03 (texture) | Charlotte Baglioni | `T_Noir_Sidewalk_D` (trottoirs, corniches) |
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |

@@ -99,8 +99,9 @@ MAT_PAINTED = mi(MD + '/MI_Noir_Painted_Prop', FLAT, False, {'RoughnessScale': 1
 # =====================================================================================
 # Pose
 # =====================================================================================
-def spawn(label, mesh, loc, yaw=0.0, scale=(1, 1, 1), folder='Dressing_Real', tags=('DressingReal', 'DressingSwitch'), mat=None, shadow=True):
-    a = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(*loc), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
+def spawn(label, mesh, loc, yaw=0.0, scale=(1, 1, 1), folder='Dressing_Real', tags=('DressingReal', 'DressingSwitch'), mat=None, shadow=True,
+          pitch=0.0, roll=0.0):
+    a = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(*loc), unreal.Rotator(pitch=pitch, yaw=yaw, roll=roll))
     c = a.static_mesh_component
     c.set_static_mesh(mesh)
     a.set_actor_scale3d(unreal.Vector(*scale))
@@ -285,6 +286,7 @@ def wall_busy(wall, along, gap):
     used += [a for w_, a in FE_SPOTS if w_ == wall] + [a - 190 for w_, a in FE_SPOTS if w_ == wall] + [a for w_, a in SIGN_SPOTS if w_ == wall]
     return any(abs(along - a) < gap for a in used) or abs(along) > W - 250
 n_shop = 0
+SHOPS = []
 for wall, b0, b1, h, bi in BUILDINGS:
     for along in ((b0 + b1) / 2, (b0 + b1) / 2 - 300, (b0 + b1) / 2 + 300):
         if along < b0 + 160 or along > b1 - 160 or wall_busy(wall, along, 260):
@@ -293,6 +295,7 @@ for wall, b0, b1, h, bi in BUILDINGS:
         box(f'Vitrine_{bi}_{along:.0f}', wall_point(wall, along, 34, 140), sz(wall, 240, 4, 190), MAT_SHOP, shadow=False, **RT)
         box(f'Vitrine_{bi}_{along:.0f}_Marquise', wall_point(wall, along, 75, 268), sz(wall, 280, 90, 8), MAT_AWNING, **RT)
         n_shop += 1
+        SHOPS.append((wall, along))
         break
 
 # --- Fenêtres des étages : certaines allumées (jaune chaud), les autres sombres et brillantes (elles reflètent la rue) ---
@@ -337,7 +340,7 @@ for wall, along, word in SIGNS:
             off = side * (SIGN_T / 2 + 1.5)
             p = (c[0] + off, c[1], c[2]) if axis == 'x' else (c[0], c[1] + off, c[2])
             yaw = (0.0 if side > 0 else 180.0) if axis == 'x' else (90.0 if side > 0 else -90.0)
-            t = eas.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(*p), unreal.Rotator(0, yaw, 0))
+            t = eas.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(*p), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
             tr = t.text_render
             tr.set_editor_property('text', unreal.Text('\n'.join(word)))
             tr.set_editor_property('world_size', 42.0)
@@ -362,10 +365,11 @@ for i, (x, y) in enumerate(LAMPS):
 
 # --- Voitures bâchées (avec une boîte de collision invisible) ---
 car = SM('SM_Noir_CoveredCar_Real')
-for i, (x, y, yaw) in enumerate([(-2700, -1900, 0), (2680, 1700, 0)]):
+CARS = [(-2700, -1900, 0), (2680, 1700, 0), (1500, 2670, 90), (-900, -2670, 90)]   # les deux dernières garées le long du trottoir
+for i, (x, y, yaw) in enumerate(CARS):
     spawn(f'Voiture_{i}', car, (x, y, 0), yaw=yaw, **RD)
     spawn(f'Voiture_{i}_Carton', car, (x, y, 0), yaw=yaw, mat=MAT_PAINTED, **PD)
-    blk = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 70), unreal.Rotator(0, yaw, 0))
+    blk = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 70), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
     blk.static_mesh_component.set_static_mesh(CUBE)
     blk.set_actor_scale3d(unreal.Vector(1.8, 4.4, 1.4))
     blk.set_actor_hidden_in_game(True); blk.set_actor_label(f'Noir_Bloc_Voiture_{i}'); blk.set_folder_path('Blockout')
@@ -501,6 +505,254 @@ for wall, b0, b1, h, bi in BUILDINGS:                       # quelques réservoi
     if bi % 5 == 2:
         xw, yw, _ = wall_point(wall, (b0 + b1) / 2, -170, 0)
         water_tower(f'Toit_{bi}_Reservoir', xw, yw, h)
+
+# =====================================================================================
+# Deuxième passe d'accessoires : une rue habitée
+# (terrasse du club de jazz, tonneaux du bar, livraison, bric-à-brac dans les angles, bennes, bancs, voitures garées,
+#  parcmètres, boîtes aux lettres, plaques d'égout, affiches sur les murs, journaux par terre)
+# =====================================================================================
+import random
+rng = random.Random(1947)
+SPHERE = unreal.load_asset('/Engine/BasicShapes/Sphere.Sphere')
+MAT_METAL = mi(MD + '/MI_Noir_StreetMetal_Real', FLAT, True, {'RoughnessScale': 0.45, 'MetallicScale': 0.8}, {'BaseColorTint': (0.06, 0.06, 0.065, 1)})
+MAT_DUMP = mi(MD + '/MI_Noir_Dumpster_Real', FLAT, True, {'RoughnessScale': 0.6, 'MetallicScale': 0.5}, {'BaseColorTint': (0.03, 0.045, 0.035, 1)})
+MAT_MAILBOX = mi(MD + '/MI_Noir_Mailbox_Real', FLAT, True, {'RoughnessScale': 0.5, 'MetallicScale': 0.4}, {'BaseColorTint': (0.04, 0.06, 0.11, 1)})
+MAT_POSTER = mi(MD + '/MI_Noir_Poster_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.36, 0.345, 0.3, 1)})
+MAT_POSTER_2 = mi(MD + '/MI_Noir_Poster2_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.2, 0.19, 0.17, 1)})
+MAT_PAPER = mi(MD + '/MI_Noir_Paper_Real', FLAT, True, {'RoughnessScale': 0.9, 'MetallicScale': 0.0}, {'BaseColorTint': (0.48, 0.48, 0.46, 1)})
+
+AC = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal', 'DressingSwitch'))   # modèles Poly Haven
+AT = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal',))                   # pièces en M_SetDressing
+cafe, chalk, plant, bench = SM('SM_Noir_CafeSet_Real'), SM('SM_Noir_Chalkboard_Real'), SM('SM_Noir_Plant_Real'), SM('SM_Noir_Bench_Real')
+tyre, ladder, truck, suitcase = SM('SM_Noir_Tyre_Real'), SM('SM_Noir_Ladder_Real'), SM('SM_Noir_HandTruck_Real'), SM('SM_Noir_Suitcase_Real')
+jerry, bucket, sack, planter = SM('SM_Noir_Jerrycan_Real'), SM('SM_Noir_Bucket_Real'), SM('SM_Noir_Sack_Real'), SM('SM_Noir_Planter_Real')
+scrate, wbarrel, bottle = SM('SM_Noir_SmallCrate_Real'), SM('SM_Noir_WineBarrel_Real'), SM('SM_Noir_Bottle_Real')
+
+# Ce qui occupe déjà le sol (x, y, rayon) : on ne pose rien dessus
+OCC = []
+def occ_add(x, y, r):
+    OCC.append((x, y, r))
+def occ_free(x, y, r):
+    return is_free((x, y, 0), r) and all(math.hypot(x - ox, y - oy) > r + orr for ox, oy, orr in OCC)
+bb = shutter.get_bounding_box()
+sh_w, sh_d = bb.max.x - bb.min.x, bb.max.y - bb.min.y
+for wall, alongs in SHUTTERS.items():
+    for a_ in alongs:
+        s = -sh_w / 2
+        while s <= sh_w / 2:
+            occ_add(*wall_point(wall, a_ + s, 45 + sh_d / 2, 0)[:2], sh_d / 2 + 5); s += 40
+for mesh, wall, along, depth, yaw in STREET:
+    occ_add(*wall_point(wall, along, depth, 0)[:2], 35)
+for wall, along in [('Nord', 1700.0), ('Sud', -1000.0), ('Est', -2100.0), ('Ouest', 2600.0)]:
+    occ_add(*wall_point(wall, along, 52, 0)[:2], 60)
+for wall, along, depth in [('Ouest', -650.0, 170.0), ('Nord', 1950.0, 170.0), ('Sud', 300.0, 170.0)]:
+    occ_add(*wall_point(wall, along, depth, 0)[:2], 55)
+for wall, along in FIRE_ESCAPES:
+    occ_add(*wall_point(wall, along - 190, 150, 0)[:2], 45)
+for x, y in LAMPS:
+    occ_add(x, y, 40)
+for x, y, yaw in CARS:
+    for t in (-150, 0, 150):
+        occ_add(x + (t if yaw == 90 else 0), y + (0 if yaw == 90 else t), 110)
+
+skipped = []
+def settle(a, x, y, z):
+    """Recale un objet tourné : centre de sa boîte en (x, y), dessous à z."""
+    o, e = a.get_actor_bounds(False)
+    a.set_actor_location(a.get_actor_location() + unreal.Vector(x - o.x, y - o.y, z - (o.z - e.z)), False, False)
+def put(label, mesh, x, y, z=0.0, yaw=0.0, r=40.0, pitch=0.0, roll=0.0, scale=(1, 1, 1), carton=False, check=True):
+    """Pose un modèle au sol si la place est libre ; carton=True ajoute sa version peinte pour la répétition."""
+    if check and not occ_free(x, y, r):
+        skipped.append(label); return None
+    a = spawn(label, mesh, (x, y, z), yaw=yaw, pitch=pitch, roll=roll, scale=scale, **AC)
+    if pitch or roll: settle(a, x, y, z)
+    if carton:
+        p = spawn(label + '_Carton', mesh, (x, y, z), yaw=yaw, pitch=pitch, roll=roll, scale=scale, mat=MAT_PAINTED, **PD)
+        if pitch or roll: settle(p, x, y, z)
+    if check: occ_add(x, y, r * 0.5)            # nos propres groupes peuvent se serrer
+    return a
+def at_wall(wall, along, depth):
+    return wall_point(wall, along, depth, 0)[:2]
+def unit_y(yaw):
+    return (-math.sin(math.radians(yaw)), math.cos(math.radians(yaw)))
+
+def tyre_stack(label, x, y, n):
+    if not occ_free(x, y, 38): skipped.append(label); return
+    for i in range(n):
+        put(f'{label}_{i}', tyre, x + rng.uniform(-4, 4), y + rng.uniform(-4, 4), z=i * 16.0, yaw=rng.uniform(0, 360), roll=90.0, check=False)
+    occ_add(x, y, 19)
+def crate_stack(label, x, y, yaw, rows=(2, 2, 1)):
+    if not occ_free(x, y, 55): skipped.append(label); return
+    uy = unit_y(yaw)
+    for layer, n in enumerate(rows):
+        for k in range(n):
+            off = (k - (n - 1) / 2) * 42.0
+            put(f'{label}_{layer}_{k}', scrate, x + uy[0] * off, y + uy[1] * off, z=layer * 35.0, yaw=yaw + rng.uniform(-6, 6), check=False)
+    occ_add(x, y, 28)
+def sack_pile(label, x, y, yaw, layers=3):
+    if not occ_free(x, y, 50): skipped.append(label); return
+    for layer in range(layers):
+        for k in (-1, 1) if layer < layers - 1 else (0,):
+            ux = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
+            put(f'{label}_{layer}_{k}', sack, x + ux[0] * k * 25, y + ux[1] * k * 25, z=layer * 16.0, yaw=yaw + rng.uniform(-10, 10), check=False)
+    occ_add(x, y, 25)
+
+# --- Terrasse du club de jazz (JAZZ, mur sud) : tables pliantes, ardoise, plantes, lumière chaude ---
+for k, along in enumerate((1180.0, 1440.0)):
+    put(f'Terrasse_Table_{k}', cafe, *at_wall('Sud', along, 150), yaw=wall_yaw('Sud') + 90 + rng.uniform(-8, 8), r=95, carton=True)
+put('Terrasse_Ardoise', chalk, *at_wall('Sud', 1300, 245), yaw=wall_yaw('Sud') + 25, r=50, carton=True)
+for k, along in enumerate((1110.0, 1530.0)):
+    put(f'Terrasse_Plante_{k}', plant, *at_wall('Sud', along, 45), yaw=rng.uniform(0, 360), r=35)
+light('Terrasse_Lumiere', unreal.PointLight, wall_point('Sud', 1360, 160, 250), intensity=35.0, radius=750, temp=2400, shadows=False, volumetric=2.0)
+
+# --- Devant le bar (BAR, mur est) : tonneaux de vin en mange-debout, bouteilles dessus ---
+for k, along in enumerate((430.0, 880.0)):
+    x, y = at_wall('Est', along, 200)
+    if put(f'Bar_Tonneau_{k}', wbarrel, x, y, yaw=rng.uniform(0, 360), r=45, carton=True):
+        for j in range(2):
+            put(f'Bar_Tonneau_{k}_Bouteille_{j}', bottle, x + rng.uniform(-15, 15), y + rng.uniform(-15, 15), z=87.0, check=False)
+x, y = at_wall('Est', 1000, 300)
+put('Bar_Bouteille_Couchee', bottle, x, y, yaw=rng.uniform(0, 360), roll=90.0, r=10)
+
+# --- Livraison devant l'hôtel (mur nord) : caisses empilées, diable, sacs ---
+crate_stack('Livraison_Caisses', *at_wall('Nord', -1020, 60), yaw=wall_yaw('Nord') + 90)
+put('Livraison_Diable', truck, *at_wall('Nord', -880, 95), yaw=wall_yaw('Nord') + 160, r=40)
+sack_pile('Livraison_Sacs', *at_wall('Nord', -1260, 60), yaw=wall_yaw('Nord'))
+
+# --- Bric-à-brac dans les angles : pneus, bidons, seau, échelle, caisses, valises, sacs ---
+tyre_stack('Angle_NO_Pneus_A', -2900, 2900, 5)
+tyre_stack('Angle_NO_Pneus_B', -2825, 2905, 3)
+put('Angle_NO_Bidon_A', jerry, -2760, 2935, yaw=rng.uniform(0, 360), r=22)
+put('Angle_NO_Bidon_B', jerry, -2935, 2700, yaw=rng.uniform(0, 360), r=22)
+put('Angle_NO_Seau', bucket, -2930, 2360, yaw=rng.uniform(0, 360), r=22)
+put('Angle_NO_Echelle', ladder, -2890, 2770, yaw=90.0 + rng.uniform(-8, 8), r=55)
+crate_stack('Angle_NO_Caisses', -2905, 2430, 90.0, rows=(2, 1))
+tyre_stack('Angle_SO_Pneus_A', -2900, -2900, 4)
+tyre_stack('Angle_SO_Pneus_B', -2830, -2905, 2)
+put('Angle_SO_Valise_A', suitcase, -2930, -2620, yaw=rng.uniform(80, 100), r=40)
+put('Angle_SO_Valise_B', suitcase, -2700, -2880, yaw=rng.uniform(80, 100), roll=90.0, r=35)
+sack_pile('Angle_SO_Sacs', -2905, -2740, 90.0, layers=2)
+put('Angle_SO_Caisse', scrate, -2765, -2935, yaw=rng.uniform(-8, 8), r=45)
+tyre_stack('Angle_NE_Pneus', 2905, 2905, 3)
+put('Angle_NE_Bidon', jerry, 2840, 2935, yaw=rng.uniform(0, 360), r=22)
+put('Angle_NE_Seau', bucket, 2925, 2830, yaw=rng.uniform(0, 360), r=22)
+crate_stack('Angle_SE_Caisses', 2900, -2915, 0.0, rows=(2, 1))
+put('Angle_SE_Pneu', tyre, 2785, -2925, yaw=rng.uniform(0, 360), roll=90.0, r=32)
+put('Angle_SE_Bidon', jerry, 2720, -2940, yaw=rng.uniform(0, 360), r=22)
+
+# --- Bennes à ordures (deux phases : peinte en carton), boîte de collision invisible ---
+def dumpster(k, wall, along, depth):
+    x, y = at_wall(wall, along, depth)
+    if not occ_free(x, y, 110): skipped.append(f'Benne_{k}'); return
+    occ_add(x, y, 110)
+    for kw, mat in ((AT, MAT_DUMP), (PD, MAT_PAINTED)):
+        sfx = '' if kw is AT else '_Carton'
+        box(f'Benne_{k}{sfx}', (x, y, 70), sz(wall, 190, 110, 105), mat, kw['folder'], kw['tags'])
+        box(f'Benne_{k}_Couvercle{sfx}', (x, y, 126), sz(wall, 198, 118, 6), mat, kw['folder'], kw['tags'])
+        for s in (-1, 1):
+            box(f'Benne_{k}_Renfort_{s}{sfx}', wall_point(wall, along + s * 55, depth + 57, 70), sz(wall, 8, 6, 100), mat, kw['folder'], kw['tags'])
+    for sa in (-80, 80):
+        for sp in (-40, 40):
+            p = wall_point(wall, along + sa, depth + sp, 9)
+            box(f'Benne_{k}_Roue_{sa}_{sp}', p, (16, 16, 16), MAT_METAL, **AT)
+            box(f'Benne_{k}_Roue_{sa}_{sp}_Carton', p, (16, 16, 16), MAT_PAINTED, **PD)
+    blk = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 65), unreal.Rotator(0, 0, 0))
+    blk.static_mesh_component.set_static_mesh(CUBE)
+    s3 = sz(wall, 198, 118, 130)
+    blk.set_actor_scale3d(unreal.Vector(s3[0] / 100, s3[1] / 100, s3[2] / 100))
+    blk.set_actor_hidden_in_game(True); blk.set_actor_label(f'Noir_Bloc_Benne_{k}'); blk.set_folder_path('Blockout')
+    for j, (da, dd) in enumerate(((120, -20), (-125, 10), (40, 95))):
+        put(f'Benne_{k}_Sac_{j}', bag, *at_wall(wall, along + da, depth + dd), yaw=rng.uniform(0, 360), r=25, check=False)
+dumpster(0, 'Ouest', 1200, 95)
+dumpster(1, 'Est', -300, 95)
+
+# --- Bancs contre les façades ---
+for k, (wall, along) in enumerate([('Ouest', -1150.0), ('Sud', -470.0), ('Nord', 1500.0), ('Est', 1000.0)]):
+    put(f'Banc_{k}', bench, *at_wall(wall, along, 55), yaw=wall_yaw(wall) + 180, r=60, carton=True)
+
+# --- Plantes et jardinières devant une vitrine sur deux ---
+for k, (wall, along) in enumerate(SHOPS):
+    if k % 2 == 0:
+        for s in (-1, 1):
+            put(f'Vitrine_Plante_{k}_{s}', plant, *at_wall(wall, along + s * 100, 95), yaw=rng.uniform(0, 360), r=35)
+    else:
+        put(f'Vitrine_Jardiniere_{k}', planter, *at_wall(wall, along, 52), yaw=wall_yaw(wall), r=48)
+
+# --- Parcmètres le long des trottoirs nord et sud ---
+def meter(label, x, y):
+    spawn(f'{label}_Pied', CYL, (x, y, 55), scale=(0.06, 0.06, 1.1), mat=MAT_METAL, **AT)
+    box(f'{label}_Tete', (x, y, 124), (16, 13, 28), MAT_METAL, **AT)
+    spawn(f'{label}_Dome', SPHERE, (x, y, 139), scale=(0.15, 0.13, 0.12), mat=MAT_METAL, **AT)
+for wall in ('Nord', 'Sud'):
+    along = -2650.0
+    while along < 2800:
+        x, y = at_wall(wall, along, 238)
+        if occ_free(x, y, 25):
+            meter(f'Parcmetre_{wall}_{along:.0f}', x, y); occ_add(x, y, 25)
+        along += 640.0
+
+# --- Boîtes aux lettres ---
+def mailbox(label, wall, along, depth):
+    x, y = at_wall(wall, along, depth)
+    if not occ_free(x, y, 40): skipped.append(label); return
+    occ_add(x, y, 40)
+    for sa in (-18, 18):
+        for sp in (-16, 16):
+            box(f'{label}_Pied_{sa}_{sp}', wall_point(wall, along + sa, depth + sp, 15), (6, 6, 30), MAT_MAILBOX, **AT)
+    box(label, (x, y, 65), sz(wall, 50, 46, 70), MAT_MAILBOX, **AT)
+    rot = dict(roll=90.0) if WALLS[wall][0] == 'x' else dict(pitch=90.0)
+    spawn(f'{label}_Dessus', CYL, (x, y, 100), scale=(0.5, 0.5, 0.46), mat=MAT_MAILBOX, **AT, **rot)
+mailbox('BoiteAuxLettres_0', 'Ouest', 250, 55)
+mailbox('BoiteAuxLettres_1', 'Nord', 1080, 60)
+
+# --- Plaques d'égout ---
+for k, (x, y) in enumerate([(-300, 1200), (1200, -800), (-1500, -1300), (2000, 600), (300, -2300)]):
+    spawn(f'Egout_{k}', CYL, (x, y, 1.1), scale=(0.72, 0.72, 0.012), mat=MAT_METAL, shadow=False, **AT)
+
+# --- Affiches collées sur les façades, avec un titre pour certaines ---
+POSTER_WORDS = ['WANTED', 'REWARD\n$500', 'VOTE\nMALONE', 'BOXING\nFRIDAY', 'MISSING', 'JAZZ\nTONIGHT', 'FOR\nRENT', 'NO\nLOITERING']
+TEXT_YAW = {'Nord': -90.0, 'Sud': 90.0, 'Est': 180.0, 'Ouest': 0.0}   # le texte regarde vers la rue
+n_post = 0
+for wall, b0, b1, h, bi in BUILDINGS:
+    along = b0 + 110
+    while along < b1 - 60:
+        busy = wall_busy(wall, along, 215) or any(sw == wall and abs(along - sa) < 175 for sw, sa in SHOPS)
+        if not busy and rng.random() < 0.85:
+            for j in range(rng.choice((1, 2, 2, 3))):        # affiches qui se chevauchent
+                a2 = along + j * rng.uniform(40, 60) - 30
+                pw, ph = rng.choice(((70, 100), (60, 85), (80, 110)))
+                zc = 175 + rng.uniform(-15, 20)
+                box(f'Affiche_{n_post}', wall_point(wall, a2, 31 + 0.4 * j, zc), sz(wall, pw, 1, ph),
+                    MAT_POSTER if rng.random() < 0.65 else MAT_POSTER_2, shadow=False, **AT)
+                if rng.random() < 0.6:
+                    try:
+                        p = wall_point(wall, a2, 33 + 0.4 * j, zc + ph * 0.18)
+                        t = eas.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(*p), unreal.Rotator(pitch=0, yaw=TEXT_YAW[wall], roll=0))
+                        tr = t.text_render
+                        tr.set_editor_property('text', unreal.Text(rng.choice(POSTER_WORDS)))
+                        tr.set_editor_property('world_size', pw * 0.2)
+                        tr.set_editor_property('horizontal_alignment', unreal.HorizTextAligment.EHTA_CENTER)
+                        tr.set_editor_property('vertical_alignment', unreal.VerticalTextAligment.EVRTA_TEXT_CENTER)
+                        tr.set_editor_property('text_render_color', unreal.Color(r=18, g=18, b=18, a=255))
+                        t.set_actor_label(f'Affiche_{n_post}_Titre'); t.set_folder_path('Dressing_Real/Accessoires'); t.tags = ['DressingReal', 'DressingSwitch']
+                    except Exception as e:
+                        unreal.log_warning(f'[NOIR SET] titre d\'affiche non posé : {e}')
+                n_post += 1
+        along += rng.uniform(300, 420)
+
+# --- Journaux et papiers éparpillés (surtout le long des trottoirs) ---
+for k in range(90):
+    if k % 3:
+        wall = rng.choice(list(WALLS))
+        x, y = at_wall(wall, rng.uniform(-2900, 2900), rng.uniform(40, 450))
+    else:
+        x, y = rng.uniform(-2850, 2850), rng.uniform(-2850, 2850)
+    zb = 4.4 if max(abs(x), abs(y)) > W - 252 else 1.6           # sur le trottoir (4 cm) ou sur l'asphalte
+    spawn(f'Journal_{k}', CUBE, (x, y, zb + (k % 4) * 0.15), yaw=rng.uniform(0, 360),
+          scale=(rng.choice((0.42, 0.3, 0.36, 0.22)), rng.choice((0.3, 0.24, 0.28, 0.18)), 0.004),
+          mat=MAT_PAPER if k % 4 else MAT_POSTER, shadow=False, **AT)
+
+unreal.log_warning(f'[NOIR SET] accessoires : {n_post} affiches, rideau {sh_w:.0f}x{sh_d:.0f}, non posés (place prise) : {skipped}')
 
 # =====================================================================================
 # Lumière et atmosphère
