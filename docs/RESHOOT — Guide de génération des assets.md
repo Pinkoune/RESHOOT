@@ -107,9 +107,9 @@ Armes et accessoires existent en deux versions, comme les décors : même prompt
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- |
-| Épée | `SM_Medieval_Sword` | `Medieval knight longsword, straight double-edged steel blade, simple crossguard, leather-wrapped grip, round pommel.` | 100 cm de long | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; carton à générer |
-| Bouclier | `SM_Medieval_Shield` | `Medieval heater shield, painted wood with red and gold heraldic stripes and no emblem, metal rim, leather straps on the back.` | 80 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; carton à générer |
-| Arc | `SM_Medieval_Bow` | `Medieval wooden longbow, thick curved yew wood, leather grip in the middle, no string, no arrow.` | 140 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; carton à générer |
+| Épée | `SM_Medieval_Sword` | `Medieval knight longsword, straight double-edged steel blade, simple crossguard, leather-wrapped grip, round pommel.` | 100 cm de long | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
+| Bouclier | `SM_Medieval_Shield` | `Medieval heater shield, painted wood with red and gold heraldic stripes and no emblem, metal rim, leather straps on the back.` | 80 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
+| Arc | `SM_Medieval_Bow` | `Medieval wooden longbow, thick curved yew wood, leather grip in the middle, no string, no arrow.` | 140 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
 | Fusil laser | `SM_Space_LaserRifle` | `Retro sci-fi laser rifle, compact bullpup shape, white and orange plastic panels, glowing blue emitter at the muzzle, cooling fins on the barrel, chunky trigger guard.` | 70 cm de long | 30 000 |  |  |
 | Revolver | `SM_Noir_Revolver` | `1940s snub-nose revolver, six-shot cylinder, dark blued steel, checkered wooden grip, film noir detective style.` | 20 cm de long | 20 000 |  |  |
 
