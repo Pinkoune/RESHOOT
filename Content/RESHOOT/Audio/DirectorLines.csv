@@ -1,50 +1,50 @@
 ﻿Name,Sound,Subtitle,SubtitleDuration
-Intro_Medieval,,"Scene one, the Middle Ages! Knights, mud, honor. I want to smell the sweat in that armor!",4.5
-Intro_Space,,"Scene two, outer space! No gravity, no mercy. And no one can hear you scream, except me!",4.5
-Intro_Noir,,"Scene three, film noir! It's raining, the city's rotten, and you've got a revolver. Black and white, please!",4.5
-Intro_Finale,,"The grand finale! We mix everything! The producer's going to kill me, but who cares. ACTION!",4
-Action_01,,"Quiet on set... Rolling... ACTION!",2.5
-Action_02,,"And... ACTION!",1.5
-Action_03,,"We're rolling! Go, go, go!",2
-Action_04,,"Next take. Focus. ACTION!",2.5
-Action_05,,"Cameras are rolling, darling, ACTION!",2.5
-Cut_01,,"CUT! CUT! What was that?!",2.5
-Cut_02,,"CUT! No, no, no, I don't buy it for one second!",3
-Cut_03,,"CUT! You act like an extra in a yogurt commercial!",3
-Cut_04,,"CUT! Stop everything! I've got a brilliant idea!",2.5
-Cut_05,,"CUT! The audience is falling asleep, wake them up!",2.5
-Cut_06,,"CUT! My grandmother aims better than you, and she's blind!",3
-Cut_07,,"CUT! More emotion! More chaos! More EVERYTHING!",3
-Cut_08,,"CUT! Okay. Deep breath. And we change everything.",2.5
-Dir_Headshots,,"I want headshots! Nothing but headshots! It's artistic!",3.5
-Dir_KeepMoving,,"Keep moving! All the time! A star never stands still!",3
-Dir_MeleeOnly,,"Close combat! I want to see the whites of their eyes!",3
-Dir_NoDamage,,"Don't take a single hit, makeup spent three hours on your face!",3.5
-Dir_Fast,,"Faster! We only have the set until noon!",2.5
-Dir_LowHealth,,"I want suffering! Play it wounded, on the brink of death!",3
-Dir_NoReload,,"No reloading! Real heroes never reload!",3
-Dir_Stylish,,"Style! I want slides, jumps, a real show!",3
-Retake,,"Again! From the top! Nobody move!",2.5
-Retake_02,,"You're dead? You're DEAD?! That wasn't in the script!",3
-Retake_03,,"Okay. Next take. And this time you survive, got it?",3
-Retake_04,,"Makeup! More fake blood on him, we go again!",3
-Retake_05,,"Gorgeous death. Completely off-script. Again.",3
-Good_01,,"Yes! YES! That's cinema!",2
-Good_02,,"I'm crying. Crying with joy.",2
-Good_03,,"Now that's an Oscar! Keep that take!",2.5
-Good_04,,"The audience loves it! Keep going!",2
-Good_05,,"See, you can do it! Magnificent!",2
-Switch_01,,"Scene change! Quick, quick, quick!",2
-Switch_02,,"Moving on! Stagehands, get moving!",2.5
-Switch_03,,"New set, same hero, ACTION!",2
-Wrap,,"And... that's a wrap! Thank you all, pack it up!",3
-Wrap_Bad,,"That's a wrap... Well. We'll fix it in post.",3
-Dir_NoShield,,"No shield! A hero isn't afraid of a few hits!",3
-Dir_NoBow,,"Put that bow away! I want close combat, the real thing!",3
-Dir_LaserCost,,"That laser is expensive! Every shot comes out of MY budget!",3
-Staging_Improve,,"Let's improve the staging! Bring out the real sets!",3.5
-CastingIntro,,"Him? Fine... we'll make do. Slide down the ramp, then take out those three targets.",5
-CastingDone,,"Not bad. You're hired! Places, everyone, we're rolling!",3
-EventSpace,,"Heads up, gravity comes back on in three seconds!",3
-Event_Medieval,,"Release the horses! Here comes the convoy!",3
-Event_Noir,,"Kill the lights! Plunge it all into darkness!",3
+Intro_Medieval,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Intro_Medieval.SW_Dir_Intro_Medieval',"Scene one, the Middle Ages! Knights, mud, honor. I want to smell the sweat in that armor!",4.5
+Intro_Space,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Intro_Space.SW_Dir_Intro_Space',"Scene two, outer space! No gravity, no mercy. And no one can hear you scream, except me!",4.5
+Intro_Noir,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Intro_Noir.SW_Dir_Intro_Noir',"Scene three, film noir! It's raining, the city's rotten, and you've got a revolver. Black and white, please!",4.5
+Intro_Finale,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Intro_Finale.SW_Dir_Intro_Finale',"The grand finale! We mix everything! The producer's going to kill me, but who cares. ACTION!",4
+Action_01,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Action_01.SW_Dir_Action_01',Quiet on set... Rolling... ACTION!,2.5
+Action_02,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Action_02.SW_Dir_Action_02',And... ACTION!,1.5
+Action_03,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Action_03.SW_Dir_Action_03',"We're rolling! Go, go, go!",2
+Action_04,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Action_04.SW_Dir_Action_04',Next take. Focus. ACTION!,2.5
+Action_05,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Action_05.SW_Dir_Action_05',"Cameras are rolling, darling, ACTION!",2.5
+Cut_01,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_01.SW_Dir_Cut_01',CUT! CUT! What was that?!,2.5
+Cut_02,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_02.SW_Dir_Cut_02',"CUT! No, no, no, I don't buy it for one second!",3
+Cut_03,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_03.SW_Dir_Cut_03',CUT! You act like an extra in a yogurt commercial!,3
+Cut_04,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_04.SW_Dir_Cut_04',CUT! Stop everything! I've got a brilliant idea!,2.5
+Cut_05,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_05.SW_Dir_Cut_05',"CUT! The audience is falling asleep, wake them up!",2.5
+Cut_06,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_06.SW_Dir_Cut_06',"CUT! My grandmother aims better than you, and she's blind!",3
+Cut_07,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_07.SW_Dir_Cut_07',CUT! More emotion! More chaos! More EVERYTHING!,3
+Cut_08,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Cut_08.SW_Dir_Cut_08',CUT! Okay. Deep breath. And we change everything.,2.5
+Dir_Headshots,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_Headshots.SW_Dir_Dir_Headshots',I want headshots! Nothing but headshots! It's artistic!,3.5
+Dir_KeepMoving,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_KeepMoving.SW_Dir_Dir_KeepMoving',Keep moving! All the time! A star never stands still!,3
+Dir_MeleeOnly,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_MeleeOnly.SW_Dir_Dir_MeleeOnly',Close combat! I want to see the whites of their eyes!,3
+Dir_NoDamage,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_NoDamage.SW_Dir_Dir_NoDamage',"Don't take a single hit, makeup spent three hours on your face!",3.5
+Dir_Fast,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_Fast.SW_Dir_Dir_Fast',Faster! We only have the set until noon!,2.5
+Dir_LowHealth,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_LowHealth.SW_Dir_Dir_LowHealth',"I want suffering! Play it wounded, on the brink of death!",3
+Dir_NoReload,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_NoReload.SW_Dir_Dir_NoReload',No reloading! Real heroes never reload!,3
+Dir_Stylish,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_Stylish.SW_Dir_Dir_Stylish',"Style! I want slides, jumps, a real show!",3
+Retake,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Retake.SW_Dir_Retake',Again! From the top! Nobody move!,2.5
+Retake_02,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Retake_02.SW_Dir_Retake_02',You're dead? You're DEAD?! That wasn't in the script!,3
+Retake_03,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Retake_03.SW_Dir_Retake_03',"Okay. Next take. And this time you survive, got it?",3
+Retake_04,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Retake_04.SW_Dir_Retake_04',"Makeup! More fake blood on him, we go again!",3
+Retake_05,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Retake_05.SW_Dir_Retake_05',Gorgeous death. Completely off-script. Again.,3
+Good_01,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Good_01.SW_Dir_Good_01',Yes! YES! That's cinema!,2
+Good_02,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Good_02.SW_Dir_Good_02',I'm crying. Crying with joy.,2
+Good_03,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Good_03.SW_Dir_Good_03',Now that's an Oscar! Keep that take!,2.5
+Good_04,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Good_04.SW_Dir_Good_04',The audience loves it! Keep going!,2
+Good_05,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Good_05.SW_Dir_Good_05',"See, you can do it! Magnificent!",2
+Switch_01,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Switch_01.SW_Dir_Switch_01',"Scene change! Quick, quick, quick!",2
+Switch_02,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Switch_02.SW_Dir_Switch_02',"Moving on! Stagehands, get moving!",2.5
+Switch_03,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Switch_03.SW_Dir_Switch_03',"New set, same hero, ACTION!",2
+Wrap,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Wrap.SW_Dir_Wrap',"And... that's a wrap! Thank you all, pack it up!",3
+Wrap_Bad,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Wrap_Bad.SW_Dir_Wrap_Bad',That's a wrap... Well. We'll fix it in post.,3
+Dir_NoShield,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_NoShield.SW_Dir_Dir_NoShield',No shield! A hero isn't afraid of a few hits!,3
+Dir_NoBow,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_NoBow.SW_Dir_Dir_NoBow',"Put that bow away! I want close combat, the real thing!",3
+Dir_LaserCost,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Dir_LaserCost.SW_Dir_Dir_LaserCost',That laser is expensive! Every shot comes out of MY budget!,3
+Staging_Improve,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Staging_Improve.SW_Dir_Staging_Improve',Let's improve the staging! Bring out the real sets!,3.5
+CastingIntro,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_CastingIntro.SW_Dir_CastingIntro',"Him? Fine... we'll make do. Slide down the ramp, then take out those three targets.",5
+CastingDone,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_CastingDone.SW_Dir_CastingDone',"Not bad. You're hired! Places, everyone, we're rolling!",3
+EventSpace,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_EventSpace.SW_Dir_EventSpace',"Heads up, gravity comes back on in three seconds!",3
+Event_Medieval,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Event_Medieval.SW_Dir_Event_Medieval',Release the horses! Here comes the convoy!,3
+Event_Noir,/Script/Engine.SoundWave'/Game/RESHOOT/Audio/DirectorVoice/SW_Dir_Event_Noir.SW_Dir_Event_Noir',Kill the lights! Plunge it all into darkness!,3

@@ -45,7 +45,7 @@ Spatial
 
 Film noir + audio
 - [x] Revolver hitscan avec chargeur (testé en PIE sur `L_NoirTest` : 40 dégâts, x2 à la tête, recharge auto)
-- [x] Liste des 40 répliques du réalisateur (texte) — texte fait (49 lignes en anglais, `DirectorLines.csv`) ; voix : Jérémy s'en charge (coupon fal du jam épuisé)
+- [x] Liste des 40 répliques du réalisateur (texte), choix de la voix — texte : `Content/RESHOOT/Audio/DirectorLines.csv` ; voix « George » (ElevenLabs via fal)
 
 Tous
 - [ ] Réclamer les crédits (SpaceXSI, Tripo, Hyper3D, fal, Diversion)
@@ -72,7 +72,7 @@ Spatial
 Film noir + audio
 - [x] Gangster à couvert, post-process noir et blanc (testés sur `L_NoirTest` ; `M_PP_Noir` reste à appliquer par le réalisateur via `DA_Noir`)
 - [x] `UUniverseDefinition` + sous-niveau `L_Noir` (`DA_Noir`, `L_Noir` : 5 caisses + 3 gangsters, sans sol ni lumière, prévu pour être chargé dans `L_Stage` avec un sol à Z=0)
-- [ ] Répliques générées, `DT_DirectorLines` remplie — table remplie (49 lignes, sous-titres anglais) ; voix : Jérémy
+- [x] Répliques générées, `DT_DirectorLines` remplie — 49 répliques anglaises, voix « George » (Eleven v4 via fal), `Content/RESHOOT/Audio/DirectorVoice/`, branchées par `Tools/setup_director_voice.py` (Jérémy + Claude, 15/11)
 
 **Coupe du vendredi soir : un univers non jouable est supprimé.**
 

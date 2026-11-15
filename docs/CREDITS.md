@@ -48,10 +48,19 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 
 Texte à reprendre tel quel sur la page itch.io : "Hard Boiled", "Master of the Feast", "Space Fighter Loop" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/
 
+## Police
+
+| Police | Auteur | Licence | Où |
+| --- | --- | --- | --- |
+| Bebas Neue | Dharma Type (Ryoichi Tsunekawa), The Bebas Neue Project Authors | SIL Open Font License 1.1 (texte joint : `SourceArt/UI/Fonts/OFL.txt`) | Titres du HUD (`FF_BebasNeue`, `AReshootHUD`) |
+
+Texte à reprendre sur la page itch.io : Bebas Neue by Dharma Type, licensed under the SIL Open Font License 1.1.
+
 ## Assets générés pendant la jam (créés par l'équipe)
 
 - Modèles 3D : Tripo (décors, drone, studio), Rodin (fusil laser). Sources dans `SourceArt/`.
 - Images : fal (sol, mur). Le ciel et la planète sont maintenant procéduraux (`Tools/build_hangar.py`).
+- Voix du réalisateur : 49 répliques générées avec ElevenLabs Eleven v4 (voix « George ») via fal. Textes et indications de jeu dans `SourceArt/Audio/DirectorVoice/prompts.csv`.
 
 ## Outils
 
