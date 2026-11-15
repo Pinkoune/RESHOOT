@@ -97,7 +97,7 @@ Interface
 
 - [ ] Corrections issues du test
 - [ ] Éclairage et rendu, DLSS si carte RTX disponible
-- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules) — Noir : « Hard Boiled » de Kevin MacLeod (CC-BY 4.0) dans `DA_Noir`, testé en jeu. Médiéval : « Master of the Feast », Spatial : « Space Fighter Loop » (même auteur, même licence), testés en jeu.
+- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules) — Noir : « Hard Boiled » de Kevin MacLeod (CC-BY 4.0) dans `DA_Noir`, testé en jeu. Bruitages du Noir faits (tir, recharge, clic à vide, tirs des gangsters, coupure et retour du courant : `Tools/synth_noir_sfx.py`, branchés par `Tools/setup_noir_sounds.py`). Médiéval : « Master of the Feast », Spatial : « Space Fighter Loop » (même auteur, même licence), testés en jeu.
 - [ ] Build de secours en ligne à 20h
 - [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…)
 - [ ] Dev log finalisé

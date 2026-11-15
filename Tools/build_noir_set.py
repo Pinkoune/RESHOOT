@@ -55,7 +55,8 @@ def mi(path, parent, real, scalars=None, vectors=None, textures=None):
     return m
 MD = '/Game/RESHOOT/Noir/Materials'
 TX = '/Game/RESHOOT/Noir/Textures'
-MAT_ASPHALT = mi(MD + '/MI_Noir_Asphalt_Real', TILED, True, {'Roughness': 0.55, 'Metallic': 0.0},
+# Asphalte mouillé (rugosité basse) : les lampadaires s'y reflètent, comme dans tout film noir.
+MAT_ASPHALT = mi(MD + '/MI_Noir_Asphalt_Real', TILED, True, {'Roughness': 0.22, 'Metallic': 0.0},
                  {'TileSize': (300, 300, 300, 1), 'BaseColorTint': (0.55, 0.55, 0.55, 1)}, {'BaseColorMap': TX + '/T_Noir_Asphalt_D'})
 MAT_BRICK = mi(MD + '/MI_Noir_Brick_Real', TILED, True, {'Roughness': 0.85, 'Metallic': 0.0},
                {'TileSize': (250, 250, 250, 1), 'BaseColorTint': (0.8, 0.8, 0.8, 1)}, {'BaseColorMap': TX + '/T_Noir_Brick_D'})
@@ -81,12 +82,14 @@ def spawn(label, mesh, loc, yaw=0.0, scale=(1, 1, 1), folder='Dressing_Real', ta
 def box(label, center, size, mat, folder, tags, shadow=True):
     return spawn(label, CUBE, center, scale=(size[0] / 100, size[1] / 100, size[2] / 100), folder=folder, tags=tags, mat=mat, shadow=shadow)
 
-def light(label, cls, loc, rot=(0, 0, 0), intensity=1.0, radius=None, temp=None, cones=None, shadows=True, folder='Dressing_Real/Lighting', tags=('DressingReal',)):
+def light(label, cls, loc, rot=(0, 0, 0), intensity=1.0, radius=None, temp=None, cones=None, shadows=True, folder='Dressing_Real/Lighting', tags=('DressingReal',),
+          volumetric=1.0):
     a = eas.spawn_actor_from_class(cls, unreal.Vector(*loc), unreal.Rotator(pitch=rot[0], yaw=rot[1], roll=rot[2]))
     lc = a.get_component_by_class(unreal.LightComponentBase)
     if hasattr(lc, 'set_mobility'): lc.set_mobility(unreal.ComponentMobility.MOVABLE)
     lc.set_editor_property('intensity', intensity)
     lc.set_editor_property('cast_shadows', shadows)
+    lc.set_editor_property('volumetric_scattering_intensity', volumetric)
     if temp is not None:
         lc.set_editor_property('use_temperature', True); lc.set_editor_property('temperature', temp)
     if radius is not None: lc.set_editor_property('attenuation_radius', radius)
@@ -223,7 +226,9 @@ for i, (x, y) in enumerate(LAMPS):
     if not is_free((x, y, 0), 60):
         continue
     spawn(f'Lampadaire_{i}', lamp, (x, y, 0), yaw=30 * i, **RD)
-    light(f'Lampadaire_{i}_Lumiere', unreal.PointLight, (x, y, 340), intensity=LAMP_CD, radius=2200, temp=2700)
+    # Halo visible dans la brume ; ombres sur deux lampadaires seulement (trop de lumières à ombres au même endroit sinon).
+    light(f'Lampadaire_{i}_Lumiere', unreal.PointLight, (x, y, 340), intensity=LAMP_CD, radius=2200, temp=2700,
+          shadows=(i in (2, 3)), volumetric=4.0)
     spawn(f'Lampadaire_{i}_Carton', lamp, (x, y, 0), yaw=30 * i, mat=MAT_PAINTED, **PD)
 
 # --- Voitures bâchées (avec une boîte de collision invisible) ---
@@ -244,6 +249,14 @@ STREET = [
     (barrel, 'Est', -800, 50, 0), (barrel, 'Est', -720, 55, 30), (barrel, 'Est', -760, 120, 70),
     (can, 'Ouest', 0, 50, 0), (bag, 'Ouest', 80, 50, 20), (bag, 'Ouest', -70, 60, 60),
     (hydrant, 'Nord', 1200, 60, 0), (hydrant, 'Sud', -1250, 60, 180),
+    # Ruelle plus habitée : tas de sacs, poubelles et tonneaux entre les rideaux de fer
+    (bag, 'Nord', 300, 45, 30), (bag, 'Nord', 370, 60, 140), (can, 'Nord', 230, 50, 90),
+    (barrel, 'Nord', 2050, 50, 0), (barrel, 'Nord', 2120, 60, 50),
+    (can, 'Sud', -300, 50, 20), (can, 'Sud', -230, 55, 100), (bag, 'Sud', -370, 45, 0), (bag, 'Sud', -160, 70, 60),
+    (barrel, 'Sud', -2300, 50, 0), (bag, 'Sud', -2220, 60, 70),
+    (bag, 'Est', 650, 45, 0), (bag, 'Est', 720, 60, 90), (can, 'Est', 580, 50, 30),
+    (barrel, 'Ouest', -1500, 50, 0), (barrel, 'Ouest', -1430, 55, 40), (can, 'Ouest', 1500, 50, 0), (bag, 'Ouest', 1570, 50, 50),
+    (hydrant, 'Ouest', -600, 60, 0), (hydrant, 'Est', 2100, 60, 0),
 ]
 for k, (mesh, wall, along, depth, yaw) in enumerate(STREET):
     p = wall_point(wall, along, depth, 0)
@@ -256,7 +269,8 @@ for k, (mesh, wall, along, depth, yaw) in enumerate(STREET):
 # Réaliste : nuit. Brume, lampadaires et appliques chauds (le plafond noir bloque le soleil du plateau).
 fog = eas.spawn_actor_from_class(unreal.ExponentialHeightFog, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0))
 fc = fog.get_component_by_class(unreal.ExponentialHeightFogComponent)
-fc.set_editor_property('fog_density', 0.02); fc.set_editor_property('fog_height_falloff', 0.08)
+fc.set_editor_property('fog_density', 0.03); fc.set_editor_property('fog_height_falloff', 0.12)
+fc.set_editor_property('volumetric_fog_scattering_distribution', 0.6)   # halo vers la caméra autour des lampes
 fc.set_editor_property('enable_volumetric_fog', True)
 fc.set_editor_property('fog_inscattering_luminance', unreal.LinearColor(0.002, 0.002, 0.003, 1))
 fog.set_actor_label('Ruelle_Brume'); fog.set_folder_path('Dressing_Real/Lighting'); fog.tags = ['DressingReal']

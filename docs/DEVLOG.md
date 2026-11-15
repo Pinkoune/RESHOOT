@@ -370,3 +370,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : « Master of the Feast » (médiéval, fanfare d'époque) et « Space Fighter Loop » (spatial, synthé) de Kevin MacLeod, CC-BY 4.0, branchés comme `Music` de `DA_Medieval` et `DA_Universe_Space`. Avec le jazz du Noir, les trois univers ont leur boucle ; vérifié en PIE dans `L_Stage` (chaque changement d'univers lance la bonne musique, l'ancienne s'éteint en fondu).
 - Comment : même chaîne que pour le Noir (MP3 incompetech, conversion WAV par Blender, import par script). Crédit exact pour itch.io dans `docs/CREDITS.md`.
 - Capture : aucune
+
+### 2026-11-15 18:00 — Film noir : ruelle mouillée et bruitages
+- Qui : Jules (« polish tout ça ») + Claude (Claude Code, Opus 5.5)
+- Fait : la ruelle a un asphalte mouillé où se reflètent lampadaires et appliques, des halos de lumière dans une brume un peu plus dense, et une vingtaine d'objets de rue en plus le long des murs. Seuls deux lampadaires projettent des ombres : l'alerte « trop de lumières à ombres » a disparu. Bruitages du Noir : tir du revolver, clic à vide, recharge (barillet ouvert, six cartouches, barillet refermé), tirs des gangsters (plus lointains), coupure et retour du courant (disjoncteur, ronflement, néons qui grésillent). Branchés sur trois Blueprints enfants (`BP_NoirRevolver`, `BP_NoirGangster`, `BP_NoirBlackoutEvent`), comme pour le spatial ; `DA_Noir` et les gangsters posés dans `L_Noir` utilisent ces Blueprints. Vérifié en PIE dans `L_Stage`.
+- Comment : sans crédits pour générer des sons, ils sont synthétisés en Python (numpy, dans Blender) : bruit blanc filtré avec enveloppes exponentielles, basse qui chute pour le « boum », écho de ruelle et retour sur les façades. Le générateur (`Tools/synth_noir_sfx.py`) et les WAV (`SourceArt/Noir/Audio`) sont dans le dépôt pour pouvoir les retoucher.
+- Capture : docs/devlog-media/2026-11-15-noir-ruelle-mouillee.jpg
