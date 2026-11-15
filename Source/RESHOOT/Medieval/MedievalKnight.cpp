@@ -1,6 +1,7 @@
 #include "Medieval/MedievalKnight.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
+#include "Medieval/MedievalAnimatedLook.h"
 #include "RESHOOT.h"
 
 #include "AIController.h"
@@ -47,6 +48,16 @@ AMedievalKnight::AMedievalKnight(const FObjectInitializer& ObjectInitializer)
 		BodyMesh->SetStaticMesh(CubeMesh.Object);
 		HelmetMesh->SetStaticMesh(CubeMesh.Object);
 	}
+
+	RealLook = CreateDefaultSubobject<UMedievalAnimatedLook>(TEXT("RealLook"));
+	RealLook->HeldWeaponSocket = TEXT("hand_r");
+}
+
+void AMedievalKnight::OnDressingChanged(bool bReal)
+{
+	Super::OnDressingChanged(bReal);
+	RealLook->SetGrayBoxParts({ BodyMesh.Get(), HelmetMesh.Get() });
+	RealLook->SetReal(bReal);
 }
 
 void AMedievalKnight::BeginPlay()
@@ -74,11 +85,13 @@ void AMedievalKnight::OnFreezeChanged(bool bFreeze)
 	{
 		Timers.PauseTimer(ThinkTimer);
 		Timers.PauseTimer(AttackTimer);
+		RealLook->SetFrozen(true);
 	}
 	else
 	{
 		Timers.UnPauseTimer(ThinkTimer);
 		Timers.UnPauseTimer(AttackTimer);
+		RealLook->SetFrozen(false);
 	}
 }
 
@@ -141,6 +154,7 @@ void AMedievalKnight::Think()
 			LastAttackTime = Now;
 			AI->StopMovement();
 			FacePlayer();
+			RealLook->PlayAttack();
 			if (bDrawDebug)
 			{
 				DrawDebugSphere(GetWorld(), GetActorLocation() + GetActorForwardVector() * 60.f, 25.f, 8, FColor::Orange, false, AttackWindup);
@@ -221,6 +235,12 @@ void AMedievalKnight::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 	if (Away.IsNearlyZero())
 	{
 		Away = -GetActorForwardVector();
+	}
+
+	// Personnage réaliste : animation de mort (ou poupée de chiffon) à la place des boîtes grises.
+	if (RealLook->PlayDeath(Away, DeathImpulse))
+	{
+		return;
 	}
 
 	auto Collapse = [&](UStaticMeshComponent* Part, float UpBoost, float Spin)

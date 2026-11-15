@@ -10,6 +10,7 @@
 
 class UStaticMeshComponent;
 class USoundBase;
+class UMedievalAnimatedLook;
 
 UCLASS(Blueprintable)
 class RESHOOT_API AMedievalKnight : public AReshootEnemy
@@ -58,10 +59,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Knight|Audio")
 	TObjectPtr<USoundBase> DeathSound;
 
+	/** Apparence réaliste animée, affichée après le rideau (assets à régler dans le Blueprint). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Knight")
+	TObjectPtr<UMedievalAnimatedLook> RealLook;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnFreezeChanged(bool bFreeze) override;
 	virtual void OnDeath(AActor* Killer, bool bHeadshot, bool bMelee) override;
+	virtual void OnDressingChanged(bool bReal) override;
 
 	/** Corps en boîte grise ; à cacher dans le Blueprint quand un vrai mesh est assigné. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Knight")
