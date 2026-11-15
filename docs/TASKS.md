@@ -97,7 +97,7 @@ Interface
 
 - [ ] Corrections issues du test
 - [ ] Éclairage et rendu, DLSS si carte RTX disponible
-- [ ] Sons, musiques, mixage
+- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules)
 - [ ] Build de secours en ligne à 20h
 - [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…)
 - [ ] Dev log finalisé
@@ -106,7 +106,7 @@ Interface
 ## Décor carton -> réaliste (13/11)
 
 - [x] Socle : `ASetDressingSweep`, `MPC_SetDressing`, `M_SetDressing`, armes et accessoires en deux versions, test dans `L_Space` (Jérémy + Claude)
-- [ ] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 (Enzo, voir `docs/HANDOFF-Director.md`)
+- [x] Réalisateur : `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la prise 1 et au final (Enzo, fait le 15/11, testé en PIE ; suivi automatique du rideau coupé par le réalisateur)
 - [ ] Chaque univers : versions `_Prop` et `_Real` de chaque objet, de l'arme et de l'accessoire du figurant, rangées et taguées selon `docs/ARCHITECTURE.md` (Ileana, Jules, spatial)
 - [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
 - [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
@@ -138,4 +138,5 @@ Format : `- [ ] <demandeur> : j'ai besoin de <fonction ou delegate> pour <raison
 - [x] Enzo → Jérémy : transition carton → réaliste branchée sur `ASetDressingSweep`. Le réalisateur appelle `ResetDressing()` au début de chaque scène, `UpgradeDressing()` à la fin de la 1re prise (« On améliore la mise en scène ! », le gel du CUT! dure le temps du balayage + 0,5 s) et au final, et met `reshoot.Dressing.AutoFromDirector` à 0. Tags du décor : ceux du socle (`DressingProp`, `DressingReal`, `DressingSwitch`). Mon doublon (MPC du réalisateur, tags `SetDressing_*`) est supprimé.
 - [ ] Enzo → Iléana (Interface) : pendant le casting (phase `Casting`), le HUD affiche « Scène 1 – Prise 1 », le REC et l'audimat. À masquer ou à remplacer par la fiche d'acteur ; `OnCastingProgress(bSlid, TargetsHit, TargetsTotal)` donne l'avancement du tutoriel.
 - [ ] Enzo → Jérémy (socle) : `ReshootCharacter.cpp` retouché (accord d'Enzo) : touche C ajoutée à l'accroupi/glissade, et `CanStartSlide` accepte la vitesse de sprint même Maj relâché. Possible amélioration : un délai de grâce (~0,3 s) après le relâchement de Maj, qui demande une variable dans le header.
-
+- [ ] Enzo → Jules : sous-titres du réalisateur passés en anglais (49 lignes de `DT_DirectorLines` et `DirectorLines.csv`, demande d'Enzo). Le texte français est gardé dans `Content/RESHOOT/Audio/DirectorLines_FR.csv`. Pour les voix (fal) : choisir la langue ; si elles restent en français, les sous-titres anglais servent de traduction.
+- [ ] Enzo → équipe : tout le texte visible du jeu est passé en anglais (demande d'Enzo, 15/11). Hors de mon dossier, à vérifier par leurs propriétaires : HUD (`UI/ReshootHUD.cpp` : SCENE / TAKE, RATINGS, HEALTH, CUT!, 1 SWORD 2 BOW 3 FISTS, GUARD, SHIELD UP — Iléana), noms d'armes (`MedievalSword.cpp`, `BP_MedievalSword` : Sword & shield, Bow, Fists ; `SpaceLaser.cpp`, `BP_SpaceLaser` : Laser rifle), noms d'univers (`DA_Medieval` : Medieval, `DA_Universe_Space` : Sci-fi et mots de l'affiche Orbit / Galaxy / Odyssey / Void / Stars), nom de joueur par défaut `Extra` (`ReshootGameState.h`, Jérémy). Tout nouveau texte affiché doit être écrit en anglais.

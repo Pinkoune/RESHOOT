@@ -340,3 +340,16 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : la coupure de courant n'a plus son propre minuteur (il doublait celui du socle et ne se mettait pas en pause au CUT!). Le gangster baissé s'accroupit pour de vrai (`Crouch()`, capsule de 68 cm) : avec le tir du socle qui s'arrête sur les capsules, sa capsule dépassait de la caisse et prenait les balles alors qu'il était caché.
 - Comment : bugs trouvés en relisant ce que l'équipe a changé autour du Noir depuis jeudi, puis vérifiés en PIE sur `L_NoirTest` : tir juste au-dessus de la caisse d'un gangster baissé (vie 80 → 80), coupure de 4 s mise en pause 6 s puis reprise (toujours active, puis arrêtée). Travail sur la branche `jules/noir`.
 - Capture : aucune
+
+### 2026-11-15 — Réalisateur : musique des univers, sous-titres en anglais
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : le réalisateur joue la boucle musicale de chaque univers (`UUniverseDefinition::Music`) : fondu enchaîné au changement d'univers et à chaque bascule du final, coupée net au « CUT! » et reprise à l'action (GDD), fondu de sortie en fin de partie ; elle boucle même si l'asset ne boucle pas. Volume et fondus réglables dans `SS_Main`. Les 49 sous-titres du réalisateur sont en anglais ; le français est gardé à part. Vérifié en PIE avec deux sons provisoires du Spatial assignés en mémoire : musique du Médiéval puis du Noir au changement de scène, sous-titres anglais avec apostrophes correctes.
+- Comment : aucune musique n'existe encore dans le projet, d'où le test avec des sons de réacteur. Piège évité : l'export JSON de la table échappe les apostrophes (`'`), à ne pas recopier tel quel dans les CSV.
+- Capture : aucune
+
+### 2026-11-15 — Tout le jeu en anglais
+- Qui : Enzo + Claude (Claude Code, Opus 5.5)
+- Fait : tout le texte visible passé en anglais : HUD (SCENE / TAKE, RATINGS, HEALTH, CUT!, modes et garde médiévaux), titres des 12 directives (« Go for the head, it looks better! », « Put that bow away! »…), noms d'armes et d'univers, mots de l'affiche du Spatial, 23 panneaux du studio de casting (« QUIET ON SET! », « SLIDE! », affiches « THE CURSED KNIGHT », « ZERO GRAVITY », « NIGHT OF THE REVOLVER »), nom de joueur par défaut (Extra). Vérifié en PIE par capture : HUD entièrement en anglais.
+- Comment : recensement par recherche dans le code (chaînes affichées) et par script dans l'éditeur (titres, noms, mots d'affiche, textes 3D des niveaux). Les commentaires et le journal restent en français (lus par l'équipe). Le nom de joueur par défaut est dans un header du socle : recompilation complète faite par l'IA.
+- Capture : docs/devlog-media/2026-11-15-hud-anglais.png
+

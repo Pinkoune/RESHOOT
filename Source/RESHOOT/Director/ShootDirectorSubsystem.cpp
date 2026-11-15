@@ -25,6 +25,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
 #include "HAL/IConsoleManager.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
 
@@ -108,6 +110,12 @@ void UShootDirectorSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(EventTimer);
 		World->GetTimerManager().ClearTimer(CastingTimer);
 	}
+	if (MusicComponent)
+	{
+		MusicComponent->OnAudioFinished.RemoveAll(this);
+		MusicComponent->Stop();
+		MusicComponent = nullptr;
+	}
 	Super::Deinitialize();
 }
 
@@ -174,7 +182,66 @@ void UShootDirectorSubsystem::SetPhase(EShootPhase NewPhase)
 	}
 	Phase = NewPhase;
 	UE_LOG(LogReshoot, Log, TEXT("Director phase -> %s"), *UEnum::GetValueAsString(NewPhase));
+	// GDD : au « CUT! », la musique s'arrête net ; elle reprend avec l'action.
+	SetMusicPaused(NewPhase == EShootPhase::Cut);
 	OnPhaseChanged.Broadcast(NewPhase);
+}
+
+// ---------------------------------------------------------------------------
+// Musique : une boucle par univers, fondu enchaîné aux changements, coupée au CUT!
+// ---------------------------------------------------------------------------
+
+void UShootDirectorSubsystem::PlayMusic(USoundBase* Music)
+{
+	if (Music == CurrentMusic && MusicComponent && (MusicComponent->IsPlaying() || MusicComponent->bIsPaused))
+	{
+		return;
+	}
+	const float FadeOut = Script ? Script->MusicFadeOut : 0.75f;
+	if (MusicComponent)
+	{
+		// L'ancienne musique s'efface puis se détruit seule.
+		MusicComponent->OnAudioFinished.RemoveAll(this);
+		MusicComponent->bAutoDestroy = true;
+		MusicComponent->SetPaused(false);
+		MusicComponent->FadeOut(FMath::Max(FadeOut, 0.01f), 0.f);
+		MusicComponent = nullptr;
+	}
+	CurrentMusic = Music;
+	if (!Music)
+	{
+		return;
+	}
+	MusicComponent = UGameplayStatics::CreateSound2D(this, Music, 1.f, 1.f, 0.f, nullptr, false, false);
+	if (!MusicComponent)
+	{
+		return;
+	}
+	MusicComponent->OnAudioFinished.AddDynamic(this, &UShootDirectorSubsystem::HandleMusicFinished);
+	MusicComponent->FadeIn(FMath::Max(Script ? Script->MusicFadeIn : 1.f, 0.01f), Script ? Script->MusicVolume : 0.6f);
+	if (Phase == EShootPhase::Cut)
+	{
+		MusicComponent->SetPaused(true);
+	}
+	UE_LOG(LogReshoot, Log, TEXT("Music -> %s"), *GetNameSafe(Music));
+}
+
+void UShootDirectorSubsystem::SetMusicPaused(bool bPaused)
+{
+	if (MusicComponent && MusicComponent->bIsPaused != bPaused)
+	{
+		MusicComponent->SetPaused(bPaused);
+	}
+}
+
+void UShootDirectorSubsystem::HandleMusicFinished()
+{
+	// Boucle, même si l'asset sonore n'est pas réglé en boucle.
+	if (MusicComponent && CurrentMusic && Phase != EShootPhase::Wrap)
+	{
+		MusicComponent->SetVolumeMultiplier(Script ? Script->MusicVolume : 0.6f);
+		MusicComponent->Play();
+	}
 }
 
 float UShootDirectorSubsystem::SetDirective(UDirective* NewDirective)
@@ -274,6 +341,9 @@ void UShootDirectorSubsystem::SetUniverse(EUniverse NewUniverse)
 			Volume->Settings.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, PostProcess));
 		}
 	}
+
+	// Boucle musicale de l'univers (au final, elle change avec lui).
+	PlayMusic(Definition ? Definition->Music.Get() : nullptr);
 
 	OnUniverseChanged.Broadcast(NewUniverse);
 }
@@ -984,6 +1054,8 @@ void UShootDirectorSubsystem::Wrap()
 		WaveSpawner->KillAll();
 	}
 	SetDirective(nullptr);
+	// Fin du tournage : la musique s'éteint en fondu, sous le verdict du réalisateur.
+	PlayMusic(nullptr);
 	if (Script)
 	{
 		const UAudienceRating* Rating = GetAudienceRating();

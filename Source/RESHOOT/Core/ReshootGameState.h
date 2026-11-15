@@ -46,7 +46,7 @@ protected:
 	TObjectPtr<UDirectorVoice> DirectorVoice;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reshoot")
-	FString PlayerName = TEXT("Figurant");
+	FString PlayerName = TEXT("Extra");
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Reshoot")
 	FShootStats Stats;

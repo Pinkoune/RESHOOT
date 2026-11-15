@@ -15,6 +15,8 @@ class UAudienceRating;
 class UDirectorVoice;
 class AUniverseEvent;
 class AReshootCharacter;
+class UAudioComponent;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootPhaseChanged, EShootPhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShootUniverseChanged, EUniverse, NewUniverse);
@@ -183,6 +185,15 @@ private:
 	/** Le réalisateur pilote le rideau : coupe le suivi automatique (reshoot.Dressing.AutoFromDirector). */
 	void TakeControlOfStaging();
 
+	// Musique
+	/** Joue la boucle de l'univers en fondu enchaîné (sans effet si c'est déjà elle). Nulle = fondu vers le silence. */
+	void PlayMusic(USoundBase* Music);
+	void SetMusicPaused(bool bPaused);
+
+	/** Relance la musique à la fin (boucle même si l'asset sonore ne boucle pas lui-même). */
+	UFUNCTION()
+	void HandleMusicFinished();
+
 	// Casting
 	void CheckCastingSlide();
 	void BroadcastCastingProgress();
@@ -226,6 +237,12 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AUniverseEvent> ActiveEvent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> MusicComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> CurrentMusic;
 
 	bool bPlayerDiedThisTake = false;
 

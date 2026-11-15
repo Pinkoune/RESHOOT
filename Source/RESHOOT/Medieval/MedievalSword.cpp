@@ -24,7 +24,7 @@
 
 AMedievalSword::AMedievalSword()
 {
-	DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Épée et bouclier");
+	DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Sword & shield");
 	ArrowClass = AMedievalArrow::StaticClass();
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -232,9 +232,9 @@ void AMedievalSword::SetMode(EMedievalWeaponMode NewMode)
 	Mode = NewMode;
 	switch (Mode)
 	{
-	case EMedievalWeaponMode::Sword: DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Épée et bouclier"); break;
-	case EMedievalWeaponMode::Bow:   DisplayName = NSLOCTEXT("Reshoot", "MedievalBowName", "Arc"); break;
-	case EMedievalWeaponMode::Fists: DisplayName = NSLOCTEXT("Reshoot", "MedievalFistsName", "Poings"); break;
+	case EMedievalWeaponMode::Sword: DisplayName = NSLOCTEXT("Reshoot", "MedievalSwordName", "Sword & shield"); break;
+	case EMedievalWeaponMode::Bow:   DisplayName = NSLOCTEXT("Reshoot", "MedievalBowName", "Bow"); break;
+	case EMedievalWeaponMode::Fists: DisplayName = NSLOCTEXT("Reshoot", "MedievalFistsName", "Fists"); break;
 	}
 
 	UpdateVisuals();
@@ -557,7 +557,7 @@ void AMedievalSword::ShowComboOnScreen(int32 PointsGained) const
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(ComboKey, 1.f, FColor(150, 150, 150), TEXT("combo perdu"), true, FVector2D(1.2f, 1.2f));
+		GEngine->AddOnScreenDebugMessage(ComboKey, 1.f, FColor(150, 150, 150), TEXT("combo lost"), true, FVector2D(1.2f, 1.2f));
 	}
 }
 
