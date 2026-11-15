@@ -1,0 +1,11 @@
+newmtl tripo_material_736f5414_5973_466d_b209_78e6dfa0de08
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_Clapperboard_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_Clapperboard_roughness.png
+map_Pm SM_Stage_Clapperboard_metallic.png
+norm SM_Stage_Clapperboard_normal.png
+

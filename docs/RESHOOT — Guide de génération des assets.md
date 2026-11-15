@@ -107,9 +107,9 @@ Armes et accessoires existent en deux versions, comme les décors : même prompt
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- |
-| Épée | `SM_Medieval_Sword` | `Medieval knight longsword, straight double-edged steel blade, simple crossguard, leather-wrapped grip, round pommel.` | 100 cm de long | 20 000 |  |  |
-| Bouclier | `SM_Medieval_Shield` | `Medieval heater shield, painted wood with red and gold heraldic stripes and no emblem, metal rim, leather straps on the back.` | 80 cm de haut | 20 000 |  |  |
-| Arc | `SM_Medieval_Bow` | `Medieval wooden longbow, thick curved yew wood, leather grip in the middle, no string, no arrow.` | 140 cm de haut | 20 000 |  |  |
+| Épée | `SM_Medieval_Sword` | `Medieval knight longsword, straight double-edged steel blade, simple crossguard, leather-wrapped grip, round pommel.` | 100 cm de long | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
+| Bouclier | `SM_Medieval_Shield` | `Medieval heater shield, painted wood with red and gold heraldic stripes and no emblem, metal rim, leather straps on the back.` | 80 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
+| Arc | `SM_Medieval_Bow` | `Medieval wooden longbow, thick curved yew wood, leather grip in the middle, no string, no arrow.` | 140 cm de haut | 20 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (l'arme n'apparaît qu'après le clap, dans la scène réaliste) |
 | Fusil laser | `SM_Space_LaserRifle` | `Long sci-fi laser rifle, slim black body, thin barrel ending in a small muzzle emitter, row of glowing cyan energy cells along the barrel shroud, yellow stripe on the side, top rail with a small green holographic screen at the rear, skeletal stock with an open cutout, pistol grip, no magazine.` | 1 m de long | 30 000 | Jérémy | Réaliste : fusil Fab (`Content/Fab/Laserrifle`). Carton : Tripo, fait |
 | Revolver | `SM_Noir_Revolver` | `1940s snub-nose revolver, six-shot cylinder, dark blued steel, checkered wooden grip, film noir detective style.` | 20 cm de long | 20 000 |  |  |
 
@@ -119,7 +119,7 @@ L'arc est demandé sans corde : les générateurs ratent les objets très fins. 
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- |
-| Casque de chevalier | `SM_Medieval_Helmet` | `Medieval knight helmet, rounded steel great helm with eye slit and breathing holes, slightly dented, hollow inside, wearable.` | 30 cm de haut | 8 000 |  |  |
+| Casque de chevalier | `SM_Medieval_Helmet` | `Medieval knight helmet, rounded steel great helm with eye slit and breathing holes, slightly dented, hollow inside, wearable.` | 30 cm de haut | 8 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (les chevaliers n'apparaissent qu'après le clap) |
 | Chapeau de gangster | `SM_Noir_Fedora` | `1940s fedora hat, dark grey felt, black ribbon band, pinched crown, film noir gangster style, hollow inside, wearable.` | 15 cm de haut, 35 cm de large | 5 000 |  |  |
 | Drone | `SM_Space_Drone` | `Small hovering sci-fi security drone, round white body, single large red camera eye, two short side thrusters, small gun barrel underneath, visible screws and seams.` | 60 cm de large | 15 000 | Jérémy | Fait (carton + réaliste) |
 
@@ -127,9 +127,9 @@ L'arc est demandé sans corde : les générateurs ratent les objets très fins. 
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- |
-| Clap | `SM_Stage_Clapperboard` | `Film clapperboard, black slate with white diagonal striped hinged clapstick on top, blank slate with empty white lines, wooden frame.` | 30 cm de large (une version géante sera mise à l'échelle pour le menu) | 5 000 |  |  |
-| Projecteur sur pied | `SM_Stage_Spotlight` | `Film studio spotlight on a tripod stand, black metal fresnel light with four barn doors, adjustable yoke, thick three-legged stand.` | 200 cm de haut | 10 000 |  |  |
-| Chaise de réalisateur | `SM_Stage_DirectorChair` | `Classic folding director's chair, thick wooden X-frame, black canvas seat and backrest, blank backrest.` | 115 cm de haut | 8 000 |  |  |
+| Clap | `SM_Stage_Clapperboard` | `Film clapperboard, black slate with white diagonal striped hinged clapstick on top, blank slate with empty white lines, wooden frame.` | 30 cm de large (une version géante sera mise à l'échelle pour le menu) | 5 000 | Ileana | Source dans `SourceArt/Stage`, à importer |
+| Projecteur sur pied | `SM_Stage_Spotlight` | `Film studio spotlight on a tripod stand, black metal fresnel light with four barn doors, adjustable yoke, thick three-legged stand.` | 200 cm de haut | 10 000 | Ileana | Source dans `SourceArt/Stage`, à importer |
+| Chaise de réalisateur | `SM_Stage_DirectorChair` | `Classic folding director's chair, thick wooden X-frame, black canvas seat and backrest, blank backrest.` | 115 cm de haut | 8 000 | Ileana | Source dans `SourceArt/Stage`, à importer |
 
 Si Claude Code a déjà écrit des prompts pour le fusil laser et le drone dans `space-assets.md` (fichier pas encore poussé sur le dépôt), choisissez une seule des deux versions et supprimez l'autre.
 
@@ -145,13 +145,13 @@ Chaque objet se génère deux fois avec la même description : une fois suivie d
 
 | Objet | Nom (+ `_Prop` / `_Real`) | Description | Taille dans Unreal | Rôle | Qui | Carton | Réaliste |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mur de château | `SM_Medieval_CastleWall` | `Medieval castle stone wall section, grey stone blocks, straight modular piece, flat back.` | 400 × 300 cm | Mur, à dupliquer |  |  |  |
-| Créneaux | `SM_Medieval_Battlements` | `Row of medieval castle battlements, grey stone, straight modular segment.` | 400 × 100 cm | Se pose sur le mur |  |  |  |
-| Tonneau | `SM_Medieval_Barrel` | `Medieval wooden barrel, oak staves with iron hoops, closed lid, standing upright.` | 100 cm de haut | Couvert bas |  |  |  |
-| Charrette | `SM_Medieval_Cart` | `Medieval wooden hand cart, two large spoked wheels, open flat bed with low side boards, two pulling handles, empty.` | 250 × 130 cm | Couvert |  |  |  |
-| Convoi | `SM_Medieval_Convoy` | Carton : `Life-size wooden horse on a wheeled platform, carved plywood horse with a simple saddle, four small metal wheels.` Réaliste : `Covered medieval supply wagon, wooden body, canvas cover on hoops, four spoked wheels, no horse.` | 250 × 200 cm | Événement du convoi |  |  |  |
-| Bannière | `SM_Medieval_Banner` | `Medieval hanging wall banner, long red fabric with gold border and pointed bottom, hanging from a horizontal wooden pole, no emblem.` | 250 cm de haut | Décoration |  |  |  |
-| Torche murale | `SM_Medieval_Torch` | `Medieval wall torch, thick wooden shaft wrapped in cloth at the top, black iron wall bracket, unlit, no flame.` | 70 cm de haut | Décoration ; flamme ajoutée dans Unreal |  |  |  |
+| Mur de château | `SM_Medieval_CastleWall` | `Medieval castle stone wall section, grey stone blocks, straight modular piece, flat back.` | 400 × 300 cm | Mur, à dupliquer | Ileana | Source, à importer | Source, à importer |
+| Créneaux | `SM_Medieval_Battlements` | `Row of medieval castle battlements, grey stone, straight modular segment.` | 400 × 100 cm | Se pose sur le mur | Ileana | Source, à importer | Source, à importer |
+| Tonneau | `SM_Medieval_Barrel` | `Medieval wooden barrel, oak staves with iron hoops, closed lid, standing upright.` | 100 cm de haut | Couvert bas | Ileana | Source, à importer | Source, à importer |
+| Charrette | `SM_Medieval_Cart` | `Medieval wooden hand cart, two large spoked wheels, open flat bed with low side boards, two pulling handles, empty.` | 250 × 130 cm | Couvert | Ileana | Source, à importer | Source, à importer |
+| Convoi | `SM_Medieval_Convoy` | Carton : `Life-size wooden horse on a wheeled platform, carved plywood horse with a simple saddle, four small metal wheels.` Réaliste : `Covered medieval supply wagon, wooden body, canvas cover on hoops, four spoked wheels, no horse.` | 250 × 200 cm | Événement du convoi | Ileana | Source, à importer | Source, à importer |
+| Bannière | `SM_Medieval_Banner` | `Medieval hanging wall banner, long red fabric with gold border and pointed bottom, hanging from a horizontal wooden pole, no emblem.` | 250 cm de haut | Décoration | Ileana | Source, à importer | Source, à importer |
+| Torche murale | `SM_Medieval_Torch` | `Medieval wall torch, thick wooden shaft wrapped in cloth at the top, black iron wall bracket, unlit, no flame.` | 70 cm de haut | Décoration ; flamme ajoutée dans Unreal | Ileana | Source, à importer | Source, à importer |
 
 Les rails du convoi n'existent qu'en carton : `SM_Medieval_Rails_Prop`, prompt `Straight section of film dolly track, two parallel steel tubes joined by flat metal crossbars, lying flat, modular segment.`, 300 × 80 cm. En version réaliste, un chemin de terre peint au sol les remplace, sans génération.
 

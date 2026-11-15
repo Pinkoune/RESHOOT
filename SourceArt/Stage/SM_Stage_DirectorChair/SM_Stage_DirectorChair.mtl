@@ -1,0 +1,11 @@
+newmtl tripo_material_dc3efa61_a092_4699_b061_1d19151614ee
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_DirectorChair_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_DirectorChair_roughness.png
+map_Pm SM_Stage_DirectorChair_metallic.png
+norm SM_Stage_DirectorChair_normal.png
+

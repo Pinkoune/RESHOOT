@@ -5,6 +5,9 @@
 #include "Core/HealthComponent.h"
 #include "RESHOOT.h"
 
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
@@ -81,12 +84,23 @@ AMedievalSword::AMedievalSword()
 	};
 	FistLeftMesh = MakeFist(TEXT("FistLeftMesh"));
 	FistRightMesh = MakeFist(TEXT("FistRightMesh"));
+
+	// Bras réalistes des poings : vides par défaut, assignés dans le Blueprint.
+	ArmsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ArmsMesh"));
+	ArmsMesh->SetupAttachment(Root);
+	ArmsMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ArmsMesh->SetCastShadow(false);
+	ArmsMesh->SetVisibility(false);
 }
 
 void AMedievalSword::BeginPlay()
 {
 	Super::BeginPlay();
 	SwordRestTransform = Mesh->GetRelativeTransform();
+	SwordPropMesh = Mesh->GetStaticMesh();
+	ShieldPropMesh = ShieldMesh->GetStaticMesh();
+	ShieldPropScale = ShieldMesh->GetRelativeScale3D();
+	BowPropMesh = BowMesh->GetStaticMesh();
 	BowMesh->SetRelativeTransform(BowRestTransform);
 	UpdateVisuals();
 	TrySetupInput();
@@ -105,6 +119,10 @@ void AMedievalSword::BeginPlay()
 void AMedievalSword::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	RaiseShield(false);
+	if (GetWorldTimerManager().IsTimerActive(HitStopTimer))
+	{
+		EndHitStop();   // ne jamais laisser le jeu ralenti
+	}
 	GetWorldTimerManager().ClearAllTimersForObject(this);
 	if (BoundOwnerHealth)
 	{
@@ -284,8 +302,20 @@ void AMedievalSword::UpdateVisuals()
 	Mesh->SetVisibility(bSword);
 	ShieldMesh->SetVisibility(bSword && bShieldAllowed);
 	BowMesh->SetVisibility(Mode == EMedievalWeaponMode::Bow);
-	FistLeftMesh->SetVisibility(bFists);
-	FistRightMesh->SetVisibility(bFists);
+	const bool bRealArms = UsesRealLook() && ArmsMesh->GetSkeletalMeshAsset();
+	FistLeftMesh->SetVisibility(bFists && !bRealArms);
+	FistRightMesh->SetVisibility(bFists && !bRealArms);
+	ArmsMesh->SetVisibility(bFists && bRealArms);
+
+	// Phase réaliste : les poses sont animées par UpdateRealPose.
+	if (UsesRealLook())
+	{
+		if (!GetWorldTimerManager().IsTimerActive(PunchPoseTimer))
+		{
+			ResetPunchPose();
+		}
+		return;
+	}
 
 	// Bouclier levé : devant, au centre, sans croiser la lame. Épée baissée sur le côté pendant la garde.
 	ShieldMesh->SetRelativeLocation(bShieldRaised && bSword ? ShieldRaisedLocation : ShieldLoweredLocation);
@@ -302,6 +332,113 @@ void AMedievalSword::UpdateVisuals()
 	{
 		ResetPunchPose();
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Phase réaliste : vrais modèles et poses animées
+
+bool AMedievalSword::UsesRealLook() const
+{
+	return IsDressingReal() && RealMesh != nullptr;
+}
+
+void AMedievalSword::SetDressingReal(bool bReal)
+{
+	Super::SetDressingReal(bReal);
+
+	const bool bLook = UsesRealLook();
+	if (!bLook && !PropMesh && SwordPropMesh)
+	{
+		Mesh->SetStaticMesh(SwordPropMesh);
+	}
+	ShieldMesh->SetStaticMesh(bLook && ShieldRealMesh ? ShieldRealMesh.Get() : ShieldPropMesh.Get());
+	BowMesh->SetStaticMesh(bLook && BowRealMesh ? BowRealMesh.Get() : BowPropMesh.Get());
+
+	FTimerManager& Timers = GetWorldTimerManager();
+	if (bLook)
+	{
+		// Pose de départ sans transition, puis animation à 60 images par seconde.
+		Timers.ClearTimer(SwingPoseTimer);
+		Mesh->SetRelativeTransform(SwordRealRestTransform);
+		ShieldMesh->SetRelativeTransform(ShieldRealLoweredTransform);
+		BowMesh->SetRelativeTransform(BowRealRestTransform);
+		LastRealPoseTime = GetWorld()->GetTimeSeconds();
+		Timers.SetTimer(RealPoseTimer, this, &AMedievalSword::UpdateRealPose, 1.f / 60.f, true);
+	}
+	else
+	{
+		Timers.ClearTimer(RealPoseTimer);
+		Mesh->SetRelativeTransform(SwordRestTransform);
+		ShieldMesh->SetRelativeRotation(FRotator::ZeroRotator);
+		ShieldMesh->SetRelativeScale3D(ShieldPropScale);
+		BowMesh->SetRelativeTransform(BowRestTransform);
+		CurrentArmsAnim = nullptr;
+	}
+	UpdateVisuals();
+}
+
+void AMedievalSword::UpdateRealPose()
+{
+	if (!UsesRealLook())
+	{
+		return;
+	}
+	const double Now = GetWorld()->GetTimeSeconds();
+	const float Dt = FMath::Clamp(static_cast<float>(Now - LastRealPoseTime), 0.f, 0.1f);
+	LastRealPoseTime = Now;
+	const float Alpha = FMath::Clamp(Dt * RealPoseSpeed, 0.f, 1.f);
+
+	auto Approach = [Alpha](USceneComponent* Component, const FTransform& Target)
+	{
+		FTransform Blended;
+		Blended.Blend(Component->GetRelativeTransform(), Target, Alpha);
+		Component->SetRelativeTransform(Blended);
+	};
+
+	const bool bSword = (Mode == EMedievalWeaponMode::Sword);
+
+	// Épée : coup rapide vers l'avant (35 % du temps), retour plus lent ; sinon repos ou garde.
+	const float SwingT = static_cast<float>(Now - SwingStartTime) / SwordRealSwingTime;
+	if (bSword && SwingT >= 0.f && SwingT < 1.f)
+	{
+		const float Strike = SwingT < 0.35f
+			? FMath::InterpEaseOut(0.f, 1.f, SwingT / 0.35f, 2.f)
+			: 1.f - FMath::InterpEaseInOut(0.f, 1.f, (SwingT - 0.35f) / 0.65f, 2.f);
+		FTransform Swing;
+		Swing.Blend(SwordRealRestTransform, SwordRealSwingTransform, Strike);
+		Mesh->SetRelativeTransform(Swing);
+	}
+	else
+	{
+		Approach(Mesh, bShieldRaised && bSword ? SwordRealGuardTransform : SwordRealRestTransform);
+	}
+
+	// Bouclier levé devant soi, ou porté sur le côté.
+	Approach(ShieldMesh, bShieldRaised && bSword ? ShieldRealRaisedTransform : ShieldRealLoweredTransform);
+
+	// Arc : se rapproche et se redresse à mesure qu'on bande, avec un léger tremblement à pleine charge.
+	const float Charge = GetBowCharge();
+	FTransform Bow;
+	Bow.Blend(BowRealRestTransform, BowRealDrawTransform, FMath::InterpEaseOut(0.f, 1.f, Charge, 2.f));
+	if (Charge >= 1.f)
+	{
+		Bow.AddToTranslation(FVector(0.f, FMath::Sin(Now * 40.0) * 0.3f, FMath::Cos(Now * 33.0) * 0.3f));
+	}
+	Approach(BowMesh, Bow);
+}
+
+void AMedievalSword::PlayArmsAnim(UAnimationAsset* Anim, bool bLoop)
+{
+	if (!Anim)
+	{
+		return;
+	}
+	if (bLoop && CurrentArmsAnim == Anim)
+	{
+		return;
+	}
+	ArmsMesh->PlayAnimation(Anim, bLoop);
+	CurrentArmsAnim = bLoop ? Anim : nullptr;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,16 +467,55 @@ void AMedievalSword::SwordSwing()
 		UGameplayStatics::PlaySoundAtLocation(this, SwingSound, GetActorLocation());
 	}
 
-	// Pose de coup : la lame bascule vers le bas, puis revient.
-	Mesh->SetRelativeRotation(FRotator(-35.f, -25.f, 0.f));
-	GetWorldTimerManager().SetTimer(SwingPoseTimer, this, &AMedievalSword::ResetSwingPose, 0.15f, false);
-
-	const int32 HitCount = MeleeSweep(SwordRange, SwordHalfAngle, SwordDamage, 0.f);
-
-	if (HitCount > 0 && SwordHitSound)
+	if (UsesRealLook())
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+		// Coup animé : la lame s'abat puis revient (UpdateRealPose).
+		SwingStartTime = Now;
 	}
+	else
+	{
+		// Pose de coup : la lame bascule vers le bas, puis revient.
+		Mesh->SetRelativeRotation(FRotator(-35.f, -25.f, 0.f));
+		GetWorldTimerManager().SetTimer(SwingPoseTimer, this, &AMedievalSword::ResetSwingPose, 0.15f, false);
+	}
+
+	const int32 HitCount = MeleeSweep(SwordRange, SwordHalfAngle, SwordDamage, SwordKnockback);
+
+	if (HitCount > 0)
+	{
+		if (SwordHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+		}
+		PlayHitImpact();
+	}
+}
+
+void AMedievalSword::PlayHitImpact()
+{
+	// À-coup de caméra : la lame « accroche » la cible.
+	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	{
+		if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		{
+			PC->AddPitchInput(-SwordHitKick * 0.5f);
+			PC->AddYawInput(SwordHitKick);
+		}
+	}
+
+	// Arrêt sur image très court (sauf si le temps est déjà ralenti par autre chose).
+	UWorld* World = GetWorld();
+	if (SwordHitStop > 0.f && FMath::IsNearlyEqual(UGameplayStatics::GetGlobalTimeDilation(World), 1.f))
+	{
+		constexpr float StopDilation = 0.05f;
+		UGameplayStatics::SetGlobalTimeDilation(World, StopDilation);
+		GetWorldTimerManager().SetTimer(HitStopTimer, this, &AMedievalSword::EndHitStop, SwordHitStop * StopDilation, false);
+	}
+}
+
+void AMedievalSword::EndHitStop()
+{
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 }
 
 int32 AMedievalSword::MeleeSweep(float Range, float HalfAngle, float Damage, float Knockback)
@@ -453,9 +629,21 @@ void AMedievalSword::Punch()
 	// Gauche, droite, gauche… : le poing part en avant puis revient.
 	UStaticMeshComponent* Fist = bNextPunchLeft ? FistLeftMesh : FistRightMesh;
 	const FVector Rest = bNextPunchLeft ? FistLeftRestLocation : FistRightRestLocation;
+	UAnimationAsset* PunchAnim = bNextPunchLeft ? ArmsPunchLeftAnim.Get() : ArmsPunchRightAnim.Get();
 	bNextPunchLeft = !bNextPunchLeft;
-	Fist->SetRelativeLocation(Rest + FVector(FistPunchReach, Rest.Y < -15.f ? 12.f : -8.f, 10.f));
-	GetWorldTimerManager().SetTimer(PunchPoseTimer, this, &AMedievalSword::ResetPunchPose, 0.1f, false);
+	if (ArmsMesh->IsVisible() && PunchAnim)
+	{
+		// Bras réalistes : animation de coup, puis retour au repos.
+		PlayArmsAnim(PunchAnim, false);
+		const UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PunchAnim);
+		const float Length = Sequence ? Sequence->GetPlayLength() : 0.3f;
+		GetWorldTimerManager().SetTimer(PunchPoseTimer, this, &AMedievalSword::ResetPunchPose, FMath::Max(Length, 0.1f), false);
+	}
+	else
+	{
+		Fist->SetRelativeLocation(Rest + FVector(FistPunchReach, Rest.Y < -15.f ? 12.f : -8.f, 10.f));
+		GetWorldTimerManager().SetTimer(PunchPoseTimer, this, &AMedievalSword::ResetPunchPose, 0.1f, false);
+	}
 
 	if (SwingSound)
 	{
@@ -472,6 +660,10 @@ void AMedievalSword::Punch()
 void AMedievalSword::ResetPunchPose()
 {
 	const bool bGuard = bShieldRaised && Mode == EMedievalWeaponMode::Fists;
+	if (ArmsMesh->IsVisible())
+	{
+		PlayArmsAnim(bGuard && ArmsGuardAnim ? ArmsGuardAnim.Get() : ArmsIdleAnim.Get(), true);
+	}
 	FistLeftMesh->SetRelativeLocation(bGuard ? FistLeftGuardLocation : FistLeftRestLocation);
 	FistRightMesh->SetRelativeLocation(bGuard ? FistRightGuardLocation : FistRightRestLocation);
 }
@@ -653,14 +845,20 @@ void AMedievalSword::StartBowCharge()
 	}
 	bCharging = true;
 	ChargeStartTime = Now;
-	BowMesh->SetRelativeTransform(BowDrawTransform);
+	if (!UsesRealLook())
+	{
+		BowMesh->SetRelativeTransform(BowDrawTransform);
+	}
 }
 
 void AMedievalSword::ReleaseBow()
 {
 	const float Charge = GetBowCharge();
 	bCharging = false;
-	BowMesh->SetRelativeTransform(BowRestTransform);
+	if (!UsesRealLook())
+	{
+		BowMesh->SetRelativeTransform(BowRestTransform);
+	}
 
 	if (!IsEnabled() || !ArrowClass)
 	{

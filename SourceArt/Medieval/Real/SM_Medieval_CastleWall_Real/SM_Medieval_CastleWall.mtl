@@ -1,0 +1,11 @@
+newmtl tripo_material_cc9e115d_d730_48ae_8853_4f3a7b58ffd0
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_CastleWall_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_CastleWall_roughness.png
+map_Pm SM_Medieval_CastleWall_metallic.png
+norm SM_Medieval_CastleWall_normal.png
+

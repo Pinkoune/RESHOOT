@@ -1,0 +1,11 @@
+newmtl tripo_material_2c08eeaa_a1e1_4272_b412_daa670ca77e2
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Convoy_Real_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Convoy_Real_roughness.png
+map_Pm SM_Medieval_Convoy_Real_metallic.png
+norm SM_Medieval_Convoy_Real_normal.png
+

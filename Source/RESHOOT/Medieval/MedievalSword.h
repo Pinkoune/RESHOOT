@@ -16,6 +16,9 @@ class UInputAction;
 class UInputMappingContext;
 class USoundBase;
 class APlayerController;
+class USkeletalMeshComponent;
+class UAnimationAsset;
+class UStaticMesh;
 
 UENUM(BlueprintType)
 enum class EMedievalWeaponMode : uint8
@@ -115,6 +118,18 @@ public:
 	/** Coups par seconde. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0.1"))
 	float SwordAttacksPerSecond = 1.5f;
+
+	/** Recul donné au figurant touché par l'épée, en cm/s. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordKnockback = 380.f;
+
+	/** Arrêt sur image quand la lame touche (secondes, 0 = aucun). Donne du poids au coup. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordHitStop = 0.07f;
+
+	/** À-coup de la caméra à l'impact, en degrés. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordHitKick = 1.2f;
 
 	/** Garder le clic enfoncé enchaîne les coups. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword")
@@ -245,6 +260,63 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Visuals")
 	FTransform BowDrawTransform = FTransform(FRotator(0.f, 0.f, -40.f), FVector(10.f, -32.f, 5.f), FVector(0.03f, 0.03f, 0.5f));
 
+	// --- Version réaliste, après le rideau (le mesh réaliste de l'épée est RealMesh, dans la classe de base) ---
+	// Phase carton : boîtes grises et poses fixes. Phase réaliste : vrais modèles et mouvements animés.
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UStaticMesh> ShieldRealMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UStaticMesh> BowRealMesh;
+
+	/** Épée au repos, lame vers le haut (mesh vertical, pivot à la garde). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform SwordRealRestTransform = FTransform(FRotator(-25.f, 0.f, -12.f), FVector(32.f, 24.f, -38.f), FVector(0.8f));
+
+	/** Fin du coup d'épée (lame abattue vers l'avant et la gauche). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform SwordRealSwingTransform = FTransform(FRotator(-105.f, -35.f, 0.f), FVector(48.f, 4.f, -22.f), FVector(0.8f));
+
+	/** Épée baissée pendant la garde au bouclier. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform SwordRealGuardTransform = FTransform(FRotator(-70.f, 55.f, 0.f), FVector(22.f, 26.f, -40.f), FVector(0.8f));
+
+	/** Durée d'un coup d'épée animé (aller et retour). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real", meta = (ClampMin = "0.05"))
+	float SwordRealSwingTime = 0.24f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform ShieldRealLoweredTransform = FTransform(FRotator(0.f, 70.f, 8.f), FVector(38.f, -38.f, -62.f), FVector(0.7f));
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform ShieldRealRaisedTransform = FTransform(FRotator(0.f, 90.f, 0.f), FVector(48.f, -12.f, -40.f), FVector(0.7f));
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform BowRealRestTransform = FTransform(FRotator(0.f, 0.f, -20.f), FVector(45.f, -24.f, -58.f), FVector(0.65f));
+
+	/** Arc bandé à fond (interpolé selon la charge). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	FTransform BowRealDrawTransform = FTransform(FRotator(0.f, 0.f, -8.f), FVector(38.f, -10.f, -50.f), FVector(0.65f));
+
+	/** Vitesse des transitions de pose (bouclier, garde, arc). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real", meta = (ClampMin = "1"))
+	float RealPoseSpeed = 14.f;
+
+	/** Bras à la première personne pour les poings (facultatif : sans mesh, les poings restent en boîtes). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UAnimationAsset> ArmsIdleAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UAnimationAsset> ArmsPunchLeftAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UAnimationAsset> ArmsPunchRightAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
+	TObjectPtr<UAnimationAsset> ArmsGuardAnim;
+
+	virtual void SetDressingReal(bool bReal) override;
+
 	// --- Debug et audio ---
 
 	/** Dessine le cône de l'épée à chaque coup (boîtes grises). */
@@ -299,6 +371,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Medieval")
 	TObjectPtr<UStaticMeshComponent> FistRightMesh;
 
+	/** Bras réalistes pour les poings (mesh squelettique à assigner dans le Blueprint). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Medieval")
+	TObjectPtr<USkeletalMeshComponent> ArmsMesh;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Medieval")
 	EMedievalWeaponMode Mode = EMedievalWeaponMode::Sword;
 
@@ -318,6 +394,16 @@ private:
 	void StartBowCharge();
 	void ReleaseBow();
 	void UpdateVisuals();
+
+	/** Vrais modèles affichés (après le rideau, si les meshes réalistes sont assignés). */
+	bool UsesRealLook() const;
+	void UpdateRealPose();
+	void PlayArmsAnim(UAnimationAsset* Anim, bool bLoop);
+
+	/** Impact de l'épée : arrêt sur image et à-coup de caméra. */
+	void PlayHitImpact();
+	void EndHitStop();
+	FTimerHandle HitStopTimer;
 
 	void ResetCombo();
 	void ShowComboOnScreen(int32 PointsGained) const;
@@ -349,6 +435,23 @@ private:
 	FTimerHandle ShieldSpeedTimer;
 	FTimerHandle InputSetupTimer;
 	FTimerHandle ComboTimer;
+	FTimerHandle RealPoseTimer;
+	double SwingStartTime = -1000.0;
+	double LastRealPoseTime = 0.0;
+
+	FVector ShieldPropScale = FVector::OneVector;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> SwordPropMesh;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> ShieldPropMesh;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> BowPropMesh;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimationAsset> CurrentArmsAnim;
 
 	int32 Combo = 0;
 	int32 ComboScore = 0;

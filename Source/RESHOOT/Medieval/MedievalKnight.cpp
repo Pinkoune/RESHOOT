@@ -1,6 +1,7 @@
 #include "Medieval/MedievalKnight.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
+#include "Medieval/MedievalAnimatedLook.h"
 #include "RESHOOT.h"
 
 #include "AIController.h"
@@ -47,6 +48,32 @@ AMedievalKnight::AMedievalKnight(const FObjectInitializer& ObjectInitializer)
 		BodyMesh->SetStaticMesh(CubeMesh.Object);
 		HelmetMesh->SetStaticMesh(CubeMesh.Object);
 	}
+
+	RealLook = CreateDefaultSubobject<UMedievalAnimatedLook>(TEXT("RealLook"));
+	RealLook->HeldWeaponSocket = TEXT("hand_r");
+}
+
+void AMedievalKnight::HandleDamaged(UHealthComponent* InHealth, float NewHealth, float Delta)
+{
+	if (Delta >= 0.f || NewHealth <= 0.f || IsFrozen())
+	{
+		return;
+	}
+	// Coup encaissé : l'attaque en préparation est annulée et le chevalier chancelle un instant.
+	GetWorldTimerManager().ClearTimer(AttackTimer);
+	bAttacking = false;
+	StaggerUntil = GetWorld()->GetTimeSeconds() + HitStaggerTime;
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+	}
+}
+
+void AMedievalKnight::OnDressingChanged(bool bReal)
+{
+	Super::OnDressingChanged(bReal);
+	RealLook->SetGrayBoxParts({ BodyMesh.Get(), HelmetMesh.Get() });
+	RealLook->SetReal(bReal);
 }
 
 void AMedievalKnight::BeginPlay()
@@ -54,6 +81,7 @@ void AMedievalKnight::BeginPlay()
 	Super::BeginPlay();
 
 	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	HealthComponent->OnHealthChanged.AddDynamic(this, &AMedievalKnight::HandleDamaged);
 
 	// Petit décalage aléatoire pour que les chevaliers d'une vague ne réfléchissent pas tous à la même image.
 	GetWorldTimerManager().SetTimer(ThinkTimer, this, &AMedievalKnight::Think, ThinkInterval, true, FMath::FRandRange(0.f, ThinkInterval));
@@ -74,11 +102,13 @@ void AMedievalKnight::OnFreezeChanged(bool bFreeze)
 	{
 		Timers.PauseTimer(ThinkTimer);
 		Timers.PauseTimer(AttackTimer);
+		RealLook->SetFrozen(true);
 	}
 	else
 	{
 		Timers.UnPauseTimer(ThinkTimer);
 		Timers.UnPauseTimer(AttackTimer);
+		RealLook->SetFrozen(false);
 	}
 }
 
@@ -113,7 +143,7 @@ void AMedievalKnight::FacePlayer()
 
 void AMedievalKnight::Think()
 {
-	if (IsFrozen() || IsDead() || bAttacking)
+	if (IsFrozen() || IsDead() || bAttacking || GetWorld()->GetTimeSeconds() < StaggerUntil)
 	{
 		return;
 	}
@@ -141,6 +171,7 @@ void AMedievalKnight::Think()
 			LastAttackTime = Now;
 			AI->StopMovement();
 			FacePlayer();
+			RealLook->PlayAttack();
 			if (bDrawDebug)
 			{
 				DrawDebugSphere(GetWorld(), GetActorLocation() + GetActorForwardVector() * 60.f, 25.f, 8, FColor::Orange, false, AttackWindup);
@@ -153,6 +184,21 @@ void AMedievalKnight::Think()
 	// Poursuite : une requête suffit, le suivi de chemin suit le joueur tant qu'il est la cible.
 	if (AI->GetMoveStatus() == EPathFollowingStatus::Moving)
 	{
+		return;
+	}
+
+	// Les vagues entrent derrière les murs du plateau : on rejoint d'abord la porte nord ou sud (les portes est et
+	// ouest sont en hauteur), puis on entre. Sans ça, un chevalier sans chemin reste collé au mur.
+	const FVector Location = GetActorLocation();
+	if (FMath::Abs(Location.Y) > StageHalfSize.Y - 30.f || FMath::Abs(Location.X) > StageHalfSize.X - 30.f)
+	{
+		const float Side = Location.Y >= 0.f ? 1.f : -1.f;
+		FVector Target(0.f, Side * (StageHalfSize.Y + 250.f), Location.Z);
+		if (FMath::Abs(Location.X) < DoorHalfWidth * 0.6f && FMath::Abs(Location.Y) < StageHalfSize.Y + 400.f)
+		{
+			Target.Y = Side * (StageHalfSize.Y - 300.f);   // devant la porte : on entre
+		}
+		AI->MoveToLocation(Target, 40.f, false, false, false, true, nullptr, false);
 		return;
 	}
 
@@ -221,6 +267,12 @@ void AMedievalKnight::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 	if (Away.IsNearlyZero())
 	{
 		Away = -GetActorForwardVector();
+	}
+
+	// Personnage réaliste : animation de mort (ou poupée de chiffon) à la place des boîtes grises.
+	if (RealLook->PlayDeath(Away, DeathImpulse))
+	{
+		return;
 	}
 
 	auto Collapse = [&](UStaticMeshComponent* Part, float UpBoost, float Spin)

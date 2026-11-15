@@ -1,0 +1,11 @@
+newmtl tripo_material_2fb5ed38_8d35_4419_a055_86ed62d63221
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Barrel_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Barrel_roughness.png
+map_Pm SM_Medieval_Barrel_metallic.png
+norm SM_Medieval_Barrel_normal.png
+

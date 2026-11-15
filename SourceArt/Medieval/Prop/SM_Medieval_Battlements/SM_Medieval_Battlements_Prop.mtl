@@ -1,0 +1,11 @@
+newmtl tripo_material_64369939_3d50_4bf0_bc42_d25d850500a5
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Battlements_Prop_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Battlements_Prop_roughness.png
+map_Pm SM_Medieval_Battlements_Prop_metallic.png
+norm SM_Medieval_Battlements_Prop_normal.png
+

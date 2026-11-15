@@ -2,6 +2,7 @@
 #include "Medieval/MedievalArrow.h"
 #include "Core/HealthComponent.h"
 #include "Core/ReshootCharacter.h"
+#include "Medieval/MedievalAnimatedLook.h"
 #include "RESHOOT.h"
 
 #include "Components/CapsuleComponent.h"
@@ -33,6 +34,16 @@ AMedievalArcher::AMedievalArcher(const FObjectInitializer& ObjectInitializer)
 	{
 		BodyMesh->SetStaticMesh(CylinderMesh.Object);
 	}
+
+	RealLook = CreateDefaultSubobject<UMedievalAnimatedLook>(TEXT("RealLook"));
+	RealLook->HeldWeaponSocket = TEXT("hand_l");
+}
+
+void AMedievalArcher::OnDressingChanged(bool bReal)
+{
+	Super::OnDressingChanged(bReal);
+	RealLook->SetGrayBoxParts({ BodyMesh.Get() });
+	RealLook->SetReal(bReal);
 }
 
 void AMedievalArcher::BeginPlay()
@@ -59,12 +70,20 @@ void AMedievalArcher::OnFreezeChanged(bool bFreeze)
 	{
 		GetWorldTimerManager().UnPauseTimer(FireTimer);
 	}
+	RealLook->SetFrozen(bFreeze);
 }
 
 void AMedievalArcher::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 {
 	GetWorldTimerManager().ClearTimer(FireTimer);
 	Super::OnDeath(Killer, bHeadshot, bMelee);
+
+	// Personnage réaliste : animation de mort (ou poupée de chiffon) à la place de la boîte grise.
+	const FVector AwayFromKiller = Killer ? (GetActorLocation() - Killer->GetActorLocation()).GetSafeNormal2D() : -GetActorForwardVector();
+	if (RealLook->PlayDeath(AwayFromKiller, 500.f))
+	{
+		return;
+	}
 
 	// Mort théâtrale : bascule en physique et tombe de son perchoir.
 	if (BodyMesh && BodyMesh->GetStaticMesh())
@@ -117,6 +136,7 @@ void AMedievalArcher::Fire()
 	Facing.Pitch = 0.f;
 	Facing.Roll = 0.f;
 	SetActorRotation(Facing);
+	RealLook->PlayAttack();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;

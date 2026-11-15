@@ -10,6 +10,7 @@
 class AMedievalArrow;
 class UStaticMeshComponent;
 class USoundBase;
+class UMedievalAnimatedLook;
 
 UCLASS(Blueprintable)
 class RESHOOT_API AMedievalArcher : public AReshootEnemy
@@ -46,10 +47,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archer|Audio")
 	TObjectPtr<USoundBase> FireSound;
 
+	/** Apparence réaliste animée, affichée après le rideau (assets à régler dans le Blueprint). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Archer")
+	TObjectPtr<UMedievalAnimatedLook> RealLook;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnFreezeChanged(bool bFreeze) override;
 	virtual void OnDeath(AActor* Killer, bool bHeadshot, bool bMelee) override;
+	virtual void OnDressingChanged(bool bReal) override;
 
 	/** Corps en boîte grise ; à cacher dans le Blueprint quand un vrai mesh est assigné. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Archer")

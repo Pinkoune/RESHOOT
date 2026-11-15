@@ -1,0 +1,11 @@
+newmtl tripo_material_5f0cd6c9_031b_40fb_87c5_4f59d3da281e
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Medieval_Convoy_Cartoon_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Medieval_Convoy_Cartoon_roughness.png
+map_Pm SM_Medieval_Convoy_Cartoon_metallic.png
+norm SM_Medieval_Convoy_Cartoon_normal.png
+
