@@ -187,6 +187,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Staging")
 	FName StagingLineId = TEXT("Staging_Improve");
 
+	// --- Musique (GDD) : une boucle par univers (UUniverseDefinition::Music), coupée net au « CUT! » ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0", ClampMax = "2"))
+	float MusicVolume = 0.6f;
+
+	/** Fondu d'entrée d'une musique (début de scène, bascule du final). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0"))
+	float MusicFadeIn = 1.f;
+
+	/** Fondu de sortie de la musique précédente (changement d'univers, fin de partie). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (ClampMin = "0"))
+	float MusicFadeOut = 0.75f;
+
 	/** Délai avant de relancer la prise après la mort du joueur. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0"))
 	float RetakeDelay = 2.f;

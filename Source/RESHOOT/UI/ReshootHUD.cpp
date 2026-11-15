@@ -233,7 +233,7 @@ void AReshootHUD::DrawCutBars()
 	const float BarH = Canvas->ClipY * 0.11f;
 	DrawRect(FLinearColor::Black, 0.f, 0.f, Canvas->ClipX, BarH);
 	DrawRect(FLinearColor::Black, 0.f, Canvas->ClipY - BarH, Canvas->ClipX, BarH);
-	DrawTextAt(TEXT("CUT !"), Canvas->ClipX * 0.5f, BarH + 20.f * UIScale(), 3.2f, FLinearColor::White, true);
+	DrawTextAt(TEXT("CUT!"), Canvas->ClipX * 0.5f, BarH + 20.f * UIScale(), 3.2f, FLinearColor::White, true);
 }
 
 void AReshootHUD::DrawDamageFlash()
@@ -267,7 +267,7 @@ void AReshootHUD::DrawTake()
 	const float Dot = 18.f * S;
 	DrawRect(bRolling ? (bBlinkOn ? RecColor : RecColor * 0.35f) : FLinearColor(0.35f, 0.35f, 0.35f, 1.f), X, Y + 6.f * S, Dot, Dot);
 	DrawTextAt(TEXT("REC"), X + Dot + 10.f * S, Y, 1.f, bRolling ? FLinearColor::White : FLinearColor(0.6f, 0.6f, 0.6f, 1.f));
-	DrawTextAt(FString::Printf(TEXT("SCÈNE %d   -   PRISE %d"), Scene, Take), X, Y + 36.f * S, 1.1f, AccentColor);
+	DrawTextAt(FString::Printf(TEXT("SCENE %d   -   TAKE %d"), Scene, Take), X, Y + 36.f * S, 1.1f, AccentColor);
 }
 
 void AReshootHUD::DrawDirective()
@@ -303,7 +303,7 @@ void AReshootHUD::DrawAudience()
 	const float Pulse = PulseAge < 0.35f ? 1.f - PulseAge / 0.35f : 0.f;
 	const float PH = H * (1.f + 0.6f * Pulse);
 
-	DrawTextAt(TEXT("AUDIMAT"), X, Y - 30.f * S, 0.9f, FLinearColor::White);
+	DrawTextAt(TEXT("RATINGS"), X, Y - 30.f * S, 0.9f, FLinearColor::White);
 	const FString Count = FString::Printf(TEXT("%d / %d"), FMath::RoundToInt(Value), FMath::RoundToInt(MaxValue));
 	DrawTextAt(Count, X + W - MeasureText(Count, 0.9f).X, Y - 30.f * S, 0.9f, FLinearColor(0.8f, 0.8f, 0.8f, 1.f));
 	DrawBar(X, Y - (PH - H) * 0.5f, W, PH, Pct, FMath::Lerp(AccentColor, FLinearColor::White, Pulse), FLinearColor(0.f, 0.f, 0.f, 0.6f));
@@ -360,7 +360,7 @@ void AReshootHUD::DrawHealth()
 	const float X = 40.f * S, Y = Canvas->ClipY - 60.f * S;
 	const float Pct = Health->GetHealthPct();
 	const FLinearColor Fill = Pct > 0.5f ? FLinearColor(0.9f, 0.9f, 0.9f, 1.f) : (Pct > 0.25f ? AccentColor : RecColor);
-	DrawTextAt(FString::Printf(TEXT("VIE  %d"), FMath::RoundToInt(Health->GetHealth())), X, Y - 34.f * S, 1.f, FLinearColor::White);
+	DrawTextAt(FString::Printf(TEXT("HEALTH  %d"), FMath::RoundToInt(Health->GetHealth())), X, Y - 34.f * S, 1.f, FLinearColor::White);
 	DrawBar(X, Y, W, H, Pct, Fill, FLinearColor(0.f, 0.f, 0.f, 0.6f));
 }
 
@@ -391,7 +391,7 @@ void AReshootHUD::DrawWeapon()
 	{
 		// Rappel des touches, mode actif en surbrillance.
 		const EMedievalWeaponMode Mode = Sword->GetMedievalMode();
-		const TCHAR* Labels[] = { TEXT("1 ÉPÉE"), TEXT("2 ARC"), TEXT("3 POINGS") };
+		const TCHAR* Labels[] = { TEXT("1 SWORD"), TEXT("2 BOW"), TEXT("3 FISTS") };
 		float X = Right;
 		for (int32 i = 2; i >= 0; --i)
 		{
@@ -407,7 +407,7 @@ void AReshootHUD::DrawWeapon()
 		}
 		if (Sword->IsShieldRaised())
 		{
-			const FString Guard = Mode == EMedievalWeaponMode::Fists ? TEXT("GARDE") : TEXT("BOUCLIER LEVÉ");
+			const FString Guard = Mode == EMedievalWeaponMode::Fists ? TEXT("GUARD") : TEXT("SHIELD UP");
 			const FVector2D Sz = MeasureText(Guard, 0.8f);
 			DrawTextAt(Guard, Right - Sz.X, Y - 30.f * S, 0.8f, FLinearColor(0.6f, 0.8f, 1.f, 1.f));
 		}

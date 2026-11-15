@@ -1,41 +1,50 @@
 ﻿Name,Sound,Subtitle,SubtitleDuration
-Intro_Medieval,,"Scène un, le Moyen Âge ! Des chevaliers, de la boue, de l'honneur. Je veux sentir la sueur de l'armure !",4.5
-Intro_Space,,"Scène deux, l'espace ! Pas de gravité, pas de pitié. Et personne ne t'entend crier, sauf moi !",4.5
-Intro_Noir,,"Scène trois, film noir ! Il pleut, la ville est pourrie, et toi t'as un revolver. Noir et blanc, s'il vous plaît !",4.5
-Intro_Finale,,"Le grand final ! On mélange tout ! Le producteur va me tuer, mais on s'en fiche. ACTION !",4
-Action_01,,"Silence sur le plateau... Moteur... ACTION !",2.5
-Action_02,,"Et... ACTION !",1.5
-Action_03,,"On tourne ! Allez, allez, allez !",2
-Action_04,,"Prise suivante. Concentre-toi. ACTION !",2.5
-Action_05,,"Les caméras tournent, mon chéri, ACTION !",2.5
-Cut_01,,"CUT ! CUT ! C'était quoi ça ?!",2.5
-Cut_02,,"CUT ! Non, non, non, j'y crois pas une seconde !",3
-Cut_03,,"CUT ! Tu joues comme un figurant de pub pour yaourt !",3
-Cut_04,,"CUT ! Arrête tout ! J'ai une idée géniale !",2.5
-Cut_05,,"CUT ! Le public s'endort, réveille-moi ça !",2.5
-Cut_06,,"CUT ! Ma grand-mère vise mieux que toi, et elle est aveugle !",3
-Cut_07,,"CUT ! Plus d'émotion ! Plus de chaos ! Plus de TOUT !",3
-Cut_08,,"CUT ! Bon. On respire. Et on change tout.",2.5
-Dir_Headshots,,"Je veux des tirs dans la tête ! Que des tirs dans la tête ! C'est artistique !",3.5
-Dir_KeepMoving,,"Tu bouges ! Tout le temps ! Une star ne reste jamais immobile !",3
-Dir_MeleeOnly,,"Au corps-à-corps ! Je veux voir le blanc de leurs yeux !",3
-Dir_NoDamage,,"Tu ne prends pas un seul coup, la maquilleuse a passé trois heures sur ton visage !",3.5
-Dir_Fast,,"Plus vite ! On a le plateau jusqu'à midi !",2.5
-Dir_LowHealth,,"Je veux de la souffrance ! Joue-la blessé, au bord de la mort !",3
-Dir_NoReload,,"Pas de recharge ! Les vrais héros ne rechargent jamais !",3
-Dir_Stylish,,"Du style ! Je veux des glissades, des sauts, du spectacle !",3
-Retake,,"On la refait ! Depuis le début ! Personne ne bouge !",2.5
-Retake_02,,"T'es mort ? T'es MORT ?! Ça n'était pas dans le script !",3
-Retake_03,,"Bon. Prise suivante. Et cette fois tu survis, d'accord ?",3
-Retake_04,,"Maquillage ! Remettez-lui du faux sang, on recommence !",3
-Retake_05,,"Magnifique mort. Totalement hors sujet. On la refait.",3
-Good_01,,"Oui ! OUI ! C'est ça le cinéma !",2
-Good_02,,"Je pleure. Je pleure de bonheur.",2
-Good_03,,"Ça, c'est un Oscar ! Gardez cette prise !",2.5
-Good_04,,"Le public adore ! Continue !",2
-Good_05,,"Tu vois quand tu veux ! Magnifique !",2
-Switch_01,,"Changement de décor ! Vite, vite, vite !",2
-Switch_02,,"On passe à autre chose ! Machinistes, bougez-vous !",2.5
-Switch_03,,"Nouveau décor, même héros, ACTION !",2
-Wrap,,"Et... c'est dans la boîte ! Merci à tous, on remballe !",3
-Wrap_Bad,,"C'est dans la boîte... Bon. On arrangera ça au montage.",3
+Intro_Medieval,,"Scene one, the Middle Ages! Knights, mud, honor. I want to smell the sweat in that armor!",4.5
+Intro_Space,,"Scene two, outer space! No gravity, no mercy. And no one can hear you scream, except me!",4.5
+Intro_Noir,,"Scene three, film noir! It's raining, the city's rotten, and you've got a revolver. Black and white, please!",4.5
+Intro_Finale,,"The grand finale! We mix everything! The producer's going to kill me, but who cares. ACTION!",4
+Action_01,,"Quiet on set... Rolling... ACTION!",2.5
+Action_02,,"And... ACTION!",1.5
+Action_03,,"We're rolling! Go, go, go!",2
+Action_04,,"Next take. Focus. ACTION!",2.5
+Action_05,,"Cameras are rolling, darling, ACTION!",2.5
+Cut_01,,"CUT! CUT! What was that?!",2.5
+Cut_02,,"CUT! No, no, no, I don't buy it for one second!",3
+Cut_03,,"CUT! You act like an extra in a yogurt commercial!",3
+Cut_04,,"CUT! Stop everything! I've got a brilliant idea!",2.5
+Cut_05,,"CUT! The audience is falling asleep, wake them up!",2.5
+Cut_06,,"CUT! My grandmother aims better than you, and she's blind!",3
+Cut_07,,"CUT! More emotion! More chaos! More EVERYTHING!",3
+Cut_08,,"CUT! Okay. Deep breath. And we change everything.",2.5
+Dir_Headshots,,"I want headshots! Nothing but headshots! It's artistic!",3.5
+Dir_KeepMoving,,"Keep moving! All the time! A star never stands still!",3
+Dir_MeleeOnly,,"Close combat! I want to see the whites of their eyes!",3
+Dir_NoDamage,,"Don't take a single hit, makeup spent three hours on your face!",3.5
+Dir_Fast,,"Faster! We only have the set until noon!",2.5
+Dir_LowHealth,,"I want suffering! Play it wounded, on the brink of death!",3
+Dir_NoReload,,"No reloading! Real heroes never reload!",3
+Dir_Stylish,,"Style! I want slides, jumps, a real show!",3
+Retake,,"Again! From the top! Nobody move!",2.5
+Retake_02,,"You're dead? You're DEAD?! That wasn't in the script!",3
+Retake_03,,"Okay. Next take. And this time you survive, got it?",3
+Retake_04,,"Makeup! More fake blood on him, we go again!",3
+Retake_05,,"Gorgeous death. Completely off-script. Again.",3
+Good_01,,"Yes! YES! That's cinema!",2
+Good_02,,"I'm crying. Crying with joy.",2
+Good_03,,"Now that's an Oscar! Keep that take!",2.5
+Good_04,,"The audience loves it! Keep going!",2
+Good_05,,"See, you can do it! Magnificent!",2
+Switch_01,,"Scene change! Quick, quick, quick!",2
+Switch_02,,"Moving on! Stagehands, get moving!",2.5
+Switch_03,,"New set, same hero, ACTION!",2
+Wrap,,"And... that's a wrap! Thank you all, pack it up!",3
+Wrap_Bad,,"That's a wrap... Well. We'll fix it in post.",3
+Dir_NoShield,,"No shield! A hero isn't afraid of a few hits!",3
+Dir_NoBow,,"Put that bow away! I want close combat, the real thing!",3
+Dir_LaserCost,,"That laser is expensive! Every shot comes out of MY budget!",3
+Staging_Improve,,"Let's improve the staging! Bring out the real sets!",3.5
+CastingIntro,,"Him? Fine... we'll make do. Slide down the ramp, then take out those three targets.",5
+CastingDone,,"Not bad. You're hired! Places, everyone, we're rolling!",3
+EventSpace,,"Heads up, gravity comes back on in three seconds!",3
+Event_Medieval,,"Release the horses! Here comes the convoy!",3
+Event_Noir,,"Kill the lights! Plunge it all into darkness!",3
