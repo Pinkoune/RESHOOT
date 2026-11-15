@@ -13,6 +13,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
@@ -123,6 +124,19 @@ void ANoirGangster::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Super::OnDeath(Killer, bHeadshot, bMelee);
+}
+
+void ANoirGangster::OnDressingChanged(bool bReal)
+{
+	Super::OnDressingChanged(bReal);
+
+	UMaterialInterface* Suit = bReal ? SuitReal.Get() : SuitProp.Get();
+	UMaterialInterface* Hat = bReal ? HatReal.Get() : SuitProp.Get();
+	UMaterialInterface* Face = bReal ? FaceReal.Get() : FaceProp.Get();
+	if (Suit && Body) { Body->SetMaterial(0, Suit); }
+	if (Hat && HatBrim) { HatBrim->SetMaterial(0, Hat); }
+	if (Hat && HatCrown) { HatCrown->SetMaterial(0, Hat); }
+	if (Face && Head) { Head->SetMaterial(0, Face); }
 }
 
 void ANoirGangster::RunCycle()

@@ -382,3 +382,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : la boîte grise du joueur est remplacée par un pistolet de service des années 40 (Poly Haven, CC0) : `SM_Noir_Pistol_Real` (métal et crosse en bois) après le rideau, `SM_Noir_Pistol_Prop` (même modèle en carton peint) avant. Branchés comme `RealMesh` / `PropMesh` de `BP_NoirRevolver`. Vérifié en PIE dans `L_Stage`, dans les deux phases.
 - Comment : pas de revolver sur Poly Haven, le pistolet de l'époque fait l'affaire. Variante à crosse en bois gardée, chargeur et balle séparés retirés dans Blender, origine laissée sur la poignée pour la prise en main.
 - Capture : aucune
+
+### 2026-11-15 18:45 — Film noir : les gangsters changent de costume au rideau
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : `ANoirGangster::OnDressingChanged` change les matériaux du corps, du chapeau et du visage quand le rideau passe : silhouette en carton peint en phase carton, costume anthracite, feutre sombre et visage couleur peau en phase réaliste. Matériaux réglés sur `BP_NoirGangster` par `Tools/setup_noir_gangster_look.py`. Vérifié en PIE dans `L_Stage` dans les deux phases.
+- Comment : un header modifié (cinq matériaux et la surcharge), donc éditeur fermé, compilation, éditeur rouvert. Le crochet `OnDressingChanged` du socle était déjà prévu pour ça.
+- Capture : aucune
