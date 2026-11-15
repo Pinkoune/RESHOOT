@@ -119,7 +119,7 @@ L'arc est demandé sans corde : les générateurs ratent les objets très fins. 
 
 | Objet | Nom | Prompt | Taille dans Unreal | Triangles | Qui | Fait |
 | --- | --- | --- | --- | --- | --- | --- |
-| Casque de chevalier | `SM_Medieval_Helmet` | `Medieval knight helmet, rounded steel great helm with eye slit and breathing holes, slightly dented, hollow inside, wearable.` | 30 cm de haut | 8 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; carton à générer |
+| Casque de chevalier | `SM_Medieval_Helmet` | `Medieval knight helmet, rounded steel great helm with eye slit and breathing holes, slightly dented, hollow inside, wearable.` | 30 cm de haut | 8 000 | Ileana | Réaliste : source dans `SourceArt/Medieval/Real`, à importer ; pas de version carton (les chevaliers n'apparaissent qu'après le clap) |
 | Chapeau de gangster | `SM_Noir_Fedora` | `1940s fedora hat, dark grey felt, black ribbon band, pinched crown, film noir gangster style, hollow inside, wearable.` | 15 cm de haut, 35 cm de large | 5 000 |  |  |
 | Drone | `SM_Space_Drone` | `Small hovering sci-fi security drone, round white body, single large red camera eye, two short side thrusters, small gun barrel underneath, visible screws and seams.` | 60 cm de large | 15 000 |  |  |
 

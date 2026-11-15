@@ -17,11 +17,11 @@ comme décrit dans `docs/RESHOOT — Guide de génération des assets.md`.
 | `SM_Medieval_Sword` | pas de carton | oui (Rodin) | Rodin : `base.obj` + `texture_*.png`, `shaded.png` = aperçu |
 | `SM_Medieval_Shield` | pas de carton | oui (Rodin) | idem |
 | `SM_Medieval_Bow` | pas de carton | oui (Rodin) | idem, plus une version `.glb` |
-| `SM_Medieval_Helmet` | à générer | oui (Rodin) | idem |
+| `SM_Medieval_Helmet` | pas de carton | oui (Rodin) | idem |
 
 Pas encore générés : ciel et collines (`T_Medieval_SkyPanorama`, `T_Medieval_Hills`), sol et mur (`T_Medieval_Floor`, `T_Medieval_Wall`), rails du convoi en carton (`SM_Medieval_Rails_Prop`).
 
 Studio (`SourceArt/Stage/`) : `SM_Stage_Clapperboard`, `SM_Stage_DirectorChair`, `SM_Stage_Spotlight` sont nouveaux.
 `SourceArt/Stage/Variantes/` contient une deuxième génération de six objets déjà importés par Jérémy (perche, câbles, caméra, passerelle, flight case, sacs de sable) : gardés pour comparaison, pas à importer en double.
 
-Armes (épée, bouclier, arc) : pas de version carton. Elles n'apparaissent qu'après le clap de début, quand le réalisateur guide l'acteur, donc dans la scène réaliste.
+Armes (épée, bouclier, arc) et casque des chevaliers : pas de version carton. Les armes et les figurants n'apparaissent qu'après le clap de début, quand le réalisateur guide l'acteur, donc dans la scène réaliste.
