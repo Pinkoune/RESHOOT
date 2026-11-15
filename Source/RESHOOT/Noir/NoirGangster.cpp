@@ -55,6 +55,9 @@ ANoirGangster::ANoirGangster(const FObjectInitializer& ObjectInitializer)
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	Move->MaxWalkSpeed = 450.f;
 	Move->bOrientRotationToMovement = true;
+	Move->GetNavAgentPropertiesRef().bCanCrouch = true;
+	// Capsule accroupie : 176 cm - DuckDepth, au minimum une sphère (rayon 34).
+	Move->SetCrouchedHalfHeight(FMath::Max(34.f, 88.f - DuckDepth));
 	bUseControllerRotationYaw = false;
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
@@ -243,13 +246,15 @@ void ANoirGangster::SetDucked(bool bDuck)
 	}
 	bDucked = bDuck;
 
-	const FVector Offset(0.f, 0.f, bDuck ? -DuckDepth : DuckDepth);
-	for (UStaticMeshComponent* Part : { Body.Get(), Head.Get(), HatBrim.Get(), HatCrown.Get() })
+	// Accroupi pour de vrai : les tirs du socle s'arrêtent sur la capsule, elle doit donc rétrécir derrière la caisse
+	// (sinon on touche une capsule invisible au-dessus du couvert). Le corps suit la capsule.
+	if (bDuck)
 	{
-		if (Part)
-		{
-			Part->AddRelativeLocation(Offset);
-		}
+		Crouch();
+	}
+	else
+	{
+		UnCrouch();
 	}
 }
 

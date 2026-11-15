@@ -64,12 +64,8 @@ void ANoirBlackoutEvent::StartEvent()
 		UGameplayStatics::PlaySound2D(this, PowerDownSound);
 	}
 
+	// L'arrêt au bout de Duration est programmé par AUniverseEvent::StartEvent (et mis en pause au CUT!).
 	UE_LOG(LogReshoot, Log, TEXT("Noir blackout: %d lights dimmed"), SavedIntensities.Num());
-
-	if (Duration > 0.f)
-	{
-		GetWorldTimerManager().SetTimer(StopTimer, this, &ANoirBlackoutEvent::StopEvent, Duration, false);
-	}
 }
 
 void ANoirBlackoutEvent::StopEvent()
@@ -79,7 +75,6 @@ void ANoirBlackoutEvent::StopEvent()
 		return;
 	}
 	Super::StopEvent();
-	GetWorldTimerManager().ClearTimer(StopTimer);
 	RestoreLights();
 
 	if (PowerUpSound)

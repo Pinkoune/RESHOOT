@@ -335,3 +335,8 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Comment : branche `dev-enzo` d'abord avancée sur `main` (21 commits de Jérémy), éditeur fermé ; compilation et relance faites par l'IA. Le gel du CUT! de fin de prise dure maintenant la durée du balayage lue sur le rideau, plus 0,5 s.
 - Capture : aucune
 
+### 2026-11-15 15:30 — Film noir : deux correctifs après l'intégration
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : la coupure de courant n'a plus son propre minuteur (il doublait celui du socle et ne se mettait pas en pause au CUT!). Le gangster baissé s'accroupit pour de vrai (`Crouch()`, capsule de 68 cm) : avec le tir du socle qui s'arrête sur les capsules, sa capsule dépassait de la caisse et prenait les balles alors qu'il était caché.
+- Comment : bugs trouvés en relisant ce que l'équipe a changé autour du Noir depuis jeudi, puis vérifiés en PIE sur `L_NoirTest` : tir juste au-dessus de la caisse d'un gangster baissé (vie 80 → 80), coupure de 4 s mise en pause 6 s puis reprise (toujours active, puis arrêtée). Travail sur la branche `jules/noir`.
+- Capture : aucune
