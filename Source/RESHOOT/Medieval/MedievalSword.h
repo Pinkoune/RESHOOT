@@ -119,6 +119,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0.1"))
 	float SwordAttacksPerSecond = 1.5f;
 
+	/** Recul donné au figurant touché par l'épée, en cm/s. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordKnockback = 380.f;
+
+	/** Arrêt sur image quand la lame touche (secondes, 0 = aucun). Donne du poids au coup. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordHitStop = 0.07f;
+
+	/** À-coup de la caméra à l'impact, en degrés. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword", meta = (ClampMin = "0"))
+	float SwordHitKick = 1.2f;
+
 	/** Garder le clic enfoncé enchaîne les coups. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Sword")
 	bool bSwordAutoRepeat = true;
@@ -271,7 +283,7 @@ public:
 
 	/** Durée d'un coup d'épée animé (aller et retour). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real", meta = (ClampMin = "0.05"))
-	float SwordRealSwingTime = 0.32f;
+	float SwordRealSwingTime = 0.24f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Medieval|Real")
 	FTransform ShieldRealLoweredTransform = FTransform(FRotator(0.f, 70.f, 8.f), FVector(38.f, -38.f, -62.f), FVector(0.7f));
@@ -387,6 +399,11 @@ private:
 	bool UsesRealLook() const;
 	void UpdateRealPose();
 	void PlayArmsAnim(UAnimationAsset* Anim, bool bLoop);
+
+	/** Impact de l'épée : arrêt sur image et à-coup de caméra. */
+	void PlayHitImpact();
+	void EndHitStop();
+	FTimerHandle HitStopTimer;
 
 	void ResetCombo();
 	void ShowComboOnScreen(int32 PointsGained) const;

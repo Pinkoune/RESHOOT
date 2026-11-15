@@ -30,7 +30,7 @@ namespace
 	constexpr float RailGauge = 45.f;
 	constexpr float SleeperStep = 150.f;
 
-	/** Murs du plateau (L_Stage, tag MedievalHideReal) : cachés ou réaffichés. La collision ne change pas. */
+	/** Murs du plateau (L_Stage, tag MedievalHideReal) : cachés (sans collision) ou réaffichés. */
 	void SetStageWallsHidden(UWorld* World, bool bHidden)
 	{
 		static const FName WallTag(TEXT("MedievalHideReal"));
@@ -40,9 +40,10 @@ namespace
 		}
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
-			if (It->ActorHasTag(WallTag) && It->IsHidden() != bHidden)
+			if (It->ActorHasTag(WallTag))
 			{
 				It->SetActorHiddenInGame(bHidden);
+				It->SetActorEnableCollision(!bHidden);
 			}
 		}
 	}
@@ -199,14 +200,24 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 
 	// Rails de tournage : visibles en carton, remplacés par un chemin de terre en réaliste (habillage de L_Medieval).
 	// Murs du plateau (L_Stage, tag MedievalHideReal) : cachés en médiéval réaliste pour ouvrir sur la nature,
-	// collision conservée. Ce convoi n'existe que quand L_Medieval est chargé : les autres univers ne sont pas touchés.
+	// collision coupée. Ce convoi n'existe que quand L_Medieval est chargé : les autres univers ne sont pas touchés.
 	// Habillage de L_Medieval : le rideau fait l'inventaire du décor au lancement de la partie, avant que le réalisateur
 	// charge ce sous-niveau. Sans ça, la forêt et l'herbe réalistes (matériaux des packs Fab, hors M_SetDressing)
 	// seraient visibles dès la prise 1, en plein tournage. Hors balayage, on aligne donc nous-mêmes la visibilité
 	// des acteurs tagués de ce niveau sur l'état du rideau (le balayage, lui, reste piloté par le rideau).
+	// Pendant le balayage, chaque acteur bascule quand le rideau passe sur lui (comme le décor M_SetDressing),
+	// et pas d'un coup à la fin.
+	struct FDressingEntry
+	{
+		TWeakObjectPtr<AActor> Actor;
+		bool bReal = false;      // tag réaliste (sinon carton, ou mur du plateau à cacher en réaliste)
+		bool bStageWall = false; // mur de L_Stage (MedievalHideReal)
+		int8 State = -1;         // dernier état appliqué : 0 caché, 1 visible
+	};
 	FTimerHandle RailsTimer;
-	int32 LastDressingState = INDEX_NONE;
-	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this, LastDressingState]() mutable
+	TArray<FDressingEntry> Entries;
+	bool bGathered = false;
+	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this, Entries, bGathered]() mutable
 	{
 		const bool bShowRails = !ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
 		if (RailLeft->IsVisible() != bShowRails)
@@ -216,46 +227,69 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 			Sleepers->SetVisibility(bShowRails);
 		}
 		const ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
-		const bool bReal = Sweep && Sweep->IsDressingReal();
-		SetStageWallsHidden(GetWorld(), bReal);
+		if (!Sweep)
+		{
+			return;
+		}
 
-		if (!Sweep || Sweep->IsSweeping())
+		if (!bGathered)
 		{
-			LastDressingState = INDEX_NONE;   // le rideau gère le passage ; on réapplique quand il a fini
-			return;
+			bGathered = true;
+			static const FName WallTag(TEXT("MedievalHideReal"));
+			for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+			{
+				FDressingEntry Entry;
+				Entry.Actor = *It;
+				if (It->ActorHasTag(WallTag))
+				{
+					Entry.bStageWall = true;
+				}
+				else if (It->GetLevel() == GetLevel() && It->ActorHasTag(Sweep->RealTag))
+				{
+					Entry.bReal = true;
+				}
+				else if (!(It->GetLevel() == GetLevel() && It->ActorHasTag(Sweep->PropTag)))
+				{
+					continue;
+				}
+				Entries.Add(Entry);
+			}
+			UE_LOG(LogReshoot, Log, TEXT("Medieval dressing: %d actors follow the curtain"), Entries.Num());
 		}
-		const int32 State = bReal ? 1 : 0;
-		if (State == LastDressingState)
+
+		const bool bSweeping = Sweep->IsSweeping();
+		const bool bAllReal = Sweep->IsDressingReal();
+		for (FDressingEntry& Entry : Entries)
 		{
-			return;
-		}
-		LastDressingState = State;
-		int32 Count = 0;
-		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
-		{
-			if (It->GetLevel() != GetLevel())
+			AActor* Actor = Entry.Actor.Get();
+			if (!Actor)
 			{
 				continue;
 			}
-			const bool bRealActor = It->ActorHasTag(Sweep->RealTag);
-			const bool bPropActor = !bRealActor && It->ActorHasTag(Sweep->PropTag);
-			if (!bRealActor && !bPropActor)
+			// Hors balayage : l'état du rideau. Pendant : la position de l'acteur par rapport au rideau.
+			const bool bRealHere = bSweeping ? Sweep->IsLocationReal(Actor->GetActorLocation()) : bAllReal;
+			const bool bVisible = Entry.bReal ? bRealHere : !bRealHere;
+			const int8 State = bVisible ? 1 : 0;
+			if (State == Entry.State)
 			{
 				continue;
 			}
-			const bool bVisible = bRealActor ? bReal : !bReal;
-			if (APostProcessVolume* Volume = Cast<APostProcessVolume>(*It))
+			Entry.State = State;
+			if (APostProcessVolume* Volume = Cast<APostProcessVolume>(Actor))
 			{
 				Volume->BlendWeight = bVisible ? 1.f : 0.f;   // un volume caché s'appliquerait quand même
 			}
 			else
 			{
-				It->SetActorHiddenInGame(!bVisible);
+				Actor->SetActorHiddenInGame(!bVisible);
+				// Mur du plateau caché : plus de collision non plus (sinon on bute sur un mur invisible).
+				if (Entry.bStageWall)
+				{
+					Actor->SetActorEnableCollision(bVisible);
+				}
 			}
-			++Count;
 		}
-		UE_LOG(LogReshoot, Log, TEXT("Medieval dressing: %s (%d actors)"), bReal ? TEXT("real") : TEXT("cardboard"), Count);
-	}), 0.25f, true, 0.f);
+	}), 0.05f, true, 0.f);
 }
 
 void AMedievalHorseConvoyEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)

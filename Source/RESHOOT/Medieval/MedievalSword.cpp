@@ -119,6 +119,10 @@ void AMedievalSword::BeginPlay()
 void AMedievalSword::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	RaiseShield(false);
+	if (GetWorldTimerManager().IsTimerActive(HitStopTimer))
+	{
+		EndHitStop();   // ne jamais laisser le jeu ralenti
+	}
 	GetWorldTimerManager().ClearAllTimersForObject(this);
 	if (BoundOwnerHealth)
 	{
@@ -475,12 +479,43 @@ void AMedievalSword::SwordSwing()
 		GetWorldTimerManager().SetTimer(SwingPoseTimer, this, &AMedievalSword::ResetSwingPose, 0.15f, false);
 	}
 
-	const int32 HitCount = MeleeSweep(SwordRange, SwordHalfAngle, SwordDamage, 0.f);
+	const int32 HitCount = MeleeSweep(SwordRange, SwordHalfAngle, SwordDamage, SwordKnockback);
 
-	if (HitCount > 0 && SwordHitSound)
+	if (HitCount > 0)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+		if (SwordHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, SwordHitSound, Start + Direction * SwordRange * 0.5f);
+		}
+		PlayHitImpact();
 	}
+}
+
+void AMedievalSword::PlayHitImpact()
+{
+	// À-coup de caméra : la lame « accroche » la cible.
+	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	{
+		if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		{
+			PC->AddPitchInput(-SwordHitKick * 0.5f);
+			PC->AddYawInput(SwordHitKick);
+		}
+	}
+
+	// Arrêt sur image très court (sauf si le temps est déjà ralenti par autre chose).
+	UWorld* World = GetWorld();
+	if (SwordHitStop > 0.f && FMath::IsNearlyEqual(UGameplayStatics::GetGlobalTimeDilation(World), 1.f))
+	{
+		constexpr float StopDilation = 0.05f;
+		UGameplayStatics::SetGlobalTimeDilation(World, StopDilation);
+		GetWorldTimerManager().SetTimer(HitStopTimer, this, &AMedievalSword::EndHitStop, SwordHitStop * StopDilation, false);
+	}
+}
+
+void AMedievalSword::EndHitStop()
+{
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 }
 
 int32 AMedievalSword::MeleeSweep(float Range, float HalfAngle, float Damage, float Knockback)
