@@ -90,8 +90,24 @@ MAT_PAINTSTONE = tiled('MI_Medieval_PaintedStone_Prop', False, (0.62, 0.58, 0.50
 MAT_HAY = tiled('MI_Medieval_Hay_Prop', False, (0.80, 0.64, 0.30))
 MAT_STONE = tiled('MI_Medieval_Stone_Real', True, (0.85, 0.85, 0.85), 0.9, 0.0, MESHES + '/CastleWall/Real/T_Medieval_CastleWall_Real_basecolor', 250.0)
 MAT_WOOD = tiled('MI_Medieval_Wood_Real', True, (0.9, 0.85, 0.8), 0.75, 0.0, MESHES + '/Barrel/Real/T_Medieval_Barrel_Real_basecolor', 150.0)
-MAT_GRASS = tiled('MI_Medieval_Meadow_Real', True, (0.11, 0.17, 0.05), 0.95)
-MAT_DIRT = tiled('MI_Medieval_Dirt_Real', True, (0.20, 0.14, 0.08), 1.0)   # le kit de chemins est arrivé sans textures
+def find_basecolor(keywords):
+    """Texture de couleur (2048 de préférence) d'un pack Fab dont le chemin contient un des mots-clés."""
+    best = None
+    for d in ar.get_assets_by_path('/Game', recursive=True):
+        if str(d.asset_class_path.asset_name) != 'Texture2D':
+            continue
+        path, name = str(d.package_name), str(d.asset_name).lower()
+        if not any(k.lower() in path.lower() for k in keywords) or not any(k in name for k in ('basecolor', 'albedo', 'diffuse', 'color')):
+            continue
+        score = 2 if '/2048/' in path else (1 if '_2k' in name or '2048' in name else 0)
+        if best is None or score > best[0]:
+            best = (score, path)
+    return best[1] if best else None
+# Sols photographiés (Fab) : prairie (GrassyMeadowGround4) et terre boueuse des chemins
+TEX_MEADOW = find_basecolor(['GrassyMeadowGround'])
+TEX_MUD = find_basecolor(['Muddy', 'Mud_', 'MuddyGround', 'Pebbles'])
+MAT_GRASS = tiled('MI_Medieval_Meadow_Real', True, (1.0, 1.0, 1.0) if TEX_MEADOW else (0.11, 0.17, 0.05), 0.95, 0.0, TEX_MEADOW, 300.0)
+MAT_DIRT = tiled('MI_Medieval_Dirt_Real', True, (1.0, 1.0, 1.0) if TEX_MUD else (0.20, 0.14, 0.08), 1.0, 0.0, TEX_MUD, 250.0)
 MAT_STUDIO_FLOOR = load('/Game/RESHOOT/Core/Materials/MI_Stage_Floor_Prop')
 
 # Images de fond (montagnes sur fond noir, ciel) -> textures + matériaux (parents de Jérémy)
@@ -222,7 +238,7 @@ WALL_P, WALL_R = med_mesh('CastleWall', 'Prop'), med_mesh('CastleWall', 'Real')
 BATT_P, BATT_R = med_mesh('Battlements', 'Prop'), med_mesh('Battlements', 'Real')
 wp, wr, bp, br = size_of(WALL_P), size_of(WALL_R), size_of(BATT_P), size_of(BATT_R)
 RAMPART_H = 750.0
-for i, y in enumerate(range(-1800, 1801, 400)):
+for i, y in enumerate(range(-1830, 1831, 366)):    # 11 pans de 4 m qui se chevauchent
     # le mesh fait 400 de large sur X : tourné de 90° pour longer le rempart (axe Y)
     put('Rempart_Prop_%02d' % i, 'Chateau', WALL_P, (2390, y, 0), 90.0, (1.0, 110.0 / wp[1], RAMPART_H / wp[2]), phase='prop')
     put('Rempart_Real_%02d' % i, 'Chateau', WALL_R, (2390, y, 0), 90.0, (1.0, 110.0 / wr[1], RAMPART_H / wr[2]), phase='real')
@@ -315,16 +331,25 @@ RING_H = 720.0
 def ring_piece(label, x, y, yaw):
     put(label, 'Enceinte', WALL_R, (x, y, 0), yaw, (1.0, 120.0 / wr[1], RING_H / wr[2]), phase='real')
     put(label + '_Creneaux', 'Enceinte', BATT_R, (x, y, RING_H), yaw, (1.0, 130.0 / br[1], 1.0), phase='real')
-DOORS_X = ((-2000, -1600), (500, 900))    # portes nord et sud du plateau
+DOORS_X = ((-2000, -1600), (500, 900))    # portes nord et sud du plateau (4 m de large)
+RING_STEP = 340                             # pans de 4 m posés tous les 3,4 m : ils se chevauchent, pas de fente
+def lintel(label, x, y, yaw):
+    """Linteau de pierre au-dessus d'une porte du plateau (passage de 4 m de haut laissé libre)."""
+    put(label, 'Enceinte', WALL_R, (x, y, 400), yaw, (1.15, 130.0 / wr[1], (RING_H - 400) / wr[2]), phase='real')
+    put(label + '_Creneaux', 'Enceinte', BATT_R, (x, y, RING_H), yaw, (1.15, 130.0 / br[1], 1.0), phase='real')
 for side, y in (('N', 2930), ('S', -2930)):
-    for i, x in enumerate(range(-2800, 2801, 400)):
-        if any(lo - 200 < x < hi + 200 for lo, hi in DOORS_X):
+    for i, x in enumerate(range(-2900, 2901, RING_STEP)):
+        if any(lo - 180 < x < hi + 180 for lo, hi in DOORS_X):
             continue
         ring_piece('Enceinte_%s_%02d' % (side, i), x, y, 0.0)
-for i, y in enumerate(range(-2800, 2801, 400)):
+    for k, (lo, hi) in enumerate(DOORS_X):
+        lintel('Enceinte_%s_Porte_%d' % (side, k), (lo + hi) * 0.5, y, 0.0)
+for i, y in enumerate(range(-2900, 2901, RING_STEP)):
     ring_piece('Enceinte_O_%02d' % i, -2930, y, 90.0)
-for i, y in enumerate((-2900, -2100, 2100, 2900)):
+for i, y in enumerate((-2900, -2100, 2100, 2900)):       # est : entre les tours du château et les portes est
     ring_piece('Enceinte_E_%d' % i, 2930, y, 90.0)
+for k, y in enumerate((-2500, 2500)):
+    lintel('Enceinte_E_Porte_%d' % k, 2930, y, 90.0)
 
 # ---------------------------------------------------------------------------------------------
 # Prairie : chemins de terre, herbe 3D, fleurs, buissons, rochers
@@ -348,7 +373,7 @@ def free_spot(x, y):
 GRASS = [SM('SM_Grass_0%d' % k) for k in range(1, 9)]
 FLOWERS = SM('SM_Flowers_01')
 n = 0
-step = 210.0
+step = 135.0       # herbe dense : une touffe tous les 1,35 m
 y = -2800.0
 while y <= 2800.0:
     x = -2850.0
@@ -356,7 +381,7 @@ while y <= 2800.0:
         gx, gy = x + random.uniform(-80, 80), y + random.uniform(-80, 80)
         if free_spot(gx, gy):
             mesh = FLOWERS if random.random() < 0.12 else random.choice(GRASS)
-            s = random.uniform(0.8, 1.25)
+            s = random.uniform(0.9, 1.45)
             put('Herbe_%04d' % n, 'Prairie/Herbe', mesh, (gx, gy, 0), random.uniform(0, 360), (s, s, s), phase='real', switch=True, shadow=False)
             n += 1
         x += step
