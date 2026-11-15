@@ -13,6 +13,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Engine/PostProcessVolume.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
@@ -199,8 +200,13 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 	// Rails de tournage : visibles en carton, remplacés par un chemin de terre en réaliste (habillage de L_Medieval).
 	// Murs du plateau (L_Stage, tag MedievalHideReal) : cachés en médiéval réaliste pour ouvrir sur la nature,
 	// collision conservée. Ce convoi n'existe que quand L_Medieval est chargé : les autres univers ne sont pas touchés.
+	// Habillage de L_Medieval : le rideau fait l'inventaire du décor au lancement de la partie, avant que le réalisateur
+	// charge ce sous-niveau. Sans ça, la forêt et l'herbe réalistes (matériaux des packs Fab, hors M_SetDressing)
+	// seraient visibles dès la prise 1, en plein tournage. Hors balayage, on aligne donc nous-mêmes la visibilité
+	// des acteurs tagués de ce niveau sur l'état du rideau (le balayage, lui, reste piloté par le rideau).
 	FTimerHandle RailsTimer;
-	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+	int32 LastDressingState = INDEX_NONE;
+	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this, LastDressingState]() mutable
 	{
 		const bool bShowRails = !ASetDressingSweep::IsLocationRealInWorld(this, GetActorLocation());
 		if (RailLeft->IsVisible() != bShowRails)
@@ -210,7 +216,45 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 			Sleepers->SetVisibility(bShowRails);
 		}
 		const ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
-		SetStageWallsHidden(GetWorld(), Sweep && Sweep->IsDressingReal());
+		const bool bReal = Sweep && Sweep->IsDressingReal();
+		SetStageWallsHidden(GetWorld(), bReal);
+
+		if (!Sweep || Sweep->IsSweeping())
+		{
+			LastDressingState = INDEX_NONE;   // le rideau gère le passage ; on réapplique quand il a fini
+			return;
+		}
+		const int32 State = bReal ? 1 : 0;
+		if (State == LastDressingState)
+		{
+			return;
+		}
+		LastDressingState = State;
+		int32 Count = 0;
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			if (It->GetLevel() != GetLevel())
+			{
+				continue;
+			}
+			const bool bRealActor = It->ActorHasTag(Sweep->RealTag);
+			const bool bPropActor = !bRealActor && It->ActorHasTag(Sweep->PropTag);
+			if (!bRealActor && !bPropActor)
+			{
+				continue;
+			}
+			const bool bVisible = bRealActor ? bReal : !bReal;
+			if (APostProcessVolume* Volume = Cast<APostProcessVolume>(*It))
+			{
+				Volume->BlendWeight = bVisible ? 1.f : 0.f;   // un volume caché s'appliquerait quand même
+			}
+			else
+			{
+				It->SetActorHiddenInGame(!bVisible);
+			}
+			++Count;
+		}
+		UE_LOG(LogReshoot, Log, TEXT("Medieval dressing: %s (%d actors)"), bReal ? TEXT("real") : TEXT("cardboard"), Count);
 	}), 0.25f, true, 0.f);
 }
 
