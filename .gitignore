@@ -25,3 +25,6 @@ Plugins/*/Intermediate/
 *.tmp
 Thumbs.db
 .DS_Store
+
+# Archives d'assets : sources dézippées dans SourceArt/
+Content/**/*.zip

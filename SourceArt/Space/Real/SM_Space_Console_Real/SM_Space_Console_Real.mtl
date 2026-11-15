@@ -1,0 +1,11 @@
+newmtl tripo_material_6f9bd4dd_ca45_48cd_ae0d_a7b81e28d867
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Space_Console_Real_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Space_Console_Real_roughness.png
+map_Pm SM_Space_Console_Real_metallic.png
+norm SM_Space_Console_Real_normal.png
+

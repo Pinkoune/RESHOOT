@@ -1,0 +1,11 @@
+newmtl tripo_material_ee2165f3_c8d9_43d4_8a5e_98af9b86e703
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_Sandbags_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_Sandbags_roughness.png
+map_Pm SM_Stage_Sandbags_metallic.png
+norm SM_Stage_Sandbags_normal.png
+

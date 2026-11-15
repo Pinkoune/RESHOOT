@@ -9,6 +9,8 @@
 #include "ReshootEnemy.generated.h"
 
 class UHealthComponent;
+class UStaticMeshComponent;
+class UStaticMesh;
 class AReshootCharacter;
 class AReshootEnemy;
 
@@ -52,6 +54,30 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHealthComponent> HealthComponent;
 
+	// --- Accessoire de costume en deux versions (casque, antenne, chapeau...) ---
+
+	/** Passe l'accessoire en carton ou en réaliste. Appelé par ASetDressingSweep au passage du rideau. */
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Dressing")
+	void SetDressingReal(bool bReal);
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Dressing")
+	bool IsDressingReal() const { return bDressingReal; }
+
+	/** Accessoire attaché au mesh (socket AccessorySocket). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UStaticMeshComponent> Accessory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Dressing")
+	TObjectPtr<UStaticMesh> AccessoryProp;
+
+	/** Même pivot que AccessoryProp. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Dressing")
+	TObjectPtr<UStaticMesh> AccessoryReal;
+
+	/** Socket du mesh où accrocher l'accessoire (tête du mannequin par défaut). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Dressing")
+	FName AccessorySocket = TEXT("head");
+
 	/** Délai avant destruction du corps. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0"))
 	float CorpseLifeSpan = 3.f;
@@ -64,6 +90,12 @@ protected:
 
 	/** Appelé à la mort, après la notification. Par défaut : collision coupée, destruction différée. */
 	virtual void OnDeath(AActor* Killer, bool bHeadshot, bool bMelee);
+
+	/** Appelé après le changement carton / réaliste. Par défaut : rien de plus que l'accessoire. */
+	virtual void OnDressingChanged(bool bReal);
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Dressing")
+	bool bDressingReal = false;
 
 	/** Construit le FKillInfo envoyé au réalisateur. */
 	virtual FKillInfo BuildKillInfo(AActor* Killer, bool bHeadshot, bool bMelee) const;

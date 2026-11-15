@@ -11,7 +11,7 @@ public class RESHOOT : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
-			"AIModule", "NavigationSystem", "UMG"
+			"AIModule", "NavigationSystem", "UMG", "Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
