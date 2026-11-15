@@ -24,6 +24,10 @@
 #include "Rendering/SlateRenderer.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -335,17 +339,31 @@ void AReshootHUD::DrawHUD()
 	}
 
 	TrackChanges();
-	DrawCutBars();
-	DrawDamageFlash();
-	DrawTake();
-	DrawDirective();
-	DrawEventBanner();
-	DrawAudience();
-	DrawHealth();
-	DrawWeapon();
+
+	// Fin du tournage : l'écran de fin recouvre le plateau peu après le « Wrap ». Le HUD de jeu s'efface dessous.
+	const UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>();
+	const bool bWrap = Director && Director->GetPhase() == EShootPhase::Wrap;
+	const double EndScreenStart = PhaseChangeTime + 3.0;
+	const bool bEndScreen = bWrap && Now() >= EndScreenStart;
+	if (!bEndScreen || Now() < EndScreenStart + 0.6)
+	{
+		DrawCutBars();
+		DrawDamageFlash();
+		DrawTake();
+		DrawDirective();
+		DrawEventBanner();
+		DrawAudience();
+		DrawHealth();
+		DrawWeapon();
+		DrawReticle();
+		DrawSlate();
+	}
+	if (bEndScreen)
+	{
+		DrawEndScreen(static_cast<float>(Now() - EndScreenStart));
+	}
+	// La réplique de fin reste lisible par-dessus l'écran de fin.
 	DrawSubtitle();
-	DrawReticle();
-	DrawSlate();
 }
 
 void AReshootHUD::TrackChanges()
@@ -466,6 +484,166 @@ void AReshootHUD::DrawSlate()
 	if (FlashAge >= 0.0 && FlashAge < 0.18)
 	{
 		DrawRect(FLinearColor(1.f, 1.f, 1.f, 0.35f * (1.f - static_cast<float>(FlashAge / 0.18))), 0.f, 0.f, Canvas->ClipX, Canvas->ClipY);
+	}
+}
+
+namespace
+{
+	/** Étoile pleine à cinq branches (triangles depuis le centre, texture blanche par défaut). */
+	void DrawStarShape(UCanvas* Canvas, const FVector2D& Center, float Radius, const FLinearColor& Color)
+	{
+		if (!Canvas || Radius <= 0.5f)
+		{
+			return;
+		}
+		FVector2D Points[10];
+		for (int32 i = 0; i < 10; ++i)
+		{
+			const float R = (i % 2 == 0) ? Radius : Radius * 0.45f;
+			const float A = FMath::DegreesToRadians(-90.f + 36.f * i);
+			Points[i] = Center + FVector2D(FMath::Cos(A), FMath::Sin(A)) * R;
+		}
+		TArray<FCanvasUVTri> Tris;
+		for (int32 i = 0; i < 10; ++i)
+		{
+			FCanvasUVTri& Tri = Tris.AddDefaulted_GetRef();
+			Tri.V0_Pos = Center;
+			Tri.V1_Pos = Points[i];
+			Tri.V2_Pos = Points[(i + 1) % 10];
+			Tri.V0_Color = Tri.V1_Color = Tri.V2_Color = Color;
+		}
+		Canvas->K2_DrawTriangle(nullptr, Tris);
+	}
+
+	/** Verdict de la critique selon les étoiles de l'audimat. */
+	const TCHAR* VerdictForStars(int32 Stars)
+	{
+		switch (Stars)
+		{
+		case 5: return TEXT("OSCAR MATERIAL!");
+		case 4: return TEXT("BOX OFFICE HIT");
+		case 3: return TEXT("SOLID B-MOVIE");
+		case 2: return TEXT("CULT CLASSIC... MAYBE");
+		default: return TEXT("STRAIGHT TO VIDEO");
+		}
+	}
+
+	/** Monde pour lequel une relance a déjà été demandée (la touche reste enfoncée plusieurs images). */
+	TWeakObjectPtr<UWorld> GRestartRequestedWorld;
+}
+
+void AReshootHUD::DrawEndScreen(float Since)
+{
+	const float S = UIScale();
+	const float W = Canvas->ClipX, H = Canvas->ClipY, Cx = W * 0.5f;
+	const AReshootGameState* GameState = GetWorld()->GetGameState<AReshootGameState>();
+	const UAudienceRating* Rating = GameState ? GameState->GetAudienceRating() : nullptr;
+	const int32 Stars = Rating ? FMath::Clamp(Rating->GetStars(), 0, 5) : 0;
+	auto Fade = [Since](float Start, float Duration) { return FMath::Clamp((Since - Start) / Duration, 0.f, 1.f); };
+
+	// Fond : le plateau s'assombrit, bandes de cinéma en haut et en bas.
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.9f * FMath::SmoothStep(0.f, 1.f, Fade(0.f, 0.8f))), 0.f, 0.f, W, H);
+	const float BarH = H * 0.08f * EaseOutBack(Fade(0.f, 0.5f));
+	DrawRect(FLinearColor::Black, 0.f, 0.f, W, BarH);
+	DrawRect(FLinearColor::Black, 0.f, H - BarH, W, BarH);
+
+	// Titre et générique.
+	if (Since >= 0.3f)
+	{
+		const float Pop = 0.4f + 0.6f * EaseOutBack(Fade(0.3f, 0.45f));
+		DrawTextAt(TEXT("THAT'S A WRAP!"), Cx, H * 0.12f, 3.4f * Pop, FLinearColor(1.f, 0.95f, 0.85f, Fade(0.3f, 0.15f)), true);
+	}
+	const FString Name = GameState && !GameState->GetPlayerName().IsEmpty() ? GameState->GetPlayerName().ToUpper() : FString(TEXT("THE EXTRA"));
+	DrawTextAt(FString::Printf(TEXT("A RESHOOT PICTURE  ·  STARRING %s"), *Name), Cx, H * 0.27f, 1.f, FLinearColor(0.8f, 0.8f, 0.8f, Fade(0.7f, 0.4f)), true);
+
+	// Étoiles : les cinq places d'abord, puis celles gagnées s'allument une à une avec un coup de poing.
+	const float StarR = 40.f * S, StarGap = 112.f * S, StarY = H * 0.40f;
+	for (int32 i = 0; i < 5; ++i)
+	{
+		const FVector2D C(Cx + (i - 2) * StarGap, StarY);
+		const float Slot = Fade(0.9f + 0.05f * i, 0.25f);
+		if (Slot <= 0.f)
+		{
+			continue;
+		}
+		const float LitAt = 1.2f + 0.32f * i;
+		const bool bLit = i < Stars && Since >= LitAt;
+		if (bLit)
+		{
+			const float Pop = Punch(Since - LitAt, 0.7f, 0.3f);
+			DrawStarShape(Canvas, C + FVector2D(3.f, 4.f) * S, StarR * Pop, FLinearColor(0.f, 0.f, 0.f, 0.5f));
+			DrawStarShape(Canvas, C, StarR * Pop, AccentColor);
+		}
+		else
+		{
+			DrawStarShape(Canvas, C, StarR * Slot, FLinearColor(0.22f, 0.22f, 0.24f, 1.f));
+		}
+	}
+
+	// Verdict, une fois les étoiles posées.
+	const float VerdictAt = 1.3f + 0.32f * FMath::Max(Stars, 1);
+	if (Since >= VerdictAt)
+	{
+		const float Pop = 0.5f + 0.5f * EaseOutBack(Fade(VerdictAt, 0.4f));
+		DrawTextAt(VerdictForStars(Stars), Cx, H * 0.47f, 1.9f * Pop, Stars >= 3 ? AccentColor : FLinearColor(0.85f, 0.85f, 0.85f, 1.f), true);
+	}
+
+	// Bilan du tournage, ligne par ligne.
+	const FShootStats Stats = GameState ? GameState->GetShootStats() : FShootStats();
+	struct FRow { const TCHAR* Label; int32 Value; };
+	const FRow Rows[] = {
+		{ TEXT("AUDIENCE"), Rating ? FMath::RoundToInt(Rating->GetRating()) : 0 },
+		{ TEXT("EXTRAS TAKEN OUT"), Stats.Kills },
+		{ TEXT("HEADSHOTS"), Stats.Headshots },
+		{ TEXT("DIRECTOR'S ORDERS FOLLOWED"), Stats.DirectiveKills },
+		{ TEXT("TAKES IN THE CAN"), Stats.CompletedTakes },
+		{ TEXT("RETAKES"), Stats.FailedTakes },
+	};
+	const float StatsAt = VerdictAt + 0.4f;
+	if (Since >= StatsAt)
+	{
+		const float PanelW = 640.f * S, RowH = 46.f * S;
+		const float PX = Cx - PanelW * 0.5f, PY = H * 0.56f;
+		const int32 NumRows = UE_ARRAY_COUNT(Rows);
+		DrawPanel(PX, PY, PanelW * Fade(StatsAt, 0.25f), NumRows * RowH + 24.f * S, AccentColor);
+		for (int32 i = 0; i < NumRows; ++i)
+		{
+			const float A = Fade(StatsAt + 0.2f + 0.12f * i, 0.2f);
+			if (A <= 0.f)
+			{
+				continue;
+			}
+			const float RY = PY + 14.f * S + i * RowH;
+			DrawTextAt(Rows[i].Label, PX + 34.f * S, RY, 1.05f, FLinearColor(0.85f, 0.85f, 0.85f, A));
+			const FString Value = FString::FromInt(Rows[i].Value);
+			const FVector2D Sz = MeasureText(Value, 1.2f);
+			const FLinearColor ValueColor = i == 0 ? AccentColor : FLinearColor::White;
+			DrawTextAt(Value, PX + PanelW - 34.f * S - Sz.X, RY - 2.f * S, 1.2f, FLinearColor(ValueColor.R, ValueColor.G, ValueColor.B, A));
+		}
+	}
+
+	// Relance ou sortie.
+	const float PromptAt = StatsAt + 1.2f;
+	if (Since >= PromptAt)
+	{
+		const float Blink = 0.55f + 0.45f * FMath::Sin((Since - PromptAt) * 4.f);
+		DrawTextAt(TEXT("PRESS ENTER TO RESHOOT   ·   ESC TO QUIT"), Cx, H - BarH - 64.f * S, 1.f, FLinearColor(1.f, 1.f, 1.f, Blink), true);
+
+		APlayerController* PC = GetOwningPlayerController();
+		if (PC && GRestartRequestedWorld.Get() != GetWorld())
+		{
+			if (PC->IsInputKeyDown(EKeys::Enter) || PC->IsInputKeyDown(EKeys::SpaceBar) || PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Bottom))
+			{
+				GRestartRequestedWorld = GetWorld();
+				UE_LOG(LogReshoot, Log, TEXT("End screen: reshoot (reloading %s)."), *UGameplayStatics::GetCurrentLevelName(this, true));
+				UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
+			}
+			else if (PC->IsInputKeyDown(EKeys::Escape))
+			{
+				GRestartRequestedWorld = GetWorld();
+				UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
+			}
+		}
 	}
 }
 

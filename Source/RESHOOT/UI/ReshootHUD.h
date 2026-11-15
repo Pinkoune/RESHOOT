@@ -79,6 +79,8 @@ private:
 	void DrawEventBanner();
 	/** Clap de début de scène (et petit clap à chaque bascule du final). */
 	void DrawSlate();
+	/** Écran de fin (phase Wrap) : titre, étoiles, verdict, bilan de la partie ; Entrée relance, Échap quitte. */
+	void DrawEndScreen(float Since);
 	/** Repère les changements de phase, d'univers, de directive et d'événement (départ des animations). */
 	void TrackChanges();
 	/** Police vectorielle à la bonne taille, avec contour. */
