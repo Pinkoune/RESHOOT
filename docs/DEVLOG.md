@@ -388,3 +388,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : `ANoirGangster::OnDressingChanged` change les matériaux du corps, du chapeau et du visage quand le rideau passe : silhouette en carton peint en phase carton, costume anthracite, feutre sombre et visage couleur peau en phase réaliste. Matériaux réglés sur `BP_NoirGangster` par `Tools/setup_noir_gangster_look.py`. Vérifié en PIE dans `L_Stage` dans les deux phases.
 - Comment : un header modifié (cinq matériaux et la surcharge), donc éditeur fermé, compilation, éditeur rouvert. Le crochet `OnDressingChanged` du socle était déjà prévu pour ça.
 - Capture : aucune
+
+### 2026-11-15 19:00 — Spatial : sons réalistes refaits
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : les quatre sons réalistes provisoires du Spatial sont remplacés : tir du fusil laser (décharge qui chute de 2,4 kHz à 180 Hz, coup sourd, écho du hangar), tir des drones (plus aigu, plus sec, plus lointain), deux sorties d'air comprimé pour les réacteurs. Mêmes noms d'assets, donc `BP_SpaceLaser`, `BP_SpaceDrone` et `BP_ReshootCharacter` les utilisent sans rien rebrancher (vérifié dans l'éditeur).
+- Comment : synthèse numpy dans Blender, comme les bruitages du Noir (`Tools/synth_space_real_sfx.py`, WAV dans `SourceArt/Space/Audio/Real`). Les MP3 provisoires restent à côté pour revenir en arrière.
+- Capture : aucune
