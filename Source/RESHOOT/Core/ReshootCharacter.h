@@ -13,6 +13,7 @@ class AReshootWeapon;
 class UUniverseDefinition;
 class UInputAction;
 class UInputMappingContext;
+class USoundBase;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponChanged, AReshootWeapon*, NewWeapon);
@@ -115,6 +116,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Reshoot|Movement")
 	bool IsSpaceGravityOn() const { return bSpaceGravityOn; }
 
+	// --- Carton / réaliste ---
+
+	/** Appelé par ASetDressingSweep quand le rideau passe sur le joueur : change le modèle de l'arme, petit flash. */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot|Dressing")
+	void SetDressingReal(bool bReal);
+
+	UFUNCTION(BlueprintPure, Category = "Reshoot|Dressing")
+	bool IsDressingReal() const { return bDressingReal; }
+
 	/** Commande console de test : DebugUniverse 1 (Medieval), 2 (Space), 3 (Noir). */
 	UFUNCTION(Exec)
 	void DebugUniverse(int32 UniverseIndex);
@@ -185,6 +195,17 @@ public:
 	/** Molette : mode suivant / précédent (Axis1D). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> CycleModeAction;
+
+	// --- Réglages : flash du passage carton -> réaliste ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing")
+	FLinearColor DressingFlashColor = FLinearColor(1.f, 0.95f, 0.8f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing", meta = (ClampMin = "0", ClampMax = "1"))
+	float DressingFlashAlpha = 0.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dressing", meta = (ClampMin = "0"))
+	float DressingFlashTime = 0.25f;
 
 	// --- Réglages : caméra ---
 
@@ -267,6 +288,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0"))
 	float DefaultSpaceBraking = 150.f;
 
+	/** Sortie d'air en apesanteur, jouée à chaque appui sur une touche de direction : décor en carton (faite à la bouche)... */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
+	TArray<TObjectPtr<USoundBase>> PropThrusterSounds;
+
+	/** ... et décor réaliste. Une prise tirée au hasard à chaque appui. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
+	TArray<TObjectPtr<USoundBase>> RealThrusterSounds;
+
+	/** Variation aléatoire de hauteur des sorties d'air (± fraction). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0", ClampMax = "0.5"))
+	float ThrusterPitchJitter = 0.1f;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -347,4 +380,12 @@ private:
 	float TargetAimFOV = 90.f;
 	FTimerHandle AimFOVTimer;
 	bool bSpaceGravityOn = false;
+	bool bDressingReal = false;
+
+	/** Joue une sortie d'air (carton ou réaliste selon le décor). */
+	void PlayThruster();
+	/** Touches relâchées : le prochain appui rejoue une sortie d'air. */
+	void OnMoveCompleted(const FInputActionValue& Value);
+	/** Dernier axe de déplacement reçu, pour repérer un nouvel appui de touche. */
+	FVector2D PrevMoveAxis = FVector2D::ZeroVector;
 };

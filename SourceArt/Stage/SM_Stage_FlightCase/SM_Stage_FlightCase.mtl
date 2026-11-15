@@ -1,0 +1,11 @@
+newmtl tripo_material_52fba5df_d438_447f_9114_15558db682bc
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd SM_Stage_FlightCase_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr SM_Stage_FlightCase_roughness.png
+map_Pm SM_Stage_FlightCase_metallic.png
+norm SM_Stage_FlightCase_normal.png
+
