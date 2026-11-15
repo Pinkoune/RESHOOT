@@ -16,6 +16,8 @@
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
+#include "Engine/FontFace.h"
+#include "Fonts/CompositeFont.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Fonts/FontMeasure.h"
 #include "Framework/Application/SlateApplication.h"
@@ -31,6 +33,18 @@ AReshootHUD::AReshootHUD()
 	if (RobotoFont.Succeeded())
 	{
 		Font = RobotoFont.Object;
+	}
+	// Titres en Bebas Neue (SIL OFL, SourceArt/UI/Fonts) : police d'affiche de cinéma, construite ici à partir de la
+	// fonte importée. Sous-objet du HUD : la fonte est cuite avec le jeu. Typographie nommée « Bold » comme FontTypeface.
+	static ConstructorHelpers::FObjectFinder<UFontFace> BebasFace(TEXT("/Game/RESHOOT/UI/Fonts/FF_BebasNeue.FF_BebasNeue"));
+	if (BebasFace.Succeeded())
+	{
+		UFont* Display = CreateDefaultSubobject<UFont>(TEXT("DisplayFont"));
+		Display->FontCacheType = EFontCacheType::Runtime;
+		FTypefaceEntry& Entry = Display->GetMutableInternalCompositeFont().DefaultTypeface.Fonts.AddDefaulted_GetRef();
+		Entry.Name = TEXT("Bold");
+		Entry.Font = FFontData(BebasFace.Object);
+		Font = Display;
 	}
 }
 
@@ -213,6 +227,52 @@ FSlateFontInfo AReshootHUD::MakeFont(float Scale) const
 	return Info;
 }
 
+namespace
+{
+	/** Les phrases (sous-titres, consignes) gardent une police de lecture : Bebas n'a que des capitales. */
+	bool IsSentence(const FString& Text)
+	{
+		for (const TCHAR Ch : Text)
+		{
+			if (FChar::IsLower(Ch))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	const UFont* BodyFont()
+	{
+		static TWeakObjectPtr<const UFont> Cached;
+		if (!Cached.IsValid())
+		{
+			Cached = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"));
+		}
+		return Cached.Get();
+	}
+}
+
+FSlateFontInfo AReshootHUD::MakeFontFor(const FString& Text, float Scale) const
+{
+	FSlateFontInfo Info = MakeFont(Scale);
+	if (IsSentence(Text))
+	{
+		if (const UFont* Body = BodyFont())
+		{
+			Info.FontObject = Body;
+			Info.TypefaceFontName = TEXT("Bold");
+			Info.Size = FMath::Max(6.f, Info.Size * 0.82f);
+		}
+	}
+	else
+	{
+		Info.Size *= 1.18f;	// Bebas est étroite : un peu plus grande pour le même encombrement
+	}
+	Info.OutlineSettings.OutlineSize = FMath::Max(1, FMath::RoundToInt(Info.Size / 12.f));
+	return Info;
+}
+
 FVector2D AReshootHUD::MeasureText(const FString& Text, float Scale) const
 {
 	if (!Font || Text.IsEmpty() || !FSlateApplication::IsInitialized())
@@ -220,7 +280,7 @@ FVector2D AReshootHUD::MeasureText(const FString& Text, float Scale) const
 		return FVector2D::ZeroVector;
 	}
 	const TSharedRef<FSlateFontMeasure> Measure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return Measure->Measure(Text, MakeFont(Scale));
+	return Measure->Measure(Text, MakeFontFor(Text, Scale));
 }
 
 void AReshootHUD::DrawTextAt(const FString& Text, float X, float Y, float Scale, const FLinearColor& Color, bool bCenterX, bool bShadow)
@@ -230,7 +290,7 @@ void AReshootHUD::DrawTextAt(const FString& Text, float X, float Y, float Scale,
 		return;
 	}
 	// Police vectorielle rendue à sa taille réelle (nette), contour noir ; ombre portée douce en plus.
-	FSlateFontInfo Info = MakeFont(Scale);
+	FSlateFontInfo Info = MakeFontFor(Text, Scale);
 	Info.OutlineSettings.OutlineColor.A *= Color.A;
 	FCanvasTextItem Item(FVector2D(X, Y), FText::FromString(Text), Info, Color);
 	Item.bCentreX = bCenterX;

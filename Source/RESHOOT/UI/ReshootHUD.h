@@ -83,6 +83,8 @@ private:
 	void TrackChanges();
 	/** Police vectorielle à la bonne taille, avec contour. */
 	struct FSlateFontInfo MakeFont(float Scale) const;
+	/** Police selon le texte : titres en capitales (police d'affiche), phrases en police de lecture. */
+	struct FSlateFontInfo MakeFontFor(const FString& Text, float Scale) const;
 	/** Carte sombre avec un liseré de couleur à gauche : fond commun des blocs du HUD. */
 	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe);
 
