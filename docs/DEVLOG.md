@@ -464,3 +464,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : les gangsters ne sont plus des cylindres. Corps du mannequin UE livré avec le moteur (`Noir/Mannequin`), animé sans Animation Blueprint : pistolet levé à l'arrêt, course pistolet en main, recul. Manteau long en deux pièces accrochées au buste et au bassin, feutre sur l'os de la tête, pistolet de Jules dans la main droite ; carton peint en répétition, costume sombre et manteau gris en réaliste. La chute théâtrale est vérifiée en jeu : sur un tir à la tête, le feutre s'envole et le corps bascule en arrière.
 - Comment : premier essai avec les animations de mort du mannequin : le corps disparaissait à l'écran à l'instant de la mort, alors que ses os tombaient bien (sondé en Python). Gardé la bascule codée, qui marche. Autre piège : un gangster baissé a le corps enfoncé de 54 cm derrière son couvert ; à sa mort il est remis les pieds au sol. Test piloté par le serveur MCP de l'éditeur (Python, captures du viewport, Live Coding), après une première partie à la souris faute d'avoir vérifié que le MCP répondait.
 - Capture : docs/devlog-media/2026-11-16-noir-gangster-manteau.png, docs/devlog-media/2026-11-16-noir-gangster-chute.png
+
+### 2026-11-16 01:25 — Noir : scène de crime, cabines téléphoniques, kiosque
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : troisième passe d'accessoires dans la ruelle : une scène de crime (silhouette à la craie, chevalets de police rayés, ruban POLICE LINE, chapeau et arme du mort, marqueurs numérotés), deux cabines téléphoniques éclairées, un kiosque à journaux, six lampadaires et trois panneaux de rue en plus.
+- Comment : ajouté à `Tools/build_noir_set.py`, reconstruit et vérifié en jeu entièrement par le serveur MCP de l'éditeur (script Python + capture du viewport), sans toucher à la souris.
+- Capture : docs/devlog-media/2026-11-16-noir-scene-de-crime.png
