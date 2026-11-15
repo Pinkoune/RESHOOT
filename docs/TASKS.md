@@ -97,7 +97,7 @@ Interface
 
 - [ ] Corrections issues du test
 - [ ] Éclairage et rendu, DLSS si carte RTX disponible
-- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules)
+- [ ] Sons, musiques, mixage — lecture des musiques faite côté réalisateur (`UUniverseDefinition::Music` de chaque univers : fondu enchaîné, coupée au CUT!, change au final, volume et fondus dans `SS_Main`) ; reste à fournir les morceaux (Jules) — Noir : « Hard Boiled » de Kevin MacLeod (CC-BY 4.0) dans `DA_Noir`, testé en jeu. Médiéval et Spatial : toujours sans musique.
 - [ ] Build de secours en ligne à 20h
 - [ ] Page itch.io : description, captures, « Tools you used » (Rodin, Tripo, Meshy, fal, Claude, Codex, Antigravity…)
 - [ ] Dev log finalisé

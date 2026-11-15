@@ -32,6 +32,14 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
 
+## Musiques (licence CC-BY 4.0, citation obligatoire)
+
+| Morceau | Auteur | Licence | Dans le jeu |
+| --- | --- | --- | --- |
+| « Hard Boiled » | Kevin MacLeod (incompetech.com) | Creative Commons : By Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/) | `SW_Noir_Music_HardBoiled`, boucle du film noir (`DA_Noir`) |
+
+Texte à reprendre tel quel sur la page itch.io : "Hard Boiled" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/
+
 ## Assets générés pendant la jam (créés par l'équipe)
 
 - Modèles 3D : Tripo (décors, drone, studio), Rodin (fusil laser). Sources dans `SourceArt/`.
@@ -39,4 +47,4 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 
 ## Outils
 
-Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Sons et musiques : WeLoveIndies (à confirmer).
+Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musique du film noir : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).
