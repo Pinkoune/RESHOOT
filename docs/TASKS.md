@@ -85,7 +85,7 @@ Réalisateur (Enzo)
 - [x] Intégration des trois univers dans `UShootScript` (`SS_Main` : Médiéval, Spatial, Noir, final sur les trois ; testé dans `L_Stage`)
 
 Univers
-- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage à faire ; Médiéval : convoi de chevaux de bois fait (`AMedievalHorseConvoyEvent` dans `L_Medieval`, branché dans `DA_Medieval`), habillage à faire
+- [ ] Habillage (assets générés), événement d'univers — Noir : événement fait (`ANoirBlackoutEvent`, coupure de courant 10 s, branché dans `DA_Noir`), habillage fait (ruelle de nuit et décor en carton, `Tools/build_noir_set.py`) ; Médiéval : convoi de chevaux de bois fait (`AMedievalHorseConvoyEvent` dans `L_Medieval`, branché dans `DA_Medieval`), habillage à faire
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
@@ -111,7 +111,7 @@ Interface
 - [x] Spatial : versions carton et réaliste des 7 objets, du fusil et du drone ; sol, murs, ciel, planète et coque en version réaliste ; studio réel (caméras, perche, passerelles, câbles, sacs de sable, flight cases)
 - [x] `L_Stage` : blockout invisible en jeu, plafond de collision, studio sombre (gril, projecteurs) commun aux univers
 - [x] Rendu : exposition figée dans les deux phases
-- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
+- [ ] Médiéval et film noir : habillage réaliste et carton sur le blockout (Noir fait le 15/11 : `Tools/build_noir_set.py`, 192 acteurs dans `L_Noir`) (sans lui, leur phase réaliste montre du vide), sur le modèle de `Tools/build_space_set.py`
 - [ ] Compléter `docs/CREDITS.md` (titres Fab exacts) avant la soumission
 - [ ] Étincelles `NS_SetDressingSparks` : réglage (couleur orange, plus courtes)
 - [x] Spatial : ciel et planète procéduraux, fusil laser réaliste animé, effets de tir du fusil et des drones (`USpaceLaserFXComponent`, `Tools/build_laser_fx.py`)
