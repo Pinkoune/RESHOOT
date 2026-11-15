@@ -34,6 +34,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD", meta = (ClampMin = "0.1"))
 	float TextScale = 1.f;
 
+	/** Style de la police (nom d'une typographie de la police composite : Bold, Regular...). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD")
+	FName FontTypeface = TEXT("Bold");
+
+	/** Taille en pixels d'un texte d'échelle 1 à 1080p. Le texte est rendu à sa taille réelle : il reste net. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD", meta = (ClampMin = "4"))
+	float FontPixelSize = 20.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD")
 	FLinearColor AccentColor = FLinearColor(1.f, 0.78f, 0.25f, 1.f);
 
@@ -69,6 +77,12 @@ private:
 	void DrawDamageFlash();
 	void DrawCutBars();
 	void DrawEventBanner();
+	/** Clap de début de scène (et petit clap à chaque bascule du final). */
+	void DrawSlate();
+	/** Repère les changements de phase, d'univers, de directive et d'événement (départ des animations). */
+	void TrackChanges();
+	/** Police vectorielle à la bonne taille, avec contour. */
+	struct FSlateFontInfo MakeFont(float Scale) const;
 	/** Carte sombre avec un liseré de couleur à gauche : fond commun des blocs du HUD. */
 	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe);
 
@@ -94,6 +108,18 @@ private:
 
 	bool bBoundDirector = false;
 	double BoredSince = -1.0;
+
+	// Animations
+	EShootPhase LastPhase = EShootPhase::Menu;
+	double PhaseChangeTime = -100.0;
+	EUniverse LastUniverse = EUniverse::None;
+	double UniverseChangeTime = -100.0;
+	TWeakObjectPtr<const class UDirective> LastDirective;
+	double DirectiveChangeTime = -100.0;
+	int32 LastEventState = 0;
+	double EventStateTime = -100.0;
+	float ShownRating = 0.f;
+	double LastDrawTime = 0.0;
 
 	double Now() const;
 

@@ -29,9 +29,21 @@
 #include "Sound/SoundBase.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 
 namespace ReshootDirector
 {
+	/** Fondu de la caméra du joueur (transitions entre univers, flash des bascules du final). */
+	static void FadeCamera(UWorld* World, float From, float To, float Duration, const FLinearColor& Color, bool bHold)
+	{
+		APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+		if (PC && PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(From, To, Duration, Color, false, bHold);
+		}
+	}
+
 	/** Tag du volume de post-process géré par le réalisateur (créé à la volée, sans borne). */
 	static const FName UniversePostProcessTag(TEXT("ReshootUniversePostProcess"));
 
@@ -786,6 +798,8 @@ void UShootDirectorSubsystem::BeginScene(int32 NewSceneIndex)
 	TakeControlOfStaging();
 	SetStagingState(false);
 	ResetPlayerToStart(Scene.PlayerStartTag);
+	// Sortie du noir sur le nouvel univers (le HUD montre le clap de la scène).
+	ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.9f, FLinearColor::Black, false);
 	// Le joueur a quitté le studio de casting : on le décharge.
 	if (!Script->CastingSubLevelName.IsNone())
 	{
@@ -807,8 +821,15 @@ void UShootDirectorSubsystem::BeginTake(int32 NewTakeIndex)
 	const FSceneDef& Scene = Script->Scenes[SceneIndex];
 	if (!Scene.Takes.IsValidIndex(NewTakeIndex))
 	{
+		// Transition entre univers : tout se fige, fondu au noir, puis la scène suivante s'ouvre sur son clap.
 		SetPhase(EShootPhase::SceneTransition);
-		BeginScene(SceneIndex + 1);
+		FreezeAll(true);
+		ReshootDirector::FadeCamera(GetWorld(), 0.f, 1.f, 0.6f, FLinearColor::Black, true);
+		const int32 NextScene = SceneIndex + 1;
+		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateWeakLambda(this, [this, NextScene]()
+		{
+			BeginScene(NextScene);
+		}), 0.75f, false);
 		return;
 	}
 
@@ -1119,6 +1140,7 @@ void UShootDirectorSubsystem::BeginFinale()
 	SetStagingState(true);
 	// On peut arriver ici depuis une intro de scène (gelée) si la scène n'a aucune prise.
 	FreezeAll(false);
+	ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.9f, FLinearColor::Black, false);
 	LastKillTime = GetWorld()->GetTimeSeconds();
 	FinaleUniverseIndex = 0;
 	FinaleSwitchUniverse();
@@ -1156,6 +1178,8 @@ void UShootDirectorSubsystem::FinaleSwitchUniverse()
 	// La première bascule a lieu à l'entrée du final, annoncée par FinaleIntroLineId.
 	if (!bFirstSwitch)
 	{
+		// Bascule du final : flash blanc de clap (GDD), le HUD montre un petit clap.
+		ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.35f, FLinearColor::White, false);
 		PlayLine(ReshootDirector::PickLine(Script->FinaleSwitchLineIds));
 	}
 	if (AWaveSpawner* WaveSpawner = FindSpawner())
