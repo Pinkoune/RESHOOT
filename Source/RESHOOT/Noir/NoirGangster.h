@@ -12,6 +12,9 @@
 class USoundBase;
 class UStaticMeshComponent;
 class UMaterialInterface;
+class UAnimSequenceBase;
+class USkeletalMesh;
+class UStaticMesh;
 
 UCLASS(Blueprintable)
 class RESHOOT_API ANoirGangster : public AReshootEnemy
@@ -125,6 +128,57 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
 	TObjectPtr<UMaterialInterface> FaceReal;
 
+	// --- Corps animé (mannequin UE). Si FigureMesh est vide, le gangster garde ses formes simples. ---
+
+	/** Squelette du gangster (mannequin). Les formes simples deviennent des zones de tir invisibles. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<USkeletalMesh> FigureMesh;
+
+	/** Pistolet en main droite. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UStaticMeshComponent> Gun;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UStaticMesh> GunProp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UStaticMesh> GunReal;
+
+	/** Os de la main qui tient le pistolet, et placement du pistolet par rapport à cet os. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	FName GunBone = TEXT("hand_r");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	FTransform GunOffset;
+
+	/** Os de la tête qui porte le chapeau, et hauteur du bord du chapeau au-dessus de cet os (pose de référence). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	FName HatBone = TEXT("head");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	float HatHeight = 17.f;
+
+	/** Matériaux du mannequin en phase réaliste, un par slot (vide = SuitReal partout). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TArray<TObjectPtr<UMaterialInterface>> FigureRealMaterials;
+
+	/** Animations jouées sans Animation Blueprint : arrêt (pistolet levé), course, tir. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UAnimSequenceBase> IdleAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UAnimSequenceBase> MoveAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TObjectPtr<UAnimSequenceBase> FireAnim;
+
+	/** Morts quand le tueur est devant lui (il tombe en arrière), et quand il est derrière. Une au hasard. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TArray<TObjectPtr<UAnimSequenceBase>> DeathFromFrontAnims;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Figure")
+	TArray<TObjectPtr<UAnimSequenceBase>> DeathFromBackAnims;
+
 	UFUNCTION(BlueprintPure, Category = "Gangster")
 	bool IsDucked() const { return bDucked; }
 
@@ -137,6 +191,14 @@ protected:
 	virtual void OnFreezeChanged(bool bFreeze) override;
 	virtual void OnDeath(AActor* Killer, bool bHeadshot, bool bMelee) override;
 	virtual void OnDressingChanged(bool bReal) override;
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+	/** Corps animé : branche le squelette, le pistolet et le chapeau (BeginPlay). */
+	void SetupFigure();
+	bool HasFigure() const;
+	/** Toutes les 0,1 s : course ou arrêt, sauf pendant un tir. */
+	void UpdateAnimation();
+	void PlayLoop(UAnimSequenceBase* Anim);
 
 	/** Toutes les BurstInterval : change de couvert si besoin, sinon se relève pour tirer. */
 	void RunCycle();
@@ -158,4 +220,11 @@ protected:
 	FTimerHandle CycleTimer;
 	FTimerHandle ShotTimer;
 	FTimerHandle DuckTimer;
+	FTimerHandle AnimTimer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequenceBase> CurrentLoop;
+
+	/** Fin de l'animation de tir en cours (temps du monde). */
+	double FireAnimEnd = 0.0;
 };

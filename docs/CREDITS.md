@@ -53,6 +53,10 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
 
+## Contenu Epic Games livré avec le moteur
+
+- Mannequin UE (Manny) et ses animations pistolet, copiés depuis les modèles de projet d'Unreal Engine 5.9 dans `Content/RESHOOT/Noir/Mannequin` : corps animé des gangsters du film noir (manteau et feutre modélisés pendant la jam).
+
 ## Musiques (licence CC-BY 4.0, citation obligatoire)
 
 | Morceau | Auteur | Licence | Dans le jeu |
