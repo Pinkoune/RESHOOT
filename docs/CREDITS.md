@@ -71,3 +71,4 @@ Texte à reprendre sur la page itch.io : Bebas Neue by Dharma Type, licensed und
 ## Outils
 
 Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musiques des trois univers : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).
+- Paragon: Greystone et Paragon: Sparrow — Epic Games, Fab (gratuit, licence Fab Standard). Le nom « Paragon » ne peut pas servir à présenter le jeu. Seuls le personnage, ses matériaux et 5 animations sont gardés.
