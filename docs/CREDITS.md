@@ -14,6 +14,7 @@ Le règlement de la jam demande de lister les assets qu'on n'a pas faits. Ils ne
 | `Fab/FREE_Farm_Paths_and_Stone_Walls_Kit` (Lauraa, https://www.fab.com/listings/ccd7c525-fa69-4585-8799-74e6f4785c87) | Chemins (terre, pavés, gravier, dalles), murets de pierre | Chemins de terre du médiéval réaliste | Gratuit, importé en FBX (textures absentes : matériau de terre maison) (Ileana) | Page Fab |
 | `GrassyMeadowGround4` (Mosaic Environments, https://www.fab.com/listings/5743b825-ba16-4048-be20-37188bbad04f) | Sol de prairie photographié (textures 512 à 4K) | Sol de la prairie réaliste du médiéval | Licence Personal gratuite (Ileana) | Page Fab |
 | `MuddyGroundPack` (AL-HADIDI, https://www.fab.com/listings/93d594e8-99f2-4ec6-8980-6135929338d8) | Terre boueuse avec cailloux et herbe | Chemins de terre du médiéval réaliste | Licence Personal gratuite (Ileana) | Page Fab |
+| `FC_BirchTreeSample` (FreshCan, https://www.fab.com/listings/fd8126f6-4dea-4023-9213-2af433743995) | Bouleaux, jeunes arbres, tapis d'herbe | Forêt autour de la prairie médiévale | Gratuit (Personal et Professional) ; **marqué « entraînement IA interdit » sur Fab : à vérifier** (Ileana) | Page Fab |
 
 À vérifier avant la soumission : aucun de ces packs ne porte le tag « NoAI » sur Fab (leur licence interdit alors de les donner en entrée à une IA générative).
 

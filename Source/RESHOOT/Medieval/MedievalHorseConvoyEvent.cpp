@@ -12,6 +12,7 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
@@ -27,6 +28,23 @@ namespace
 	constexpr float ConvoyBack = -(NumHorses - 1) * HorseSpacing - 170.f;      // dos des techniciens
 	constexpr float RailGauge = 45.f;
 	constexpr float SleeperStep = 150.f;
+
+	/** Murs du plateau (L_Stage, tag MedievalHideReal) : cachés ou réaffichés. La collision ne change pas. */
+	void SetStageWallsHidden(UWorld* World, bool bHidden)
+	{
+		static const FName WallTag(TEXT("MedievalHideReal"));
+		if (!World)
+		{
+			return;
+		}
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			if (It->ActorHasTag(WallTag) && It->IsHidden() != bHidden)
+			{
+				It->SetActorHiddenInGame(bHidden);
+			}
+		}
+	}
 }
 
 AMedievalHorseConvoyEvent::AMedievalHorseConvoyEvent()
@@ -179,6 +197,8 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 	}
 
 	// Rails de tournage : visibles en carton, remplacés par un chemin de terre en réaliste (habillage de L_Medieval).
+	// Murs du plateau (L_Stage, tag MedievalHideReal) : cachés en médiéval réaliste pour ouvrir sur la nature,
+	// collision conservée. Ce convoi n'existe que quand L_Medieval est chargé : les autres univers ne sont pas touchés.
 	FTimerHandle RailsTimer;
 	GetWorldTimerManager().SetTimer(RailsTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
 	{
@@ -189,12 +209,15 @@ void AMedievalHorseConvoyEvent::BeginPlay()
 			RailRight->SetVisibility(bShowRails);
 			Sleepers->SetVisibility(bShowRails);
 		}
+		const ASetDressingSweep* Sweep = ASetDressingSweep::Get(this);
+		SetStageWallsHidden(GetWorld(), Sweep && Sweep->IsDressingReal());
 	}), 0.25f, true, 0.f);
 }
 
 void AMedievalHorseConvoyEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearAllTimersForObject(this);
+	SetStageWallsHidden(GetWorld(), false);   // on quitte le médiéval : les murs du plateau reviennent
 	if (UWorld* World = GetWorld())
 	{
 		if (UShootDirectorSubsystem* Director = World->GetSubsystem<UShootDirectorSubsystem>())

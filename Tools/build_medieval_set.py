@@ -143,8 +143,16 @@ def mi_simple(name, parent, params):
 # Matériau de fond opaque : le noir de l'image devient transparent (masque), le reste est affiché sans éclairage.
 # (M_Space_Backdrop est additif : parfait sur le noir de l'espace, invisible sur un ciel de jour.)
 BD_MASTER = MED + '/Backdrops/M_Medieval_Backdrop'
-if not eal.does_asset_exist(BD_MASTER):
+BD_VERSION = 'v2'   # v2 : seul le ciel noir (moitié haute de l'image) devient transparent, plus de trous dans la plaine
+_bd = unreal.load_asset(BD_MASTER) if eal.does_asset_exist(BD_MASTER) else None
+if _bd and eal.get_metadata_tag(_bd, 'ReshootVersion') != BD_VERSION:
+    mel.delete_all_material_expressions(_bd)
+    m = _bd
+elif _bd:
+    m = None
+else:
     m = at.create_asset('M_Medieval_Backdrop', MED + '/Backdrops', unreal.Material, unreal.MaterialFactoryNew())
+if m:
     m.set_editor_property('shading_model', unreal.MaterialShadingModel.MSM_UNLIT)
     m.set_editor_property('blend_mode', unreal.BlendMode.BLEND_MASKED)
     m.set_editor_property('two_sided', True)
@@ -159,14 +167,33 @@ if not eal.does_asset_exist(BD_MASTER):
     mel.connect_material_expressions(tex, 'RGB', mul, 'A')
     mel.connect_material_expressions(bright, '', mul, 'B')
     mel.connect_material_property(mul, '', unreal.MaterialProperty.MP_EMISSIVE_COLOR)
-    # masque = luminance (le noir pur au-dessus des sommets disparaît)
+    # masque = luminance x 8 (le noir pur au-dessus des sommets disparaît) + toute la moitié basse de l'image
+    # opaque (plaine, lac : leurs zones sombres ne doivent pas faire de trous)
     lum = mel.create_material_expression(m, unreal.MaterialExpressionDotProduct, -400, 250)
     col = mel.create_material_expression(m, unreal.MaterialExpressionConstant3Vector, -800, 450)
-    col.set_editor_property('constant', unreal.LinearColor(0.3, 0.59, 0.11, 1.0))
+    col.set_editor_property('constant', unreal.LinearColor(2.4, 4.7, 0.9, 1.0))
     mel.connect_material_expressions(tex, 'RGB', lum, 'A')
     mel.connect_material_expressions(col, '', lum, 'B')
-    mel.connect_material_property(lum, '', unreal.MaterialProperty.MP_OPACITY_MASK)
+    uv = mel.create_material_expression(m, unreal.MaterialExpressionTextureCoordinate, -1000, 650)
+    v = mel.create_material_expression(m, unreal.MaterialExpressionComponentMask, -800, 650)
+    v.set_editor_property('r', False); v.set_editor_property('g', True)
+    mel.connect_material_expressions(uv, '', v, '')
+    half = mel.create_material_expression(m, unreal.MaterialExpressionConstant, -800, 750)
+    half.set_editor_property('r', 0.45)
+    sub = mel.create_material_expression(m, unreal.MaterialExpressionSubtract, -600, 650)
+    mel.connect_material_expressions(v, '', sub, 'A')
+    mel.connect_material_expressions(half, '', sub, 'B')
+    steep = mel.create_material_expression(m, unreal.MaterialExpressionMultiply, -450, 650)
+    mel.connect_material_expressions(sub, '', steep, 'A')
+    k = mel.create_material_expression(m, unreal.MaterialExpressionConstant, -600, 750)
+    k.set_editor_property('r', 50.0)
+    mel.connect_material_expressions(k, '', steep, 'B')
+    add = mel.create_material_expression(m, unreal.MaterialExpressionAdd, -250, 400)
+    mel.connect_material_expressions(lum, '', add, 'A')
+    mel.connect_material_expressions(steep, '', add, 'B')
+    mel.connect_material_property(add, '', unreal.MaterialProperty.MP_OPACITY_MASK)
     mel.recompile_material(m)
+    eal.set_metadata_tag(m, 'ReshootVersion', BD_VERSION)
     eal.save_loaded_asset(m)
 MAT_MOUNT = mi_simple('MI_Medieval_Mountains', BD_MASTER, {'BackdropTexture': T_MOUNT, 'Brightness': 1.0})
 
@@ -290,7 +317,7 @@ for lab, a in blockout.items():
 # Sol : plancher de studio (carton) / prairie (réaliste)
 # ---------------------------------------------------------------------------------------------
 put('Sol_Studio_Prop', 'Sol', CUBE, (0, 0, 0.6), 0.0, (60.0, 60.0, 0.01), MAT_STUDIO_FLOOR, 'prop', shadow=False)
-put('Sol_Prairie_Real', 'Prairie', CUBE, (0, 0, 1.2), 0.0, (60.0, 60.0, 0.02), MAT_GRASS, 'real', shadow=False)
+put('Sol_Prairie_Real', 'Prairie', CUBE, (0, 0, 1.2), 0.0, (66000.0, 66000.0, 0.02), MAT_GRASS, 'real', shadow=False)   # 66 km : la prairie va jusqu'aux montagnes
 
 # ---------------------------------------------------------------------------------------------
 # Matériel de tournage (carton seulement : il disparaît au rideau)
@@ -325,31 +352,51 @@ for j, y in enumerate((-1600, 0, 1600)):
             put('Grille_%d_%02d_Lampe' % (j, i), 'Studio', lamp, (x, y, 900), look_yaw((x, y), (800, 0)), phase='prop', pitch=-20.0)
 
 # ---------------------------------------------------------------------------------------------
-# Enceinte réaliste : remparts qui masquent les murs gris du plateau (portes laissées ouvertes)
+# Nature autour du plateau (réaliste) : les murs gris du plateau sont cachés en médiéval réaliste (tag
+# MedievalHideReal dans L_Stage, voir MedievalHorseConvoyEvent.cpp) ; à leur place, la prairie continue et une forêt
+# de bouleaux s'étend jusqu'aux montagnes. Pas d'enceinte : on doit se sentir en pleine nature.
 # ---------------------------------------------------------------------------------------------
-RING_H = 720.0
-def ring_piece(label, x, y, yaw):
-    put(label, 'Enceinte', WALL_R, (x, y, 0), yaw, (1.0, 120.0 / wr[1], RING_H / wr[2]), phase='real')
-    put(label + '_Creneaux', 'Enceinte', BATT_R, (x, y, RING_H), yaw, (1.0, 130.0 / br[1], 1.0), phase='real')
-DOORS_X = ((-2000, -1600), (500, 900))    # portes nord et sud du plateau (4 m de large)
-RING_STEP = 340                             # pans de 4 m posés tous les 3,4 m : ils se chevauchent, pas de fente
-def lintel(label, x, y, yaw):
-    """Linteau de pierre au-dessus d'une porte du plateau (passage de 4 m de haut laissé libre)."""
-    put(label, 'Enceinte', WALL_R, (x, y, 400), yaw, (1.15, 130.0 / wr[1], (RING_H - 400) / wr[2]), phase='real')
-    put(label + '_Creneaux', 'Enceinte', BATT_R, (x, y, RING_H), yaw, (1.15, 130.0 / br[1], 1.0), phase='real')
-for side, y in (('N', 2930), ('S', -2930)):
-    for i, x in enumerate(range(-2900, 2901, RING_STEP)):
-        if any(lo - 180 < x < hi + 180 for lo, hi in DOORS_X):
+DOORS_X = ((-2000, -1600), (500, 900))    # portes nord et sud du plateau (entrées des figurants)
+_birch = []
+for d in ar.get_assets_by_path('/Game/FC_BirchTreeSample', recursive=True):
+    if str(d.asset_class_path.asset_name) == 'StaticMesh':
+        sm_b = unreal.load_asset(str(d.package_name))
+        bb = sm_b.get_bounding_box()
+        if bb.max.z - bb.min.z > 600:          # seulement les arbres (pas les plantes basses du pack)
+            _birch.append(sm_b)
+TREES = _birch
+def outside_plateau(x, y, margin=0.0):
+    return abs(x) > 3050 + margin or abs(y) > 3050 + margin
+n_trees = 0
+if TREES:
+    # lisière : rangée irrégulière juste derrière les murs (cache le vide derrière les portes), puis forêt clairsemée au loin
+    for i in range(520):
+        ang = random.uniform(0, 2 * math.pi)
+        rad = random.choice((random.uniform(3300, 5200), random.uniform(5200, 16000)))
+        x, y = rad * math.cos(ang), rad * math.sin(ang)
+        deg = math.degrees(ang)
+        if 125.0 < deg < 235.0 and rad < 14000:    # grande clairière à l'ouest : vue dégagée sur les montagnes
             continue
-        ring_piece('Enceinte_%s_%02d' % (side, i), x, y, 0.0)
-    for k, (lo, hi) in enumerate(DOORS_X):
-        lintel('Enceinte_%s_Porte_%d' % (side, k), (lo + hi) * 0.5, y, 0.0)
-for i, y in enumerate(range(-2900, 2901, RING_STEP)):
-    ring_piece('Enceinte_O_%02d' % i, -2930, y, 90.0)
-for i, y in enumerate((-2900, -2100, 2100, 2900)):       # est : entre les tours du château et les portes est
-    ring_piece('Enceinte_E_%d' % i, 2930, y, 90.0)
-for k, y in enumerate((-2500, 2500)):
-    lintel('Enceinte_E_Porte_%d' % k, 2930, y, 90.0)
+        if not outside_plateau(x, y, 150):
+            continue
+        s = random.uniform(0.85, 1.35)
+        put('Bouleau_%03d' % n_trees, 'Foret', random.choice(TREES), (x, y, 0), random.uniform(0, 360), (s, s, s), phase='real', switch=True, shadow=rad < 8000)
+        n_trees += 1
+# herbe et buissons hors du plateau, jusqu'à 70 m
+OUT_GRASS = [SM('SM_Grass_0%d' % k) for k in (2, 3, 6, 8)]
+n_out = 0
+yy = -7000.0
+while yy <= 7000.0:
+    xx = -7000.0
+    while xx <= 7000.0:
+        gx, gy = xx + random.uniform(-120, 120), yy + random.uniform(-120, 120)
+        if outside_plateau(gx, gy, 60):
+            mesh = random.choice(OUT_GRASS)
+            s = random.uniform(1.0, 1.7)
+            put('HerbeLoin_%04d' % n_out, 'Prairie/HerbeLoin', mesh, (gx, gy, 0), random.uniform(0, 360), (s, s, s), phase='real', switch=True, shadow=False)
+            n_out += 1
+        xx += 300.0
+    yy += 300.0
 
 # ---------------------------------------------------------------------------------------------
 # Prairie : chemins de terre, herbe 3D, fleurs, buissons, rochers
@@ -410,12 +457,12 @@ for i in range(18):
 # ---------------------------------------------------------------------------------------------
 # Lointain : montagnes peintes sur 4 grands panneaux, nuages, exposition d'extérieur
 # ---------------------------------------------------------------------------------------------
-R, W, H = 32000.0, 70000.0, 16000.0
+R, W, H = 32000.0, 70000.0, 26000.0     # proportions proches de l'image (21:9), bas de l'image sous la prairie
 for i, yaw in enumerate((0.0, 90.0, 180.0, 270.0)):
     c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
     # le plan (100 x 100, normale +Z) est redressé par un roulis de 90° : X local reste horizontal (largeur de
     # l'image), Y local devient vertical (haut de l'image en haut), puis tourné face au centre
-    put('Montagnes_%d' % i, 'Ciel', PLANE, (R * c, R * s, H * 0.5 - 2500.0), yaw - 90.0, (W / 100.0, H / 100.0, 1.0), MAT_MOUNT, 'real', roll=90.0, pitch=0.0, switch=True, shadow=False)
+    put('Montagnes_%d' % i, 'Ciel', PLANE, (R * c, R * s, H * 0.5 - 9500.0), yaw - 90.0, (W / 100.0, H / 100.0, 1.0), MAT_MOUNT, 'real', roll=90.0, pitch=0.0, switch=True, shadow=False)
 
 clouds = eas.spawn_actor_from_class(unreal.VolumetricCloud, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0))
 clouds.set_actor_label('Nuages')
@@ -449,4 +496,4 @@ for a in eas.get_all_level_actors():
         a.set_editor_property('auto_start_interval', 0.0)
 
 les.save_all_dirty_levels()
-result = {'blockout': len(blockout), 'carton': count['prop'], 'reel': count['real'], 'herbe': n}
+result = {'blockout': len(blockout), 'carton': count['prop'], 'reel': count['real'], 'herbe': n, 'arbres': n_trees, 'herbe_loin': n_out}

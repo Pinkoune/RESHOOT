@@ -340,3 +340,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : sol de prairie photographié (GrassyMeadowGround4) et chemins en terre boueuse avec cailloux (MuddyGroundPack) à la place des couleurs unies ; herbe 2,5 fois plus dense (1 161 touffes) ; pans de rempart qui se chevauchent (plus de fentes sombres) ; linteaux de pierre au-dessus des 6 portes du plateau pour cacher ses murs gris.
 - Comment : retour d'Ileana après une vraie partie (« trous d'herbe, sol vert uni, chemins unis, on voit les murs du plateau »). Les textures sont trouvées automatiquement par le script dans les packs installés (`find_basecolor`).
 - Capture : aucune
+
+### 2026-11-15 16:00 — Médiéval réaliste : en pleine nature, forêt et montagnes
+- Qui : Ileana + Claude (Claude Code, Opus 5.5)
+- Fait : plus d'enceinte fermée. En médiéval réaliste, les murs gris du plateau sont cachés (collision gardée) ; la prairie texturée s'étend sur 66 km jusqu'aux montagnes ; forêt de bouleaux réalistes (pack FreshCan, 333 arbres) autour du plateau, avec une grande clairière à l'ouest pour voir les montagnes ; 1 774 touffes d'herbe hors du plateau ; fond de montagnes aux bonnes proportions, le bas de l'image (plaine, lac) passe sous la prairie et seul le ciel noir devient transparent.
+- Comment : retour d'Ileana sur une capture de l'éditeur (« je dois avoir l'impression d'être au centre de la nature »). Confusion levée au passage : l'éditeur montre tous les sous-niveaux à la fois (spatial + médiéval) et cache le matériau réaliste ; seul le jeu montre le vrai rendu. Pour les murs de `L_Stage` (niveau du socle), un tag `MedievalHideReal` plutôt que `DressingProp`, sinon ils disparaissaient aussi dans le spatial et le film noir ; c'est le convoi médiéval qui les cache. Live Coding encore bloqué par Windows : build complet nécessaire.
+- Capture : docs/devlog-media/2026-11-15-medieval-nature.png, docs/devlog-media/2026-11-15-medieval-foret.png
