@@ -184,3 +184,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : sons provisoires du réaliste branchés (tir du fusil, tir des drones, deux sorties d'air). Les réacteurs sont des sorties d'air : un son par appui sur une touche de direction (nouvelle touche ou changement de sens), plus de répétition tant qu'on garde la touche, plus rien sur Espace.
 - Comment : `RealThrusterSounds` ajouté à `AReshootCharacter` (`PropThrusterInterval` retiré), axe précédent mémorisé et remis à zéro sur `Completed` de l'action de déplacement. mp3 dans `SourceArt/Space/Audio/Real/`, assets dans `/Game/RESHOOT/Space/Audio/Real`, branchés par `Tools/setup_prop_sounds.py`. Compilation complète, câblage vérifié en jeu, pas d'écoute de mon côté.
 - Capture : aucune
+
+### 2026-11-15 01:45 — Drones en réaliste, propulseurs moins forts
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : `SS_SpaceTest` avait de nouveau une seule prise et un final sans vague : après la première prise, on passait au final en réaliste sans aucun drone. Prise 2 rajoutée (6 drones, en réaliste) et vague de final (6 drones, remplacée à chaque changement d'univers). Sorties d'air : volume à 0,4 sur les quatre sons, et aussi jouées à l'appui de Espace (montée) et Ctrl (descente).
+- Comment : l'ajout de la prise 2 du 14/11 n'avait pas été enregistré sur disque ; cette fois l'asset est bien modifié (vérifié par `git status`). Vérifié en jeu : 6 drones réalistes visibles à la prise 2.
+- Capture : aucune

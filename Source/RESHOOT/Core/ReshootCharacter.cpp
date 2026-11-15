@@ -723,9 +723,14 @@ void AReshootCharacter::OnLook(const FInputActionValue& Value)
 
 void AReshootCharacter::OnJumpStarted()
 {
-	if (bFrozen || IsInSpaceMode())
+	if (bFrozen)
 	{
-		return; // En apesanteur, Espace monte (voir OnJumpTriggered).
+		return;
+	}
+	if (IsInSpaceMode())
+	{
+		PlayThruster();   // sortie d'air à l'appui ; Espace monte (voir OnJumpTriggered)
+		return;
 	}
 
 	if (bSliding)
@@ -777,9 +782,14 @@ void AReshootCharacter::OnJumpCompleted()
 void AReshootCharacter::OnCrouchStarted()
 {
 	bCrouchHeld = true;
-	if (bFrozen || IsInSpaceMode())
+	if (bFrozen)
 	{
-		return; // En apesanteur, Ctrl descend (voir OnCrouchTriggered).
+		return;
+	}
+	if (IsInSpaceMode())
+	{
+		PlayThruster();   // sortie d'air à l'appui ; Ctrl descend (voir OnCrouchTriggered)
+		return;
 	}
 
 	if (CanStartSlide())
