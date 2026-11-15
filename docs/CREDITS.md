@@ -30,6 +30,11 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Rollershutter Window 01 | MP | `SM_Noir_Shutter_Real` (rideaux de fer) |
 | Cardboard Box 01 | Rahul Chaudhary | `SM_Noir_CardboardBox_Prop` (couverts en phase carton) |
 | Service Pistol | Mateusz Sadek | `SM_Noir_Pistol_Real` (arme du film noir ; `SM_Noir_Pistol_Prop` en carton peint) |
+| Modular Fire Escape | Juniix | `SM_Noir_FE_*_Real` (escaliers de secours) |
+| Exterior Aircon Unit | Monsta3D | `SM_Noir_AirCon_Real` (climatiseurs) |
+| Utility Box 02 | James Ray Cock | `SM_Noir_UtilityBox_Real` (armoires électriques) |
+| Barrel Stove | MP | `SM_Noir_BarrelStove_Real` (braseros) |
+| Concrete Pavement 03 (texture) | Charlotte Baglioni | `T_Noir_Sidewalk_D` (trottoirs, corniches) |
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
 

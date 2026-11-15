@@ -66,7 +66,7 @@ Unreal Engine 5.9 (with its editor MCP toolsets), Claude Code (Claude Opus 5.5, 
 - "Master of the Feast" (medieval)
 - "Space Fighter Loop" (space)
 
-**3D models and textures (CC0)** — Poly Haven (polyhaven.com): Street Lamp 01 & 02 (Josh Dean), Covered Car (MP), Metal Trash Can (GurJas Studios), Fire Hydrant (Gonçalo Felício), Barrel_01 (Jorge Camacho), Trashbag (Benny Weimer), Wooden Crate 02 (James Ray Cock, Jurita Burger), Rollershutter Window 01 (MP), Cardboard Box 01 (Rahul Chaudhary), Service Pistol (Mateusz Sadek), Red Bricks 02 and Asphalt 02 (Rob Tuytel).
+**3D models and textures (CC0)** — Poly Haven (polyhaven.com): Street Lamp 01 & 02 (Josh Dean), Covered Car (MP), Metal Trash Can (GurJas Studios), Fire Hydrant (Gonçalo Felício), Barrel_01 (Jorge Camacho), Trashbag (Benny Weimer), Wooden Crate 02 (James Ray Cock, Jurita Burger), Rollershutter Window 01 (MP), Cardboard Box 01 (Rahul Chaudhary), Service Pistol (Mateusz Sadek), Modular Fire Escape (Juniix), Exterior Aircon Unit (Monsta3D), Utility Box 02 (James Ray Cock), Barrel Stove (MP), Red Bricks 02 and Asphalt 02 (Rob Tuytel), Concrete Pavement 03 (Charlotte Baglioni).
 
 **Fab asset packs** — **[À VÉRIFIER]** titres exacts et auteurs (Jérémy, voir `docs/CREDITS.md`) : Hallway sci-fi, Hollywood Vol. 3, Laser rifle, Sci-fi hallway.
 
