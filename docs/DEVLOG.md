@@ -376,3 +376,33 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : la ruelle a un asphalte mouillé où se reflètent lampadaires et appliques, des halos de lumière dans une brume un peu plus dense, et une vingtaine d'objets de rue en plus le long des murs. Seuls deux lampadaires projettent des ombres : l'alerte « trop de lumières à ombres » a disparu. Bruitages du Noir : tir du revolver, clic à vide, recharge (barillet ouvert, six cartouches, barillet refermé), tirs des gangsters (plus lointains), coupure et retour du courant (disjoncteur, ronflement, néons qui grésillent). Branchés sur trois Blueprints enfants (`BP_NoirRevolver`, `BP_NoirGangster`, `BP_NoirBlackoutEvent`), comme pour le spatial ; `DA_Noir` et les gangsters posés dans `L_Noir` utilisent ces Blueprints. Vérifié en PIE dans `L_Stage`.
 - Comment : sans crédits pour générer des sons, ils sont synthétisés en Python (numpy, dans Blender) : bruit blanc filtré avec enveloppes exponentielles, basse qui chute pour le « boum », écho de ruelle et retour sur les façades. Le générateur (`Tools/synth_noir_sfx.py`) et les WAV (`SourceArt/Noir/Audio`) sont dans le dépôt pour pouvoir les retoucher.
 - Capture : docs/devlog-media/2026-11-15-noir-ruelle-mouillee.jpg
+
+### 2026-11-15 18:15 — Film noir : une vraie arme en main
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : la boîte grise du joueur est remplacée par un pistolet de service des années 40 (Poly Haven, CC0) : `SM_Noir_Pistol_Real` (métal et crosse en bois) après le rideau, `SM_Noir_Pistol_Prop` (même modèle en carton peint) avant. Branchés comme `RealMesh` / `PropMesh` de `BP_NoirRevolver`. Vérifié en PIE dans `L_Stage`, dans les deux phases.
+- Comment : pas de revolver sur Poly Haven, le pistolet de l'époque fait l'affaire. Variante à crosse en bois gardée, chargeur et balle séparés retirés dans Blender, origine laissée sur la poignée pour la prise en main.
+- Capture : aucune
+
+### 2026-11-15 18:45 — Film noir : les gangsters changent de costume au rideau
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : `ANoirGangster::OnDressingChanged` change les matériaux du corps, du chapeau et du visage quand le rideau passe : silhouette en carton peint en phase carton, costume anthracite, feutre sombre et visage couleur peau en phase réaliste. Matériaux réglés sur `BP_NoirGangster` par `Tools/setup_noir_gangster_look.py`. Vérifié en PIE dans `L_Stage` dans les deux phases.
+- Comment : un header modifié (cinq matériaux et la surcharge), donc éditeur fermé, compilation, éditeur rouvert. Le crochet `OnDressingChanged` du socle était déjà prévu pour ça.
+- Capture : aucune
+
+### 2026-11-15 19:00 — Spatial : sons réalistes refaits
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : les quatre sons réalistes provisoires du Spatial sont remplacés : tir du fusil laser (décharge qui chute de 2,4 kHz à 180 Hz, coup sourd, écho du hangar), tir des drones (plus aigu, plus sec, plus lointain), deux sorties d'air comprimé pour les réacteurs. Mêmes noms d'assets, donc `BP_SpaceLaser`, `BP_SpaceDrone` et `BP_ReshootCharacter` les utilisent sans rien rebrancher (vérifié dans l'éditeur).
+- Comment : synthèse numpy dans Blender, comme les bruitages du Noir (`Tools/synth_space_real_sfx.py`, WAV dans `SourceArt/Space/Audio/Real`). Les MP3 provisoires restent à côté pour revenir en arrière.
+- Capture : aucune
+
+### 2026-11-15 19:30 — Film noir : fenêtres, enseignes, mort théâtrale
+- Qui : Jules (« rends noir super ») + Claude (Claude Code, Opus 5.5)
+- Fait : fenêtres sur deux étages de toutes les façades, environ 4 sur 10 allumées en jaune chaud (elles se reflètent dans l'asphalte mouillé), les autres sombres et brillantes ; quatre enseignes lumineuses en drapeau (HOTEL, JAZZ, BAR, PAWN) avec cadre néon, lettres et halo. Mort théâtrale des gangsters (GDD) : bascule en arrière à l'opposé du tireur en pivotant, et sur un tir à la tête le chapeau s'envole en cloche (timer, pas de Tick, code dans le `.cpp` seulement : Live Coding).
+- Comment : premier essai des fenêtres raté, toutes restaient noires : `M_SetDressing` multiplie `EmissiveColor` par `EmissiveMap`, il faut lui donner la texture blanche du socle (`T_SetDressing_WhiteMask`). Fenêtres et enseignes vérifiées en PIE dans `L_Stage` ; la chute des gangsters compile mais n'a pas encore été vue en jeu.
+- Capture : docs/devlog-media/2026-11-15-noir-fenetres.jpg
+
+### 2026-11-15 20:00 — Film noir : une vraie ville de nuit
+- Qui : Jules (« met le paquet sur l'habillage, ça doit rendre incroyable ») + Claude (Claude Code, Opus 5.5)
+- Fait : la ruelle devient une ville. Les murs plats sont remplacés par 30 immeubles de 9,5 à 17 m (trois briques, corniches, bandeaux d'étage, pilastres, socles), des fenêtres sur tous les étages avec appuis et linteaux, des climatiseurs, des vitrines éclairées avec marquise au rez-de-chaussée. Cinq escaliers de secours en fer, des fils électriques et des cordes à linge en travers des angles, trois braseros, des armoires électriques, des trottoirs en dalles, des flaques qui reflètent les lumières. Au-dessus des toits, la ville : immeubles lointains sur trois profondeurs, fenêtres allumées en hauteur, réservoirs d'eau en silhouette sur un ciel de ville gris. Plus de 1 000 acteurs, tous posés par `Tools/build_noir_set.py`.
+- Comment : modèles Poly Haven (CC0) en plus : escalier de secours modulaire, climatiseur, armoire électrique, brasero, texture de trottoir. La ville entière est enfermée dans une boîte « ciel » (plafond et horizon) visible seulement en phase réaliste : elle cache le ciel de jour de `L_Stage` et bloque son soleil sans y toucher. Trois allers-retours de réglage en jeu : flaques d'abord noires comme des trous, puis trop claires (reflet du ciel), enfin sombres et brillantes ; lampadaires sans ombres pour faire disparaître l'alerte des ombres virtuelles. Bug du script trouvé au premier essai : une petite fonction locale des enseignes masquait celle des immeubles.
+- Capture : docs/devlog-media/2026-11-15-noir-ville-angle.jpg, docs/devlog-media/2026-11-15-noir-ville-sud.jpg

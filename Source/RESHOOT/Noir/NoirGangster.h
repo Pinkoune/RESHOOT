@@ -11,6 +11,7 @@
 
 class USoundBase;
 class UStaticMeshComponent;
+class UMaterialInterface;
 
 UCLASS(Blueprintable)
 class RESHOOT_API ANoirGangster : public AReshootEnemy
@@ -102,6 +103,28 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
 	TObjectPtr<UStaticMeshComponent> HatCrown;
 
+	// --- Costume, changé au passage du rideau (carton -> réaliste). Vide = matériau d'origine. ---
+
+	/** Corps et chapeau en phase carton. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UMaterialInterface> SuitProp;
+
+	/** Visage en phase carton. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UMaterialInterface> FaceProp;
+
+	/** Costume sombre en phase réaliste. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UMaterialInterface> SuitReal;
+
+	/** Chapeau en phase réaliste. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UMaterialInterface> HatReal;
+
+	/** Visage en phase réaliste. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gangster|Visual")
+	TObjectPtr<UMaterialInterface> FaceReal;
+
 	UFUNCTION(BlueprintPure, Category = "Gangster")
 	bool IsDucked() const { return bDucked; }
 
@@ -113,6 +136,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnFreezeChanged(bool bFreeze) override;
 	virtual void OnDeath(AActor* Killer, bool bHeadshot, bool bMelee) override;
+	virtual void OnDressingChanged(bool bReal) override;
 
 	/** Toutes les BurstInterval : change de couvert si besoin, sinon se relève pour tirer. */
 	void RunCycle();

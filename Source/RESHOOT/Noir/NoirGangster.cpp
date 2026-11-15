@@ -13,6 +13,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
@@ -44,6 +45,83 @@ namespace
 
 	/** Distance horizontale au-delà de laquelle le gangster n'est plus « à son couvert ». */
 	constexpr float AtCoverTolerance = 120.f;
+
+	/**
+	 * Mort théâtrale (GDD) : le gangster bascule en arrière, à l'opposé du tueur, en tournant un peu sur lui-même.
+	 * Sur un tir à la tête, son chapeau s'envole en cloche. Animé par un timer (pas de Tick), jusqu'à la disparition du corps.
+	 */
+	void PlayDeathFall(ANoirGangster* Gangster, AActor* Killer, bool bHeadshot)
+	{
+		UWorld* World = Gangster ? Gangster->GetWorld() : nullptr;
+		if (!World)
+		{
+			return;
+		}
+
+		const FVector StartLocation = Gangster->GetActorLocation();
+		FVector Away = Killer ? StartLocation - Killer->GetActorLocation() : -Gangster->GetActorForwardVector();
+		Away.Z = 0.f;
+		if (!Away.Normalize())
+		{
+			Away = -Gangster->GetActorForwardVector();
+		}
+		// Face au tueur : un tangage positif fait basculer le haut du corps vers l'arrière.
+		const float FaceYaw = (-Away).Rotation().Yaw;
+		const float HalfHeight = Gangster->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		const float Drop = FMath::Max(HalfHeight - 22.f, 0.f);
+		const float Spin = FMath::FRandRange(-30.f, 30.f);
+		const float Ground = StartLocation.Z - HalfHeight;
+
+		TArray<TWeakObjectPtr<UStaticMeshComponent>> HatParts;
+		TArray<FVector> HatStarts;
+		if (bHeadshot)
+		{
+			for (UStaticMeshComponent* Part : { Gangster->HatBrim.Get(), Gangster->HatCrown.Get() })
+			{
+				if (Part)
+				{
+					Part->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+					HatParts.Add(Part);
+					HatStarts.Add(Part->GetComponentLocation());
+				}
+			}
+		}
+
+		const double StartTime = World->GetTimeSeconds();
+		TWeakObjectPtr<ANoirGangster> Weak(Gangster);
+		TSharedRef<FTimerHandle> Handle = MakeShared<FTimerHandle>();
+		World->GetTimerManager().SetTimer(*Handle, FTimerDelegate::CreateLambda(
+			[Weak, Handle, StartLocation, Away, FaceYaw, Drop, Spin, Ground, HatParts, HatStarts, StartTime]()
+			{
+				ANoirGangster* Self = Weak.Get();
+				if (!Self)
+				{
+					return;
+				}
+				const float T = static_cast<float>(Self->GetWorld()->GetTimeSeconds() - StartTime);
+				const float A = FMath::Clamp(T / 0.55f, 0.f, 1.f);
+				const float E = A * A;                                   // ça accélère, comme une vraie chute
+				const FRotator Pose(88.f * E, FaceYaw + Spin * E, 0.f);
+				Self->SetActorLocationAndRotation(StartLocation - FVector(0.f, 0.f, Drop * E) + Away * 45.f * E, Pose);
+
+				// Chapeau : parabole vers l'arrière, en tournant, jusqu'au sol
+				for (int32 i = 0; i < HatParts.Num(); ++i)
+				{
+					if (UStaticMeshComponent* Part = HatParts[i].Get())
+					{
+						const FVector Arc = Away * 160.f * T + FVector(0.f, 0.f, 320.f * T - 490.f * T * T);
+						FVector P = HatStarts[i] + Arc;
+						P.Z = FMath::Max(P.Z, Ground + 4.f + i * 6.f);
+						Part->SetWorldLocationAndRotation(P, FRotator(FMath::Min(T, 0.7f) * 260.f, T * 400.f, 0.f));
+					}
+				}
+
+				if (T > 1.4f)
+				{
+					Self->GetWorldTimerManager().ClearTimer(*Handle);
+				}
+			}), 1.f / 60.f, true);
+	}
 }
 
 ANoirGangster::ANoirGangster(const FObjectInitializer& ObjectInitializer)
@@ -123,6 +201,20 @@ void ANoirGangster::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Super::OnDeath(Killer, bHeadshot, bMelee);
+	PlayDeathFall(this, Killer, bHeadshot);
+}
+
+void ANoirGangster::OnDressingChanged(bool bReal)
+{
+	Super::OnDressingChanged(bReal);
+
+	UMaterialInterface* Suit = bReal ? SuitReal.Get() : SuitProp.Get();
+	UMaterialInterface* Hat = bReal ? HatReal.Get() : SuitProp.Get();
+	UMaterialInterface* Face = bReal ? FaceReal.Get() : FaceProp.Get();
+	if (Suit && Body) { Body->SetMaterial(0, Suit); }
+	if (Hat && HatBrim) { HatBrim->SetMaterial(0, Hat); }
+	if (Hat && HatCrown) { HatCrown->SetMaterial(0, Hat); }
+	if (Face && Head) { Head->SetMaterial(0, Face); }
 }
 
 void ANoirGangster::RunCycle()
