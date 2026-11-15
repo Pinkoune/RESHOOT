@@ -288,17 +288,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0"))
 	float DefaultSpaceBraking = 150.f;
 
-	/** Décor en carton seulement : bouffées de réacteur faites à la bouche quand on se déplace en apesanteur. */
+	/** Sortie d'air en apesanteur, jouée à chaque appui sur une touche de direction : décor en carton (faite à la bouche)... */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
 	TArray<TObjectPtr<USoundBase>> PropThrusterSounds;
 
-	/** Écart minimal entre deux bouffées tant qu'on garde une touche de déplacement enfoncée (s). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0.05"))
-	float PropThrusterInterval = 0.7f;
+	/** ... et décor réaliste. Une prise tirée au hasard à chaque appui. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space")
+	TArray<TObjectPtr<USoundBase>> RealThrusterSounds;
 
-	/** Variation aléatoire de hauteur des bouffées (± fraction). */
+	/** Variation aléatoire de hauteur des sorties d'air (± fraction). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Space", meta = (ClampMin = "0", ClampMax = "0.5"))
-	float PropThrusterPitchJitter = 0.1f;
+	float ThrusterPitchJitter = 0.1f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -382,7 +382,10 @@ private:
 	bool bSpaceGravityOn = false;
 	bool bDressingReal = false;
 
-	/** Joue une bouffée de réacteur carton si l'écart minimal est passé. */
-	void PlayPropThruster();
-	float LastPropThrusterTime = -1000.f;
+	/** Joue une sortie d'air (carton ou réaliste selon le décor). */
+	void PlayThruster();
+	/** Touches relâchées : le prochain appui rejoue une sortie d'air. */
+	void OnMoveCompleted(const FInputActionValue& Value);
+	/** Dernier axe de déplacement reçu, pour repérer un nouvel appui de touche. */
+	FVector2D PrevMoveAxis = FVector2D::ZeroVector;
 };

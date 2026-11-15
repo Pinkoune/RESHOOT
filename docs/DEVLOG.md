@@ -178,3 +178,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : en décor carton seulement, tir du fusil, tir des drones et bouffées de réacteur en apesanteur, enregistrés à la bouche par Jérémy (deux prises par son, une tirée au hasard, hauteur variée de ±8 à 10 %). Réacteurs : une bouffée dès qu'on appuie sur une touche de déplacement ou Espace, puis toutes les 0,7 s tant qu'on la garde. Le réaliste reste muet en attendant ses sons. Réglages d'animation du fusil (déplacement) passés en `UPROPERTY`.
 - Comment : nouvelles propriétés `PropFireSounds` (`ASpaceLaser`, `ASpaceDrone`) et `PropThrusterSounds` (`AReshootCharacter`), `FireSound` réservé au réaliste. Le joueur n'avait pas de Blueprint : `BP_ReshootCharacter` (enfant de `AReshootCharacter`, assets seulement) est créé et devient le pion de `BP_ReshootGameMode`. Branchement par `Tools/setup_prop_sounds.py`. mp3 sources dans `SourceArt/Space/Audio/Prop/`, sortis de `Content`. Compilation complète, câblage vérifié en jeu (pion, sons assignés au fusil, aux 4 drones et au joueur) ; pas d'écoute possible de mon côté.
 - Capture : aucune
+
+### 2026-11-15 01:20 — Sons provisoires du réaliste, réacteurs à l'appui seulement
+- Qui : Jérémy + Claude (Claude Code, Opus 5.5)
+- Fait : sons provisoires du réaliste branchés (tir du fusil, tir des drones, deux sorties d'air). Les réacteurs sont des sorties d'air : un son par appui sur une touche de direction (nouvelle touche ou changement de sens), plus de répétition tant qu'on garde la touche, plus rien sur Espace.
+- Comment : `RealThrusterSounds` ajouté à `AReshootCharacter` (`PropThrusterInterval` retiré), axe précédent mémorisé et remis à zéro sur `Completed` de l'action de déplacement. mp3 dans `SourceArt/Space/Audio/Real/`, assets dans `/Game/RESHOOT/Space/Audio/Real`, branchés par `Tools/setup_prop_sounds.py`. Compilation complète, câblage vérifié en jeu, pas d'écoute de mon côté.
+- Capture : aucune

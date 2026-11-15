@@ -553,6 +553,7 @@ void AReshootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	if (MoveAction)
 	{
 		Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AReshootCharacter::OnMove);
+		Input->BindAction(MoveAction, ETriggerEvent::Completed, this, &AReshootCharacter::OnMoveCompleted);
 	}
 	if (LookAction)
 	{
@@ -684,6 +685,14 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 	}
 	const FVector2D Axis = Value.Get<FVector2D>();
 
+	// Nouvel appui d'une touche de direction : un axe passe de zéro à une valeur, ou change de sens.
+	auto IsNewPress = [](float Prev, float Now)
+	{
+		return !FMath::IsNearlyZero(Now) && (FMath::IsNearlyZero(Prev) || FMath::Sign(Prev) != FMath::Sign(Now));
+	};
+	const bool bNewPress = IsNewPress(PrevMoveAxis.X, Axis.X) || IsNewPress(PrevMoveAxis.Y, Axis.Y);
+	PrevMoveAxis = Axis;
+
 	if (IsInSpaceMode())
 	{
 		// Apesanteur : la caméra donne la direction, tangage compris.
@@ -691,9 +700,9 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 		const FRotationMatrix ViewMatrix(ViewRotation);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::X), Axis.Y);
 		AddMovementInput(ViewMatrix.GetUnitAxis(EAxis::Y), Axis.X);
-		if (!Axis.IsNearlyZero())
+		if (bNewPress)
 		{
-			PlayPropThruster();
+			PlayThruster();   // sortie d'air : une seule par appui, pas en continu
 		}
 	}
 	else
@@ -739,26 +748,24 @@ void AReshootCharacter::OnJumpTriggered()
 	if (!bFrozen && IsInSpaceMode())
 	{
 		AddMovementInput(FVector::UpVector, 1.f);
-		PlayPropThruster();
 	}
 }
 
-void AReshootCharacter::PlayPropThruster()
+void AReshootCharacter::OnMoveCompleted(const FInputActionValue& Value)
 {
-	// Décor en carton seulement : en réaliste, les réacteurs n'ont pas (encore) de son.
-	if (bDressingReal || PropThrusterSounds.Num() == 0)
+	PrevMoveAxis = FVector2D::ZeroVector;
+}
+
+void AReshootCharacter::PlayThruster()
+{
+	const TArray<TObjectPtr<USoundBase>>& Sounds = bDressingReal ? RealThrusterSounds : PropThrusterSounds;
+	if (Sounds.Num() == 0)
 	{
 		return;
 	}
-	const float Now = GetWorld()->GetTimeSeconds();
-	if (Now - LastPropThrusterTime < PropThrusterInterval)
+	if (USoundBase* Sound = Sounds[FMath::RandHelper(Sounds.Num())])
 	{
-		return;
-	}
-	LastPropThrusterTime = Now;
-	if (USoundBase* Sound = PropThrusterSounds[FMath::RandHelper(PropThrusterSounds.Num())])
-	{
-		UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f + FMath::FRandRange(-PropThrusterPitchJitter, PropThrusterPitchJitter));
+		UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f + FMath::FRandRange(-ThrusterPitchJitter, ThrusterPitchJitter));
 	}
 }
 
