@@ -28,6 +28,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reshoot")
 	bool bSkipCasting = true;
 
+	/** Avec bAutoStartShoot : le tournage attend le menu principal du HUD (« ACTION! »). Une carte rouverte avec
+	    l'option ?Play (Recommencer, Rejouer) saute le menu ; ?SkipCasting saute aussi le casting. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reshoot")
+	bool bShowMainMenu = false;
+
+	/** Vrai tant que le menu principal attend le joueur. */
+	UFUNCTION(BlueprintPure, Category = "Reshoot")
+	bool IsMainMenuPending() const { return bMainMenuPending; }
+
+	/** Appelé par le menu principal : lance le casting (ou la scène 1 si bSkipCasting). */
+	UFUNCTION(BlueprintCallable, Category = "Reshoot")
+	void StartFromMainMenu();
+
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	void StartShootFlow(bool bForceSkipCasting);
+
+	bool bMainMenuPending = false;
 };

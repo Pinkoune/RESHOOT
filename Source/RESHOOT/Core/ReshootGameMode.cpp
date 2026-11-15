@@ -4,6 +4,7 @@
 #include "Director/ShootDirectorSubsystem.h"
 #include "Director/ShootScript.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
 AReshootGameMode::AReshootGameMode()
@@ -22,16 +23,39 @@ void AReshootGameMode::BeginPlay()
 	if (UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>())
 	{
 		Director->SetShootScript(ShootScript);
-		if (bAutoStartShoot)
+	}
+	const bool bPlayOption = UGameplayStatics::HasOption(OptionsString, TEXT("Play"));
+	const bool bSkipOption = UGameplayStatics::HasOption(OptionsString, TEXT("SkipCasting"));
+	if (bAutoStartShoot && bShowMainMenu && !bPlayOption)
+	{
+		bMainMenuPending = true;	// le HUD affiche le menu et appellera StartFromMainMenu()
+	}
+	else if (bAutoStartShoot || bPlayOption)
+	{
+		StartShootFlow(bSkipOption);
+	}
+}
+
+void AReshootGameMode::StartFromMainMenu()
+{
+	if (bMainMenuPending)
+	{
+		bMainMenuPending = false;
+		StartShootFlow(false);
+	}
+}
+
+void AReshootGameMode::StartShootFlow(bool bForceSkipCasting)
+{
+	if (UShootDirectorSubsystem* Director = GetWorld()->GetSubsystem<UShootDirectorSubsystem>())
+	{
+		if (bSkipCasting || bForceSkipCasting)
 		{
-			if (bSkipCasting)
-			{
-				Director->StartShoot();
-			}
-			else
-			{
-				Director->StartCasting();
-			}
+			Director->StartShoot();
+		}
+		else
+		{
+			Director->StartCasting();
 		}
 	}
 }

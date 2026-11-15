@@ -156,6 +156,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Director")
 	void FreezeAll(bool bFreeze);
 
+	/** Réapplique le volume de musique du joueur (reshoot.MusicVolume, menu Options) à la boucle en cours. */
+	void RefreshMusicVolume();
+
 protected:
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
 	virtual void Deinitialize() override;

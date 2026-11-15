@@ -23,6 +23,11 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "InputActionValue.h"
+#include "HAL/IConsoleManager.h"
+
+// Réglages de visée du joueur (menu Options du HUD, sauvegardés dans GameUserSettings.ini).
+static TAutoConsoleVariable<float> CVarLookSensitivity(TEXT("reshoot.LookSensitivity"), 1.f, TEXT("Multiplicateur de sensibilité de la souris."));
+static TAutoConsoleVariable<int32> CVarInvertLook(TEXT("reshoot.InvertLook"), 0, TEXT("1 = axe vertical de la souris inversé."));
 
 AReshootCharacter::AReshootCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -723,9 +728,9 @@ void AReshootCharacter::OnMove(const FInputActionValue& Value)
 
 void AReshootCharacter::OnLook(const FInputActionValue& Value)
 {
-	const FVector2D Axis = Value.Get<FVector2D>();
+	const FVector2D Axis = Value.Get<FVector2D>() * FMath::Max(CVarLookSensitivity.GetValueOnGameThread(), 0.05f);
 	AddControllerYawInput(Axis.X);
-	AddControllerPitchInput(Axis.Y);
+	AddControllerPitchInput(CVarInvertLook.GetValueOnGameThread() != 0 ? -Axis.Y : Axis.Y);
 }
 
 void AReshootCharacter::OnJumpStarted()

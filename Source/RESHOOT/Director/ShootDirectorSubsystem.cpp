@@ -205,6 +205,19 @@ void UShootDirectorSubsystem::SetPhase(EShootPhase NewPhase)
 // Musique : une boucle par univers, fondu enchaîné aux changements, coupée au CUT!
 // ---------------------------------------------------------------------------
 
+namespace
+{
+	TAutoConsoleVariable<float> CVarMusicVolume(TEXT("reshoot.MusicVolume"), 1.f, TEXT("Volume de la musique choisi par le joueur (0 à 1), multiplié par UShootScript::MusicVolume."));
+}
+
+void UShootDirectorSubsystem::RefreshMusicVolume()
+{
+	if (MusicComponent)
+	{
+		MusicComponent->SetVolumeMultiplier((Script ? Script->MusicVolume : 0.6f) * FMath::Clamp(CVarMusicVolume.GetValueOnGameThread(), 0.f, 1.f));
+	}
+}
+
 void UShootDirectorSubsystem::PlayMusic(USoundBase* Music)
 {
 	if (Music == CurrentMusic && MusicComponent && (MusicComponent->IsPlaying() || MusicComponent->bIsPaused))
@@ -232,7 +245,8 @@ void UShootDirectorSubsystem::PlayMusic(USoundBase* Music)
 		return;
 	}
 	MusicComponent->OnAudioFinished.AddDynamic(this, &UShootDirectorSubsystem::HandleMusicFinished);
-	MusicComponent->FadeIn(FMath::Max(Script ? Script->MusicFadeIn : 1.f, 0.01f), Script ? Script->MusicVolume : 0.6f);
+	RefreshMusicVolume();
+	MusicComponent->FadeIn(FMath::Max(Script ? Script->MusicFadeIn : 1.f, 0.01f), 1.f);
 	if (Phase == EShootPhase::Cut)
 	{
 		MusicComponent->SetPaused(true);
@@ -253,7 +267,7 @@ void UShootDirectorSubsystem::HandleMusicFinished()
 	// Boucle, même si l'asset sonore n'est pas réglé en boucle.
 	if (MusicComponent && CurrentMusic && Phase != EShootPhase::Wrap)
 	{
-		MusicComponent->SetVolumeMultiplier(Script ? Script->MusicVolume : 0.6f);
+		RefreshMusicVolume();
 		MusicComponent->Play();
 	}
 }

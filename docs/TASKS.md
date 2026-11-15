@@ -89,7 +89,7 @@ Univers
 - [ ] Équilibrage : une prise dure 60 à 90 s
 
 Interface
-- [ ] HUD, menu clap, casting, écran de fin
+- [x] HUD, menu clap, casting, écran de fin — menu principal (clap + iris vers le casting), pause avec options, écran de fin (étoiles, critique, bilan), dans `AReshootHUD` ; menu activé par `bShowMainMenu` sur `BP_StageGameMode` (Jérémy + Claude, 16/11)
 
 **Samedi soir : gel des fonctionnalités. Test par une personne extérieure, seule.**
 

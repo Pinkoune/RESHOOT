@@ -3,6 +3,10 @@
 //  - bas gauche : vie ; bas droite : arme (munitions, mode médiéval, charge de l'arc) ; bas centre : sous-titres
 //  - centre : réticule selon l'arme, marqueur de touche ; bord rouge quand le joueur est touché ; bandes noires au CUT!
 //  - combo médiéval sous l'audimat quand l'arme médiévale est en main.
+// Menus, dessinés au Canvas eux aussi (souris ou clavier/manette) :
+//  - menu principal façon salle de projection, puis transition clap + iris vers le casting ;
+//  - pause (P ou Échap) avec les options de base (volumes, sensibilité, axe inversé, plein écran) ;
+//  - écran de fin au clap de fin (Wrap) : étoiles, critique, bilan, rejouer.
 // L'interface écoute les delegates et lit les getters ; elle n'appelle jamais la logique de jeu.
 
 #pragma once
@@ -10,11 +14,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "Core/ReshootTypes.h"
+#include "InputCoreTypes.h"
 #include "ReshootHUD.generated.h"
 
 class UFont;
 class UHealthComponent;
 class AReshootEnemy;
+class USoundBase;
+class UTexture2D;
+class UAudioComponent;
 
 UCLASS(Blueprintable)
 class RESHOOT_API AReshootHUD : public AHUD
@@ -56,6 +64,35 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD", meta = (ClampMin = "0"))
 	float DamageFlashDuration = 0.45f;
 
+	// --- Menus ---
+
+	/** Clap du clap de cinéma (transition vers le casting, étoiles de l'écran de fin). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	TObjectPtr<USoundBase> ClapSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	TObjectPtr<USoundBase> HoverSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	TObjectPtr<USoundBase> ClickSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	TObjectPtr<USoundBase> WhooshSound;
+
+	/** Ronron de projecteur en boucle sous le menu principal. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	TObjectPtr<USoundBase> ProjectorSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu", meta = (ClampMin = "0"))
+	float MenuSoundVolume = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu", meta = (ClampMin = "0"))
+	float ProjectorVolume = 0.22f;
+
+	/** Noms au générique de l'écran de fin. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Menu")
+	FString CreditsLine = TEXT("A FILM BY JÉRÉMY · ILEANA · JULES · ENZO      MUSIC KEVIN MACLEOD (CC-BY 4.0)      TITLES BEBAS NEUE (SIL OFL)");
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -87,6 +124,42 @@ private:
 	struct FSlateFontInfo MakeFontFor(const FString& Text, float Scale) const;
 	/** Carte sombre avec un liseré de couleur à gauche : fond commun des blocs du HUD. */
 	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Stripe);
+	/** Clap de cinéma complet (ardoise + claquette qui se rabat à 0,45 s). */
+	void DrawClapperboard(float Cx, float Cy, float Size, double Since, const FString& Top, const FString& Middle,
+		const FString& BottomLeft, const FString& BottomRight, bool bFlash);
+
+	// Menus
+	enum class EMenuScreen : uint8 { None, Main, Pause, Options, End };
+	void UpdateMenus();
+	void PollMenuInput();
+	bool WasPressed(const FKey& Key) const;
+	bool AnyPressed(std::initializer_list<FKey> Keys) const;
+	void OpenMenu(EMenuScreen Screen);
+	void SetMenuInput(bool bOn);
+	/** Bouton de menu : vrai le frame où il est activé (clic, Entrée). Appear de 0 à 1 pour l'entrée animée. */
+	bool MenuButton(const FString& Label, float Cx, float Y, float Scale, float Appear);
+	/** Ligne d'option à curseur : gauche/droite, clic sur la barre. Vrai si la valeur a changé. */
+	bool OptionSlider(const FString& Label, float& Value, float Min, float Max, float Step, float Cx, float Y, float Appear);
+	bool OptionToggle(const FString& Label, bool& bValue, float Cx, float Y, float Appear);
+	void DrawMainMenu();
+	void DrawPauseMenu();
+	void DrawOptionsMenu();
+	void DrawEndScreen();
+	void DrawLaunchTransition();
+	void DrawFilmBackdrop(float Alpha, bool bStrips);
+	void DrawGrain(float Alpha);
+	void DrawIris(float Radius01, float Cx, float Cy);
+	void DrawStar(float Cx, float Cy, float R, const FLinearColor& Color);
+	void DrawTex(UTexture2D* Texture, float X, float Y, float W, float H, const FLinearColor& Color, bool bAdditive);
+	void LaunchFromMenu();
+	void TravelToStage(bool bPlay);
+	void QuitGame();
+	void LoadSettings();
+	void SaveSettings();
+	void ApplySettings();
+	void PlayUISound(USoundBase* Sound, float Volume = 1.f, float Pitch = 1.f);
+	UTexture2D* MakeRadialTexture(bool bVignette);
+	bool IsGameplayHudHidden() const;
 
 	// Écoute
 	void TryBind();
@@ -145,4 +218,47 @@ private:
 		FLinearColor Color = FLinearColor::White;
 	};
 	TArray<FFloatingGain> FloatingGains;
+
+	// État des menus
+	EMenuScreen Menu = EMenuScreen::None;
+	EMenuScreen OptionsBack = EMenuScreen::None;
+	double MenuOpenTime = -100.0;
+	int32 MenuSel = 0;
+	int32 MenuCount = 0;
+	int32 MenuBuilt = 0;
+	bool bMenuInput = false;
+	bool bMouseUsed = false;
+	bool bSelectPressed = false;
+	bool bClickPressed = false;
+	FVector2D MousePos = FVector2D::ZeroVector;
+	FVector2D LastMousePos = FVector2D::ZeroVector;
+	TMap<FKey, bool> KeyWasDown;
+	TSet<FKey> KeysPressed;
+	double LaunchTime = -1.0;
+	bool bLaunchStarted = false;
+	bool bEndShown = false;
+	int32 EndStarsPlayed = 0;
+	bool bEndSlamPlayed = false;
+	bool bSettingsLoaded = false;
+	bool bMouseDown = false;
+	bool bLaunchClapPlayed = false;
+	bool bLaunchDone = false;
+	double SelChangeTime = -100.0;
+	int32 LastSel = -1;
+
+	// Réglages (GameUserSettings.ini, section [Reshoot.Settings])
+	float MasterVolume = 1.f;
+	float MusicVolume = 1.f;
+	float MouseSensitivity = 1.f;
+	bool bInvertY = false;
+	bool bFullscreen = true;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> VignetteTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> GlowTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> ProjectorComponent;
 };
