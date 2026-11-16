@@ -520,6 +520,13 @@ MAT_MAILBOX = mi(MD + '/MI_Noir_Mailbox_Real', FLAT, True, {'RoughnessScale': 0.
 MAT_POSTER = mi(MD + '/MI_Noir_Poster_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.36, 0.345, 0.3, 1)})
 MAT_POSTER_2 = mi(MD + '/MI_Noir_Poster2_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.2, 0.19, 0.17, 1)})
 MAT_PAPER = mi(MD + '/MI_Noir_Paper_Real', FLAT, True, {'RoughnessScale': 0.9, 'MetallicScale': 0.0}, {'BaseColorTint': (0.48, 0.48, 0.46, 1)})
+# Textures photo (Poly Haven) sur les objets construits en formes simples : plus de couleurs unies
+MAT_RUST = mi(MD + '/MI_Noir_RustTex_Real', TILED, True, {'Roughness': 0.7, 'Metallic': 0.5}, {'TileSize': (120, 120, 120, 1), 'BaseColorTint': (0.8, 0.8, 0.8, 1)}, {'BaseColorMap': TX + '/T_Noir_Rust_D'})
+MAT_DUMP = mi(MD + '/MI_Noir_DumpsterTex_Real', TILED, True, {'Roughness': 0.6, 'Metallic': 0.4}, {'TileSize': (150, 150, 150, 1), 'BaseColorTint': (0.7, 0.7, 0.7, 1)}, {'BaseColorMap': TX + '/T_Noir_GreenRust_D'})
+MAT_METAL = MAT_RUST
+MAT_WOODTEX = mi(MD + '/MI_Noir_WoodTex_Real', TILED, True, {'Roughness': 0.8, 'Metallic': 0.0}, {'TileSize': (160, 160, 160, 1), 'BaseColorTint': (0.55, 0.5, 0.45, 1)}, {'BaseColorMap': TX + '/T_Noir_Wood_D'})
+MAT_PAINTEDMETAL = mi(MD + '/MI_Noir_PaintedMetalTex_Real', TILED, True, {'Roughness': 0.5, 'Metallic': 0.3}, {'TileSize': (140, 140, 140, 1), 'BaseColorTint': (0.6, 0.6, 0.6, 1)}, {'BaseColorMap': TX + '/T_Noir_PaintedMetal_D'})
+MAT_MAILBOX = MAT_PAINTEDMETAL
 
 AC = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal', 'DressingSwitch'))   # modèles Poly Haven
 AT = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal',))                   # pièces en M_SetDressing
@@ -641,22 +648,20 @@ put('Angle_SE_Pneu', tyre, 2785, -2925, yaw=rng.uniform(0, 360), roll=90.0, r=32
 put('Angle_SE_Bidon', jerry, 2720, -2940, yaw=rng.uniform(0, 360), r=22)
 
 # --- Bennes à ordures (deux phases : peinte en carton), boîte de collision invisible ---
+# Modèles détaillés faits dans Blender (SourceArt/Noir/Models) : version réaliste et version carton peint
+HERO_FRONT = 180.0      # lacet à ajouter pour que la face avant du modèle regarde la rue
+def hero(label, name, x, y, yaw, z=0.0, carton=True):
+    mesh = SM(f'SM_Noir_{name}_Real')
+    spawn(label, mesh, (x, y, z), yaw=yaw + HERO_FRONT, folder='Dressing_Real/Hero', tags=('DressingReal', 'DressingSwitch'))
+    if carton:
+        spawn(label + '_Carton', mesh, (x, y, z), yaw=yaw + HERO_FRONT, mat=MAT_PAINTED, folder='Dressing_Prop/Hero', tags=('DressingProp', 'DressingSwitch'))
+
 def dumpster(k, wall, along, depth):
     x, y = at_wall(wall, along, depth)
     if not occ_free(x, y, 110): skipped.append(f'Benne_{k}'); return
     occ_add(x, y, 110)
-    for kw, mat in ((AT, MAT_DUMP), (PD, MAT_PAINTED)):
-        sfx = '' if kw is AT else '_Carton'
-        box(f'Benne_{k}{sfx}', (x, y, 70), sz(wall, 190, 110, 105), mat, kw['folder'], kw['tags'])
-        box(f'Benne_{k}_Couvercle{sfx}', (x, y, 126), sz(wall, 198, 118, 6), mat, kw['folder'], kw['tags'])
-        for s in (-1, 1):
-            box(f'Benne_{k}_Renfort_{s}{sfx}', wall_point(wall, along + s * 55, depth + 57, 70), sz(wall, 8, 6, 100), mat, kw['folder'], kw['tags'])
-    for sa in (-80, 80):
-        for sp in (-40, 40):
-            p = wall_point(wall, along + sa, depth + sp, 9)
-            box(f'Benne_{k}_Roue_{sa}_{sp}', p, (16, 16, 16), MAT_METAL, **AT)
-            box(f'Benne_{k}_Roue_{sa}_{sp}_Carton', p, (16, 16, 16), MAT_PAINTED, **PD)
-    blk = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 65), unreal.Rotator(0, 0, 0))
+    hero(f'Benne_{k}', 'Dumpster', x, y, wall_yaw(wall))
+    blk =eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 65), unreal.Rotator(0, 0, 0))
     blk.static_mesh_component.set_static_mesh(CUBE)
     s3 = sz(wall, 198, 118, 130)
     blk.set_actor_scale3d(unreal.Vector(s3[0] / 100, s3[1] / 100, s3[2] / 100))
@@ -696,12 +701,7 @@ def mailbox(label, wall, along, depth):
     x, y = at_wall(wall, along, depth)
     if not occ_free(x, y, 40): skipped.append(label); return
     occ_add(x, y, 40)
-    for sa in (-18, 18):
-        for sp in (-16, 16):
-            box(f'{label}_Pied_{sa}_{sp}', wall_point(wall, along + sa, depth + sp, 15), (6, 6, 30), MAT_MAILBOX, **AT)
-    box(label, (x, y, 65), sz(wall, 50, 46, 70), MAT_MAILBOX, **AT)
-    rot = dict(roll=90.0) if WALLS[wall][0] == 'x' else dict(pitch=90.0)
-    spawn(f'{label}_Dessus', CYL, (x, y, 100), scale=(0.5, 0.5, 0.46), mat=MAT_MAILBOX, **AT, **rot)
+    hero(label, 'Mailbox', x, y, wall_yaw(wall))
 mailbox('BoiteAuxLettres_0', 'Ouest', 250, 55)
 mailbox('BoiteAuxLettres_1', 'Nord', 1080, 60)
 
@@ -752,6 +752,206 @@ for k in range(90):
           scale=(rng.choice((0.42, 0.3, 0.36, 0.22)), rng.choice((0.3, 0.24, 0.28, 0.18)), 0.004),
           mat=MAT_PAPER if k % 4 else MAT_POSTER, shadow=False, **AT)
 
+# =====================================================================================
+# Troisième passe : scène de crime, cabines téléphoniques, kiosque à journaux, lampadaires et panneaux en plus
+# =====================================================================================
+MAT_CHALK = mi(MD + '/MI_Noir_Chalk_Real', FLAT, True, {'RoughnessScale': 1.0, 'MetallicScale': 0.0},
+               {'BaseColorTint': (0.85, 0.85, 0.82, 1), 'EmissiveColor': (0.15, 0.15, 0.15, 1)}, {'EmissiveMap': WHITE})
+MAT_TAPE = mi(MD + '/MI_Noir_Tape_Real', FLAT, True, {'RoughnessScale': 0.5, 'MetallicScale': 0.0}, {'BaseColorTint': (0.75, 0.6, 0.05, 1)})
+MAT_STRIPE_D = mi(MD + '/MI_Noir_StripeDark_Real', FLAT, True, {'RoughnessScale': 0.7, 'MetallicScale': 0.0}, {'BaseColorTint': (0.02, 0.02, 0.02, 1)})
+MAT_STRIPE_L = mi(MD + '/MI_Noir_StripeLight_Real', FLAT, True, {'RoughnessScale': 0.7, 'MetallicScale': 0.0}, {'BaseColorTint': (0.7, 0.7, 0.68, 1)})
+MAT_BOOTH = mi(MD + '/MI_Noir_Booth_Real', FLAT, True, {'RoughnessScale': 0.45, 'MetallicScale': 0.3}, {'BaseColorTint': (0.08, 0.06, 0.04, 1)})
+MAT_GLASS = mi(MD + '/MI_Noir_BoothGlass_Real', FLAT, True, {'RoughnessScale': 0.05, 'MetallicScale': 0.2},
+               {'BaseColorTint': (0.02, 0.02, 0.025, 1), 'EmissiveColor': (0.6, 0.5, 0.3, 1)}, {'EmissiveMap': WHITE})
+MAT_BOOTH = MAT_WOODTEX       # cabines, kiosque, étal : bois patiné
+AT3 = dict(folder='Dressing_Real/Accessoires3', tags=('DressingReal',))
+
+def text(label, loc, yaw, words, size, color=(240, 235, 220)):
+    try:
+        t = eas.spawn_actor_from_class(unreal.TextRenderActor, unreal.Vector(*loc), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
+        tr = t.text_render
+        tr.set_editor_property('text', unreal.Text(words)); tr.set_editor_property('world_size', size)
+        tr.set_editor_property('horizontal_alignment', unreal.HorizTextAligment.EHTA_CENTER)
+        tr.set_editor_property('vertical_alignment', unreal.VerticalTextAligment.EVRTA_TEXT_CENTER)
+        tr.set_editor_property('text_render_color', unreal.Color(r=color[0], g=color[1], b=color[2], a=255))
+        t.set_actor_label(label); t.set_folder_path('Dressing_Real/Accessoires3'); t.tags = ['DressingReal', 'DressingSwitch']
+        return t
+    except Exception as e:
+        unreal.log_warning(f'[NOIR SET] texte {label} non posé : {e}')
+
+def seg(label, a, b, z, width, height, mat):
+    """Barre horizontale de a à b (x, y)."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    ln = math.hypot(dx, dy)
+    spawn(label, CUBE, ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z), yaw=math.degrees(math.atan2(dy, dx)),
+          scale=(ln / 100, width / 100, height / 100), mat=mat, shadow=False, **AT3)
+
+# --- Scène de crime : silhouette à la craie, chevalets de police, ruban, chapeau et arme du mort, marqueurs ---
+CS = (-1650.0, 950.0)
+if occ_free(CS[0], CS[1], 220):
+    occ_add(CS[0], CS[1], 200)
+    cyaw = 25.0
+    ca, sa = math.cos(math.radians(cyaw)), math.sin(math.radians(cyaw))
+    def cp(x, y):
+        return (CS[0] + x * ca - y * sa, CS[1] + x * sa + y * ca)
+    BODY = [(-95, -12), (-95, -28), (-20, -22), (-8, -18), (28, -26), (52, -62), (64, -55), (44, -18), (58, -14), (60, 14),
+            (44, 18), (68, 52), (58, 60), (28, 24), (-8, 18), (-20, 24), (-95, 32), (-95, 14), (-28, 5), (-28, -5), (-95, -12)]
+    for k in range(len(BODY) - 1):
+        seg(f'Crime_Craie_{k}', cp(*BODY[k]), cp(*BODY[k + 1]), 1.7, 3.0, 0.4, MAT_CHALK)
+    for k in range(14):                                       # la tête
+        a0, a1 = 2 * math.pi * k / 14, 2 * math.pi * (k + 1) / 14
+        seg(f'Crime_Craie_Tete_{k}', cp(80 + 17 * math.cos(a0), 17 * math.sin(a0)), cp(80 + 17 * math.cos(a1), 17 * math.sin(a1)), 1.7, 3.0, 0.4, MAT_CHALK)
+    # chevalets aux quatre coins, reliés par le ruban
+    HORSES = [cp(-170, -150), cp(170, -150), cp(170, 150), cp(-170, 150)]
+    for k, (hx, hy) in enumerate(HORSES):
+        hyaw = cyaw + (0 if k % 2 == 0 else 90)
+        ux, uy = math.cos(math.radians(hyaw)), math.sin(math.radians(hyaw))
+        hero(f'Crime_Chevalet_{k}', 'Sawhorse', hx, hy, hyaw, carton=False)
+    for k in range(4):
+        a, b = HORSES[k], HORSES[(k + 1) % 4]
+        seg(f'Crime_Ruban_{k}', a, b, 95, 0.6, 7, MAT_TAPE)
+    mid = ((HORSES[0][0] + HORSES[1][0]) / 2, (HORSES[0][1] + HORSES[1][1]) / 2)
+    text('Crime_Ruban_Texte', (mid[0], mid[1], 95), cyaw - 90, 'POLICE LINE - DO NOT CROSS', 6.0, (20, 20, 10))
+    # chapeau tombé et arme du mort
+    hx, hy = cp(105, 40)
+    spawn('Crime_Chapeau_Bord', CYL, (hx, hy, 2.2), scale=(0.36, 0.36, 0.018), mat=MAT_STRIPE_D, **AT3)
+    spawn('Crime_Chapeau_Calotte', CYL, (hx, hy, 8.0), scale=(0.2, 0.2, 0.12), mat=MAT_STRIPE_D, **AT3)
+    try:
+        gx, gy = cp(30, -85)
+        pistol = unreal.load_asset('/Game/RESHOOT/Noir/Meshes/SM_Noir_Pistol_Real/SM_Noir_Pistol_Real/StaticMeshes/SM_Noir_Pistol_Real')
+        if pistol:
+            spawn('Crime_Arme', pistol, (gx, gy, 3.0), yaw=cyaw + 70, roll=90.0, **AT)
+    except Exception as e:
+        unreal.log_warning(f'[NOIR SET] arme de la scène de crime : {e}')
+    for k, (mx, my) in enumerate([cp(30, -110), cp(125, 55), cp(-120, 60)]):
+        box(f'Crime_Marqueur_{k}', (mx, my, 5), (12, 8, 10), MAT_TAPE, **AT3)
+        text(f'Crime_Marqueur_{k}_Num', (mx, my, 6), cyaw + 180, str(k + 1), 7.0, (10, 10, 10))
+    light('Crime_Lumiere', unreal.PointLight, (CS[0], CS[1], 260), intensity=30.0, radius=600, temp=4000, shadows=False, volumetric=1.0)
+else:
+    skipped.append('Scene_de_crime')
+
+# --- Cabines téléphoniques contre les façades : bois sombre, vitres éclairées de l'intérieur, enseigne TELEPHONE ---
+def booth(k, wall, along):
+    x, y = at_wall(wall, along, 95)
+    if not occ_free(x, y, 75):
+        skipped.append(f'Cabine_{k}'); return
+    occ_add(x, y, 75)
+    hero(f'Cabine_{k}', 'PhoneBooth', x, y, wall_yaw(wall))
+    light(f'Cabine_{k}_Lumiere', unreal.PointLight, wall_point(wall, along, 95, 215), intensity=20.0, radius=450, temp=3000, shadows=False, volumetric=2.0)
+booth(0, 'Est', 1650.0)
+booth(1, 'Ouest', -300.0)
+
+# --- Kiosque à journaux : comptoir, piles de journaux, auvent, enseigne NEWS ---
+def kiosk(wall, along):
+    x, y = at_wall(wall, along, 110)
+    if not occ_free(x, y, 120):
+        skipped.append('Kiosque'); return
+    occ_add(x, y, 120)
+    hero('Kiosque', 'Newsstand', *at_wall(wall, along, 115), wall_yaw(wall))
+    light('Kiosque_Lumiere', unreal.PointLight, wall_point(wall, along, 190, 225), intensity=30.0, radius=600, temp=3200, shadows=False, volumetric=2.0)
+kiosk('Ouest', 1780.0)
+
+# --- Lampadaires en plus (réalistes et carton), au bord des trottoirs ---
+for k, (x, y) in enumerate([(-2650, 0), (2650, -400), (-600, 2650), (1900, -2650), (-2650, -1100), (1150, 2650)]):
+    if not occ_free(x, y, 40):
+        skipped.append(f'Lampadaire2_{k}'); continue
+    occ_add(x, y, 40)
+    spawn(f'Lampadaire2_{k}', lamp, (x, y, 0), yaw=45 * k, **RD)
+    spawn(f'Lampadaire2_{k}_Carton', lamp, (x, y, 0), yaw=45 * k, mat=MAT_PAINTED, **PD)
+    light(f'Lampadaire2_{k}_Lumiere', unreal.PointLight, (x, y, 340), intensity=LAMP_CD, radius=2000, temp=2700, shadows=False, volumetric=4.0)
+
+# --- Panneaux de rue : STOP et ONE WAY sur poteaux ---
+for k, (x, y, words, yaw) in enumerate([(-2700, 2300, 'STOP', -45.0), (2400, 2700, 'ONE WAY', 180.0), (2700, -1600, 'NO PARKING', 90.0)]):
+    if not occ_free(x, y, 20):
+        skipped.append(f'Panneau_{k}'); continue
+    occ_add(x, y, 20)
+    spawn(f'Panneau_{k}_Poteau', CYL, (x, y, 125), scale=(0.06, 0.06, 2.5), mat=MAT_METAL, **AT3)
+    spawn(f'Panneau_{k}_Plaque', CUBE, (x, y, 230), yaw=yaw, scale=(0.02, 0.6 if len(words) > 4 else 0.5, 0.35 if len(words) > 4 else 0.5), mat=MAT_STRIPE_L, **AT3)
+    ux, uy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for s in (-1, 1):
+        text(f'Panneau_{k}_Texte_{s}', (x + ux * s * 1.6, y + uy * s * 1.6, 230), yaw if s > 0 else yaw + 180, words, 9.0, (15, 15, 15))
+
+# =====================================================================================
+# Quatrième passe : meubler la place elle-même (obstacles avec collision, qui servent de couverts au joueur).
+# Les couverts des gangsters sont à l'est (x 1000 à 1700, |y| < 800) et la navigation est figée : on laisse ce couloir libre.
+# =====================================================================================
+GANG_ZONE = (750.0, 2000.0, -1150.0, 1150.0)      # x min, x max, y min, y max
+def place_ok(x, y, r):
+    if GANG_ZONE[0] - r < x < GANG_ZONE[1] + r and GANG_ZONE[2] - r < y < GANG_ZONE[3] + r:
+        return False
+    return occ_free(x, y, r)
+def blocker(label, x, y, yaw, size):
+    """Boîte de collision invisible (joueur, balles), dans les deux phases."""
+    b = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, size[2] / 2), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
+    b.static_mesh_component.set_static_mesh(CUBE)
+    b.set_actor_scale3d(unreal.Vector(size[0] / 100, size[1] / 100, size[2] / 100))
+    b.set_actor_hidden_in_game(True); b.set_actor_label(f'Noir_Bloc_{label}'); b.set_folder_path('Blockout')
+def both(label, mesh, x, y, z=0.0, yaw=0.0, scale=(1, 1, 1)):
+    spawn(label, mesh, (x, y, z), yaw=yaw, scale=scale, folder='Dressing_Real/Place', tags=('DressingReal', 'DressingSwitch'))
+    spawn(label + '_Carton', mesh, (x, y, z), yaw=yaw, scale=scale, mat=MAT_PAINTED, folder='Dressing_Prop/Place', tags=('DressingProp', 'DressingSwitch'))
+PL = dict(folder='Dressing_Real/Place', tags=('DressingReal',))
+PLP = dict(folder='Dressing_Prop/Place', tags=('DressingProp',))
+n_place = 0
+
+# --- Voitures abandonnées en travers de la place ---
+for k, (x, y, yaw) in enumerate([(-300, 1350, 28), (-1500, -1150, -62), (300, -1950, 8), (-2250, 1950, 75), (1500, 1900, -20)]):
+    if not place_ok(x, y, 240):
+        skipped.append(f'Place_Voiture_{k}'); continue
+    occ_add(x, y, 230)
+    both(f'Place_Voiture_{k}', car, x, y, yaw=yaw)
+    blocker(f'Place_Voiture_{k}', x, y, yaw, (180, 440, 140))
+    n_place += 1
+
+# --- Piles de grosses caisses en bois (2 x 2) ---
+for k, (x, y, yaw) in enumerate([(-2050, 250, 10), (-700, -1700, -25), (300, 2000, 40), (2300, 1500, 0), (2300, -1550, 15), (-1200, 2250, 0)]):
+    if not place_ok(x, y, 90):
+        skipped.append(f'Place_Caisses_{k}'); continue
+    occ_add(x, y, 90)
+    uy = unit_y(yaw)
+    for layer in range(2):
+        for s in (-1, 1):
+            if layer == 1 and s == 1 and k % 2:
+                continue                                     # une caisse en moins sur certaines piles
+            both(f'Place_Caisses_{k}_{layer}_{s}', crate, x + uy[0] * s * 28, y + uy[1] * s * 28, z=layer * 46.0, yaw=yaw + rng.uniform(-4, 4))
+    blocker(f'Place_Caisses_{k}', x, y, yaw, (120, 112, 92))
+    n_place += 1
+
+# --- Tonneaux groupés ---
+for k, (x, y) in enumerate([(-100, -950), (-2300, -1700), (600, 1250), (-1300, 1650)]):
+    if not place_ok(x, y, 80):
+        skipped.append(f'Place_Tonneaux_{k}'); continue
+    occ_add(x, y, 80)
+    for j, (dx, dy) in enumerate([(-30, -20), (32, -18), (0, 32)]):
+        both(f'Place_Tonneaux_{k}_{j}', barrel, x + dx, y + dy, yaw=rng.uniform(0, 360))
+    blocker(f'Place_Tonneaux_{k}', x, y, 0, (130, 130, 95))
+    n_place += 1
+
+# --- Étal de marché au milieu : table, auvent rayé sur quatre poteaux, cageots ---
+MX, MY = 50.0, 450.0
+if place_ok(MX, MY, 170):
+    occ_add(MX, MY, 170)
+    hero('Etal', 'MarketStall', MX, MY, 0.0)
+    light('Etal_Ampoule', unreal.PointLight, (MX, MY, 235), intensity=40.0, radius=700, temp=2500, shadows=False, volumetric=3.0)
+    blocker('Etal', MX, MY, 0, (310, 120, 95))
+    n_place += 1
+else:
+    skipped.append('Etal')
+
+# --- Barrières de chantier rayées (avec un trou dans la chaussée) ---
+for k, (x, y, yaw) in enumerate([(-1900, -2100, 30), (-50, -400, 90)]):
+    if not place_ok(x, y, 130):
+        skipped.append(f'Chantier_{k}'); continue
+    occ_add(x, y, 130)
+    ux, uy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for s in (-1, 1):                                          # deux chevalets modélisés face à face
+        hero(f'Chantier_{k}_{s}', 'Sawhorse', x - uy * s * 70, y + ux * s * 70, yaw + (0 if s > 0 else 180))
+    spawn(f'Chantier_{k}_Trou', CYL, (x, y, 1.2), scale=(1.1, 1.1, 0.01), mat=MAT_STRIPE_D, shadow=False, **PL)
+    light(f'Chantier_{k}_Lueur', unreal.PointLight, (x, y, 120), intensity=15.0, radius=400, temp=2000, shadows=False, volumetric=2.0)
+    for s in (-1, 1):
+        blocker(f'Chantier_{k}_{s}', x - uy * s * 70, y + ux * s * 70, yaw, (125, 12, 95))
+    n_place += 1
+
+unreal.log_warning(f'[NOIR SET] place meublée : {n_place} îlots')
 unreal.log_warning(f'[NOIR SET] accessoires : {n_post} affiches, rideau {sh_w:.0f}x{sh_d:.0f}, non posés (place prise) : {skipped}')
 
 # =====================================================================================
@@ -766,6 +966,21 @@ fc.set_editor_property('enable_volumetric_fog', True)
 fc.set_editor_property('fog_inscattering_luminance', unreal.LinearColor(0.002, 0.002, 0.003, 1))
 fog.set_actor_label('Ruelle_Brume'); fog.set_folder_path('Dressing_Real/Lighting'); fog.tags = ['DressingReal']
 ppv('PPV_Ruelle', 'Dressing_Real/Lighting', ['DressingReal'], REAL_BIAS, bloom_intensity=0.8, vignette_intensity=0.6, film_grain_intensity=0.35)
+
+# Pluie sur toute la ruelle (NS_Noir_Rain : gouttes étirées dans le sens de la chute, 4000 par seconde)
+rain_sys = unreal.load_asset('/Game/RESHOOT/Noir/FX/NS_Noir_Rain')
+if rain_sys:
+    for k, (rx, ry) in enumerate([(0, 0)]):
+        ra = eas.spawn_actor_from_class(unreal.NiagaraActor, unreal.Vector(rx, ry, 2950), unreal.Rotator(0, 0, 0))
+        ra.niagara_component.set_asset(rain_sys)
+        ra.set_actor_label(f'Ruelle_Pluie_{k}'); ra.set_folder_path('Dressing_Real/Lighting'); ra.tags = ['DressingReal']
+# Cônes de lumière sous chaque lampadaire : visibles dans la brume et la pluie
+for a in list(eas.get_all_level_actors()):
+    lab = a.get_actor_label()
+    if lab.startswith('Lampadaire') and lab.endswith('_Lumiere'):
+        p = a.get_actor_location()
+        light(lab.replace('_Lumiere', '_Cone'), unreal.SpotLight, (p.x, p.y, p.z + 5), rot=(-90, 0, 0), intensity=500.0, radius=700, temp=2900,
+              cones=(18, 34), shadows=False, volumetric=8.0)
 
 # Ciel de nuit : le soleil, le ciel et la lumière d'ambiance de L_Stage restent allumés dans toutes les phases.
 # Une boîte fermée autour de la ville (réaliste seulement) cache le ciel du plateau et fait de l'ombre au soleil ;

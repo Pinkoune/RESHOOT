@@ -57,6 +57,11 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Concrete Pavement 03 (texture) | Charlotte Baglioni | `T_Noir_Sidewalk_D` (trottoirs, corniches) |
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
+| Weathered Planks, Rusty Metal 02, Green Metal Rust, Painted Metal Shutter (textures) | Poly Haven (CC0) | `T_Noir_Wood_D`, `T_Noir_Rust_D`, `T_Noir_GreenRust_D`, `T_Noir_PaintedMetal_D` (cabines, kiosque, étal, bennes, parcmètres) |
+
+## Contenu Epic Games livré avec le moteur
+
+- Mannequin UE (Manny) et ses animations pistolet, copiés depuis les modèles de projet d'Unreal Engine 5.9 dans `Content/RESHOOT/Noir/Mannequin` : corps animé des gangsters du film noir (manteau et feutre modélisés pendant la jam).
 
 ## Musiques (licence CC-BY 4.0, citation obligatoire)
 
@@ -87,3 +92,8 @@ Texte à reprendre sur la page itch.io : Bebas Neue by Dharma Type, licensed und
 
 Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musiques des trois univers : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).
 - Paragon: Greystone et Paragon: Sparrow — Epic Games, Fab (gratuit, licence Fab Standard). Le nom « Paragon » ne peut pas servir à présenter le jeu. Seuls le personnage, ses matériaux et 5 animations sont gardés.
+
+
+## Bruitages Epidemic Sound
+
+17 bruitages du film noir et du médiéval (`Content/RESHOOT/Audio/SFX/*_ES`) viennent d'Epidemic Sound (abonnement de la jam). Les WAV d'origine ne sont pas dans le dépôt.

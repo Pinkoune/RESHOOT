@@ -5,7 +5,11 @@
 #include "RESHOOT.h"
 
 #include "AIController.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimSequenceBase.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
@@ -49,8 +53,9 @@ namespace
 	/**
 	 * Mort théâtrale (GDD) : le gangster bascule en arrière, à l'opposé du tueur, en tournant un peu sur lui-même.
 	 * Sur un tir à la tête, son chapeau s'envole en cloche. Animé par un timer (pas de Tick), jusqu'à la disparition du corps.
+	 * bTopple faux : le corps animé joue déjà sa propre chute, seul le chapeau est géré ici.
 	 */
-	void PlayDeathFall(ANoirGangster* Gangster, AActor* Killer, bool bHeadshot)
+	void PlayDeathFall(ANoirGangster* Gangster, AActor* Killer, bool bHeadshot, bool bTopple)
 	{
 		UWorld* World = Gangster ? Gangster->GetWorld() : nullptr;
 		if (!World)
@@ -90,8 +95,12 @@ namespace
 		const double StartTime = World->GetTimeSeconds();
 		TWeakObjectPtr<ANoirGangster> Weak(Gangster);
 		TSharedRef<FTimerHandle> Handle = MakeShared<FTimerHandle>();
+		if (!bTopple && HatParts.Num() == 0)
+		{
+			return;
+		}
 		World->GetTimerManager().SetTimer(*Handle, FTimerDelegate::CreateLambda(
-			[Weak, Handle, StartLocation, Away, FaceYaw, Drop, Spin, Ground, HatParts, HatStarts, StartTime]()
+			[Weak, Handle, StartLocation, Away, FaceYaw, Drop, Spin, Ground, HatParts, HatStarts, StartTime, bTopple]()
 			{
 				ANoirGangster* Self = Weak.Get();
 				if (!Self)
@@ -99,10 +108,13 @@ namespace
 					return;
 				}
 				const float T = static_cast<float>(Self->GetWorld()->GetTimeSeconds() - StartTime);
-				const float A = FMath::Clamp(T / 0.55f, 0.f, 1.f);
-				const float E = A * A;                                   // ça accélère, comme une vraie chute
-				const FRotator Pose(88.f * E, FaceYaw + Spin * E, 0.f);
-				Self->SetActorLocationAndRotation(StartLocation - FVector(0.f, 0.f, Drop * E) + Away * 45.f * E, Pose);
+				if (bTopple)
+				{
+					const float A = FMath::Clamp(T / 0.55f, 0.f, 1.f);
+					const float E = A * A;                               // ça accélère, comme une vraie chute
+					const FRotator Pose(88.f * E, FaceYaw + Spin * E, 0.f);
+					Self->SetActorLocationAndRotation(StartLocation - FVector(0.f, 0.f, Drop * E) + Away * 45.f * E, Pose);
+				}
 
 				// Chapeau : parabole vers l'arrière, en tournant, jusqu'au sol
 				for (int32 i = 0; i < HatParts.Num(); ++i)
@@ -148,10 +160,118 @@ ANoirGangster::ANoirGangster(const FObjectInitializer& ObjectInitializer)
 	Head->ComponentTags.Add(TEXT("head"));
 	HatBrim = MakePart(this, Root, TEXT("HatBrim"), CylinderMesh.Object, FVector(0.f, 0.f, 82.f), FVector(0.7f, 0.7f, 0.04f), false);
 	HatCrown = MakePart(this, Root, TEXT("HatCrown"), CylinderMesh.Object, FVector(0.f, 0.f, 92.f), FVector(0.38f, 0.38f, 0.2f), false);
+
+	// Corps animé (si FigureMesh est renseigné) : mannequin pieds au bas de la capsule, tourné vers l'avant (+X).
+	GetMesh()->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -88.f), FRotator(0.f, -90.f, 0.f));
+	Gun = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Gun"));
+	Gun->SetupAttachment(GetMesh());
+	Gun->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Gun->SetCanEverAffectNavigation(false);
+}
+
+bool ANoirGangster::HasFigure() const
+{
+	return FigureMesh && GetMesh() && GetMesh()->GetSkeletalMeshAsset();
+}
+
+void ANoirGangster::SetupFigure()
+{
+	USkeletalMeshComponent* Skel = GetMesh();
+	if (!FigureMesh || !Skel)
+	{
+		return;
+	}
+	Skel->SetSkeletalMeshAsset(FigureMesh);
+	Skel->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	Skel->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	Skel->RefreshBoneTransforms();
+
+	// Les formes simples restent comme zones de tir (la tête garde le tag "head"), mais ne se voient plus.
+	Body->SetVisibility(false);
+	Head->SetVisibility(false);
+
+	// Chapeau posé sur l'os de la tête (pose de référence : tête droite), puis accroché à cet os pour suivre les animations.
+	const FVector HatBase = Skel->DoesSocketExist(HatBone) ? Skel->GetSocketLocation(HatBone) + FVector(0.f, 0.f, HatHeight)
+		: GetActorLocation() + FVector(0.f, 0.f, 82.f);
+	const FRotator Upright(0.f, GetActorRotation().Yaw, 0.f);
+	HatBrim->SetWorldLocationAndRotation(HatBase, Upright);
+	HatBrim->SetWorldScale3D(FVector(0.36f, 0.36f, 0.018f));
+	HatCrown->SetWorldLocationAndRotation(HatBase + FVector(0.f, 0.f, 6.5f), Upright);
+	HatCrown->SetWorldScale3D(FVector(0.2f, 0.2f, 0.12f));
+	if (Skel->DoesSocketExist(HatBone))
+	{
+		HatBrim->AttachToComponent(Skel, FAttachmentTransformRules::KeepWorldTransform, HatBone);
+		HatCrown->AttachToComponent(Skel, FAttachmentTransformRules::KeepWorldTransform, HatBone);
+	}
+
+	// Manteau en deux pièces rigides (buste sur la colonne, pans sur le bassin) : cache le corps lisse du mannequin.
+	// Modélisés debout, pieds à l'origine, face vers +X : posés aux pieds en pose de référence puis accrochés à leur os.
+	static const TCHAR* const CoatPieces[][2] = {
+		{ TEXT("/Game/RESHOOT/Noir/Meshes/SM_Noir_CoatUpper/SM_Noir_CoatUpper/StaticMeshes/SM_Noir_CoatUpper"), TEXT("spine_03") },
+		{ TEXT("/Game/RESHOOT/Noir/Meshes/SM_Noir_CoatLower/SM_Noir_CoatLower/StaticMeshes/SM_Noir_CoatLower"), TEXT("pelvis") },
+	};
+	for (const auto& Piece : CoatPieces)
+	{
+		UStaticMesh* CoatMesh = LoadObject<UStaticMesh>(nullptr, Piece[0]);
+		const FName Bone(Piece[1]);
+		if (!CoatMesh || !Skel->DoesSocketExist(Bone))
+		{
+			continue;
+		}
+		UStaticMeshComponent* Coat = NewObject<UStaticMeshComponent>(this);
+		Coat->SetStaticMesh(CoatMesh);
+		Coat->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Coat->SetCanEverAffectNavigation(false);
+		Coat->ComponentTags.Add(TEXT("NoirCoat"));
+		Coat->SetupAttachment(Skel);
+		Coat->RegisterComponent();
+		AddInstanceComponent(Coat);
+		Coat->SetWorldLocationAndRotation(Skel->GetComponentLocation(), Upright);
+		Coat->AttachToComponent(Skel, FAttachmentTransformRules::KeepWorldTransform, Bone);
+	}
+
+	Gun->AttachToComponent(Skel, FAttachmentTransformRules::SnapToTargetNotIncludingScale, GunBone);
+	Gun->SetRelativeTransform(GunOffset);
+
+	PlayLoop(IdleAnim);
+	GetWorldTimerManager().SetTimer(AnimTimer, this, &ANoirGangster::UpdateAnimation, 0.1f, true);
+}
+
+void ANoirGangster::PlayLoop(UAnimSequenceBase* Anim)
+{
+	if (!Anim || !GetMesh() || (Anim == CurrentLoop && GetMesh()->IsPlaying()))
+	{
+		return;
+	}
+	CurrentLoop = Anim;
+	GetMesh()->PlayAnimation(Anim, true);
+}
+
+void ANoirGangster::UpdateAnimation()
+{
+	if (!HasFigure() || IsDead() || IsFrozen() || GetWorld()->GetTimeSeconds() < FireAnimEnd)
+	{
+		return;
+	}
+	const bool bMoving = GetVelocity().SizeSquared2D() > FMath::Square(60.f);
+	PlayLoop(bMoving && MoveAnim ? MoveAnim.Get() : IdleAnim.Get());
+}
+
+void ANoirGangster::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	// Le personnage garde d'habitude les pieds au sol en s'accroupissant ; ici il n'a pas d'animation accroupie :
+	// le corps descend avec la capsule et se cache derrière le couvert.
+	if (HasFigure())
+	{
+		GetMesh()->SetRelativeLocation(GetClass()->GetDefaultObject<ANoirGangster>()->GetMesh()->GetRelativeLocation());
+	}
 }
 
 void ANoirGangster::BeginPlay()
 {
+	// Avant Super::BeginPlay : le costume (OnDressingChanged) y est appliqué et doit trouver le corps animé.
+	SetupFigure();
 	Super::BeginPlay();
 
 	// Rejoint le couvert le plus proche (celui derrière lequel il a été posé, ou un autre s'il vient d'apparaître).
@@ -176,7 +296,7 @@ void ANoirGangster::OnFreezeChanged(bool bFreeze)
 	Super::OnFreezeChanged(bFreeze);
 
 	FTimerManager& Timers = GetWorldTimerManager();
-	for (FTimerHandle* Handle : { &CycleTimer, &ShotTimer, &DuckTimer })
+	for (FTimerHandle* Handle : { &CycleTimer, &ShotTimer, &DuckTimer, &AnimTimer })
 	{
 		if (bFreeze)
 		{
@@ -195,13 +315,38 @@ void ANoirGangster::OnDeath(AActor* Killer, bool bHeadshot, bool bMelee)
 	Timers.ClearTimer(CycleTimer);
 	Timers.ClearTimer(ShotTimer);
 	Timers.ClearTimer(DuckTimer);
+	Timers.ClearTimer(AnimTimer);
 	CurrentCover.Reset();
 
 	// Le corps ne doit plus arrêter les balles pendant qu'il disparaît.
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Super::OnDeath(Killer, bHeadshot, bMelee);
-	PlayDeathFall(this, Killer, bHeadshot);
+
+	// Corps animé : vraie animation de mort, choisie selon le côté d'où vient le tir.
+	bool bTopple = true;
+	if (HasFigure())
+	{
+		// Baissé derrière son couvert, le corps est enfoncé dans le sol : on le remet les pieds au sol pour qu'il tombe sur la rue.
+		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+		const FVector ToKiller = Killer ? (Killer->GetActorLocation() - GetActorLocation()).GetSafeNormal2D() : GetActorForwardVector();
+		const bool bFromFront = FVector::DotProduct(ToKiller, GetActorForwardVector()) >= 0.f;
+		const TArray<TObjectPtr<UAnimSequenceBase>>& Pool = bFromFront || DeathFromBackAnims.Num() == 0 ? DeathFromFrontAnims : DeathFromBackAnims;
+		if (Pool.Num() > 0)
+		{
+			if (UAnimSequenceBase* Anim = Pool[FMath::RandHelper(Pool.Num())])
+			{
+				CurrentLoop = nullptr;
+				GetMesh()->PlayAnimation(Anim, false);
+				bTopple = false;
+			}
+		}
+	}
+	if (bTopple && HasFigure())
+	{
+		GetMesh()->Stop();   // pose figée pendant la bascule : il ne vise plus une fois à terre
+	}
+	PlayDeathFall(this, Killer, bHeadshot, bTopple);
 }
 
 void ANoirGangster::OnDressingChanged(bool bReal)
@@ -215,6 +360,32 @@ void ANoirGangster::OnDressingChanged(bool bReal)
 	if (Hat && HatBrim) { HatBrim->SetMaterial(0, Hat); }
 	if (Hat && HatCrown) { HatCrown->SetMaterial(0, Hat); }
 	if (Face && Head) { Head->SetMaterial(0, Face); }
+
+	if (HasFigure())
+	{
+		USkeletalMeshComponent* Skel = GetMesh();
+		for (int32 i = 0; i < Skel->GetNumMaterials(); ++i)
+		{
+			UMaterialInterface* M = bReal && FigureRealMaterials.IsValidIndex(i) && FigureRealMaterials[i] ? FigureRealMaterials[i].Get() : Suit;
+			if (M)
+			{
+				Skel->SetMaterial(i, M);
+			}
+		}
+		if (UStaticMesh* GunMesh = bReal ? GunReal.Get() : GunProp.Get())
+		{
+			Gun->SetStaticMesh(GunMesh);
+		}
+		TArray<UStaticMeshComponent*> Parts;
+		GetComponents(Parts);
+		for (UStaticMeshComponent* Part : Parts)
+		{
+			if (Hat && Part->ComponentHasTag(TEXT("NoirCoat")))
+			{
+				Part->SetMaterial(0, Hat);   // manteau gris feutre, comme le chapeau, sur le costume sombre
+			}
+		}
+	}
 }
 
 void ANoirGangster::RunCycle()
@@ -300,7 +471,19 @@ void ANoirGangster::FireOneShot()
 	Facing.Roll = 0.f;
 	SetActorRotation(Facing);
 
-	ANoirRevolver::SpawnMuzzleFlash(this, Start + Facing.Vector() * 50.f, MuzzleFlashIntensity, 0.06f);
+	if (HasFigure() && FireAnim)
+	{
+		// Recul du pistolet (une animation additive ne se joue pas seule : on s'en passe dans ce cas).
+		const UAnimSequence* Seq = Cast<UAnimSequence>(FireAnim.Get());
+		if (!Seq || !Seq->IsValidAdditive())
+		{
+			CurrentLoop = nullptr;
+			GetMesh()->PlayAnimation(FireAnim, false);
+			FireAnimEnd = GetWorld()->GetTimeSeconds() + FireAnim->GetPlayLength();
+		}
+	}
+	const FVector FlashAt = HasFigure() && Gun->GetStaticMesh() ? Gun->GetComponentLocation() : Start + Facing.Vector() * 50.f;
+	ANoirRevolver::SpawnMuzzleFlash(this, FlashAt, MuzzleFlashIntensity, 0.06f);
 	if (FireSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Start);

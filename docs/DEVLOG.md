@@ -501,3 +501,51 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : studio carton éclairé (projecteurs, lumière d'ambiance, brume et exposition du studio spatial recopiés, exposition remontée à -2,4) et portes fermées par des rideaux sans collision ; sol et chemins réalistes avec un matériau projeté vu du dessus (`M_Medieval_GroundTop`, plus de bandes vertes) ; murs du hangar sans collision et murs du plateau sans collision en réaliste (plus de murs invisibles) ; le décor médiéval et les murs du plateau basculent au passage du rideau, acteur par acteur, et plus à la fin ; les chevaliers qui apparaissent derrière les murs rejoignent la porte nord ou sud au lieu de rester collés au mur ; un chevalier touché chancelle (attaque annulée) ; l'épée repousse, fait un court arrêt sur image et un à-coup de caméra à l'impact, coup plus rapide ; bouclier tourné pour qu'on voie son dos et ses sangles, comme quand on le tient.
 - Comment : vérifié en PIE sur le vrai déroulé (chevaliers entrés par les portes jusqu'au joueur, coup d'épée : 100 -> 50 PV et arrêt sur image, rideau filmé : la moitié encore en studio pendant que l'autre est en forêt). Causes trouvées : les vagues entrent derrière les murs et le chemin échouait ; les copies des murs du hangar et les rideaux avaient gardé une collision malgré `NoCollision` sur le composant (il fallait le profil) ; le sol était un cube de 66 km avec une projection qui étirait la texture. Live Coding a fonctionné pour le `.cpp` ; les nouveaux réglages ont demandé un build complet (éditeur fermé et relancé par l'IA).
 - Capture : docs/devlog-media/2026-11-16-medieval-carton-eclaire.png, docs/devlog-media/2026-11-16-medieval-sol-bouclier.png
+
+### 2026-11-16 01:05 — Noir : des gangsters en chair et en os (mannequin animé, manteau, feutre)
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : les gangsters ne sont plus des cylindres. Corps du mannequin UE livré avec le moteur (`Noir/Mannequin`), animé sans Animation Blueprint : pistolet levé à l'arrêt, course pistolet en main, recul. Manteau long en deux pièces accrochées au buste et au bassin, feutre sur l'os de la tête, pistolet de Jules dans la main droite ; carton peint en répétition, costume sombre et manteau gris en réaliste. La chute théâtrale est vérifiée en jeu : sur un tir à la tête, le feutre s'envole et le corps bascule en arrière.
+- Comment : premier essai avec les animations de mort du mannequin : le corps disparaissait à l'écran à l'instant de la mort, alors que ses os tombaient bien (sondé en Python). Gardé la bascule codée, qui marche. Autre piège : un gangster baissé a le corps enfoncé de 54 cm derrière son couvert ; à sa mort il est remis les pieds au sol. Test piloté par le serveur MCP de l'éditeur (Python, captures du viewport, Live Coding), après une première partie à la souris faute d'avoir vérifié que le MCP répondait.
+- Capture : docs/devlog-media/2026-11-16-noir-gangster-manteau.png, docs/devlog-media/2026-11-16-noir-gangster-chute.png
+
+### 2026-11-16 01:25 — Noir : scène de crime, cabines téléphoniques, kiosque
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : troisième passe d'accessoires dans la ruelle : une scène de crime (silhouette à la craie, chevalets de police rayés, ruban POLICE LINE, chapeau et arme du mort, marqueurs numérotés), deux cabines téléphoniques éclairées, un kiosque à journaux, six lampadaires et trois panneaux de rue en plus.
+- Comment : ajouté à `Tools/build_noir_set.py`, reconstruit et vérifié en jeu entièrement par le serveur MCP de l'éditeur (script Python + capture du viewport), sans toucher à la souris.
+- Capture : docs/devlog-media/2026-11-16-noir-scene-de-crime.png
+
+### 2026-11-16 01:45 — Bruitages Epidemic Sound pour le film noir et le médiéval
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : 17 vrais bruitages Epidemic Sound remplacent les sons synthétisés ou absents. Noir : tir du revolver, clic à vide, barillet, tirs des gangsters, coupure et retour du courant. Médiéval : épée (balayage, impact), bouclier, arc, tir des archers, impact des flèches, attaque et mort des chevaliers.
+- Comment : recherche et téléchargement par le MCP Epidemic Sound, import et branchement par le MCP de l'éditeur (`Tools/setup_epidemic_sfx.py`). Le médiéval utilisait ses classes C++ directement : trois Blueprints sans code (`BP_MedievalKnight`, `BP_MedievalArcher`, `BP_MedievalArrow`) portent les sons et remplacent les classes dans `DA_Medieval`. Le convoi garde ses sons (le remplacer par un Blueprint en ferait apparaître un second). Non testé en jeu, faute de temps.
+- Capture : aucune
+
+### 2026-11-16 02:15 — Noir : la pluie et les cônes de lumière
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : il pleut sur toute la ruelle (`Noir/FX/NS_Noir_Rain` : 40 000 gouttes par seconde, simulées sur la carte graphique, étirées dans le sens de la chute) et chaque lampadaire projette un cône de lumière dans la brume et la pluie. Avec l'asphalte mouillé et le noir et blanc, c'est l'image du film noir.
+- Comment : système Niagara créé entièrement par le MCP de l'éditeur (outils Niagara : modèle Fountain, forme en boîte de 64 m, vitesse vers le bas, sprites alignés sur la vitesse). Premier essai invisible : 4 000 gouttes par seconde sur 64 m × 64 m faisaient une goutte par mètre carré, trop fines pour être vues. Passé sur GPU, dix fois plus dense, gouttes plus épaisses.
+- Capture : docs/devlog-media/2026-11-16-noir-pluie.png
+
+### 2026-11-16 02:30 — Noir : la place n'est plus vide
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : 16 îlots au milieu de la ruelle, tous avec collision (ils servent de couverts au joueur) et leur version carton : quatre voitures bâchées abandonnées en travers, un étal de marché au centre (auvent rayé, cageots, sacs, ampoule), cinq piles de grosses caisses, quatre groupes de tonneaux, deux chantiers (chevalets rayés, trou dans la chaussée, lampe).
+- Comment : ajouté à `Tools/build_noir_set.py`, reconstruit et vérifié en jeu par le MCP. Les couverts des gangsters sont à l'est et la navigation est figée dans `L_Stage` : leur couloir est laissé libre pour ne pas bloquer leurs déplacements.
+- Capture : docs/devlog-media/2026-11-16-noir-place-meublee.png
+
+### 2026-11-16 02:45 — Noir : textures photo sur les objets en formes simples
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : les cabines, le kiosque, l'étal, les bennes, les parcmètres et les boîtes aux lettres n'ont plus de couleurs unies : bois patiné, métal rouillé, métal vert rouillé et métal peint (textures Poly Haven, CC0). Retour de Jules : « on dirait des assets pour Roblox ».
+- Comment : quatre textures 1k téléchargées sur Poly Haven, importées et appliquées par le MCP, matériaux répétés selon la taille des objets.
+- Capture : aucune
+
+### 2026-11-16 02:25 — DLSS 4.5 et raytracing matériel
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : NVIDIA DLSS 4.5 intégré au projet (plugins `DLSS`, `StreamlineCore`, `StreamlineDLSSG`, `StreamlineReflex`, `StreamlineNGXCommon` dans `Plugins/`) : super résolution en mode Qualité (66,7 %), génération d'images et Reflex sur carte RTX. Lumen passe en raytracing matériel (éclairage global et reflets, éclairage des reflets au point touché). Vérifié en jeu sur RTX 5070 Ti : DLSS supporté et actif, mode Qualité, DLSS-RR supporté.
+- Comment : NVIDIA ne publie le plugin que pour UE 5.8 (version 8.9.0) : sources recompilées pour la 5.9. Seul souci : la 5.9 vérifie les chaînes de format à la compilation et le plugin passe des enums à `%d` ; contrôle désactivé dans les 20 modules NVIDIA (`bValidateFormatStrings = false`). Sans carte RTX, le moteur garde son upscaler. Les DLL NVIDIA sont en Git LFS ; `.gitignore` ne masque plus `Plugins/*/Binaries/ThirdParty`.
+- Capture : aucune
+
+### 2026-11-16 02:45 — Noir : six vrais modèles à la place des cubes
+- Qui : Jules + Claude (Claude Code, Opus 5.5, deux sessions en parallèle)
+- Fait : l'étal de marché, le kiosque à journaux, les cabines téléphoniques, les bennes, les boîtes aux lettres et les chevalets (scène de crime et chantiers) sont maintenant des modèles détaillés (porte vitrée à petits carreaux, cageots de fruits, enseigne NEWS, auvents rayés festonnés, couvercle de benne entrouvert, lanterne sur les chevalets), en version réaliste et en carton peint.
+- Comment : une session Claude séparée a modélisé les six objets en Python dans Blender (`SourceArt/Noir/Models`, voir son README) pendant que la session principale gardait Unreal. Piège : après l'ajout de DLSS, l'éditeur n'arrivait plus à construire aucun mesh importé, même un cube (« Bad MeshDescription ») ; un redémarrage de l'éditeur a réglé le problème. Les modèles arrivent tournés de 180° (face avant glTF) : corrigé par `HERO_FRONT` dans `Tools/build_noir_set.py`.
+- Capture : docs/devlog-media/2026-11-16-noir-kiosque-modele.png, docs/devlog-media/2026-11-16-noir-etal-modele.png
