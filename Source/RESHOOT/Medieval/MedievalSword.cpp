@@ -237,6 +237,11 @@ void AMedievalSword::SetMode(EMedievalWeaponMode NewMode)
 	{
 		return;
 	}
+	// Poings retirés de la partie (retour des tests) : l'épée et l'arc seulement.
+	if (NewMode == EMedievalWeaponMode::Fists)
+	{
+		return;
+	}
 	if (NewMode == Mode)
 	{
 		return;
@@ -270,8 +275,8 @@ void AMedievalSword::ToggleMode()
 	// Cycle épée -> arc -> poings -> épée (l'arc est sauté s'il est interdit).
 	switch (Mode)
 	{
-	case EMedievalWeaponMode::Sword: SetMode(bBowAllowed ? EMedievalWeaponMode::Bow : EMedievalWeaponMode::Fists); break;
-	case EMedievalWeaponMode::Bow:   SetMode(EMedievalWeaponMode::Fists); break;
+	case EMedievalWeaponMode::Sword: SetMode(EMedievalWeaponMode::Bow); break;
+	case EMedievalWeaponMode::Bow:   SetMode(EMedievalWeaponMode::Sword); break;
 	case EMedievalWeaponMode::Fists: SetMode(EMedievalWeaponMode::Sword); break;
 	}
 }

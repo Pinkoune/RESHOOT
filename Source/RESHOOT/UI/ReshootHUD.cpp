@@ -808,9 +808,9 @@ void AReshootHUD::DrawWeapon()
 	{
 		// Rappel des touches, mode actif en surbrillance.
 		const EMedievalWeaponMode Mode = Sword->GetMedievalMode();
-		const TCHAR* Labels[] = { TEXT("1 SWORD"), TEXT("2 BOW"), TEXT("3 FISTS") };
+		const TCHAR* Labels[] = { TEXT("1 SWORD"), TEXT("2 BOW") };
 		float X = Right;
-		for (int32 i = 2; i >= 0; --i)
+		for (int32 i = 1; i >= 0; --i)
 		{
 			const FVector2D Sz = MeasureText(Labels[i], 0.8f);
 			X -= Sz.X;

@@ -917,6 +917,12 @@ void UShootDirectorSubsystem::MidTakeCut()
 	{
 		return;
 	}
+	// Pas de CUT! pendant l'événement du producteur (annoncé ou en cours) : on le laisse finir.
+	if (EventHudState == 1 || EventHudState == 2)
+	{
+		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, this, &UShootDirectorSubsystem::MidTakeCut, 1.f, false);
+		return;
+	}
 
 	// Directive imposée par la prise, sinon tirée au hasard (en évitant de répéter la précédente).
 	PendingDirective = Script->Scenes[SceneIndex].Takes[TakeIndex].Directive;
@@ -1202,18 +1208,36 @@ void UShootDirectorSubsystem::FinaleSwitchUniverse()
 	{
 		return;
 	}
-	SetUniverse(Definition->Universe);
+	const EUniverse NewUniverse = Definition->Universe;
+	auto DoSwitch = [this, NewUniverse]()
+	{
+		SetUniverse(NewUniverse);
+		if (AWaveSpawner* WaveSpawner = FindSpawner())
+		{
+			WaveSpawner->ReplaceAllForUniverse(NewUniverse);
+		}
+	};
 	// La première bascule a lieu à l'entrée du final, annoncée par FinaleIntroLineId.
-	if (!bFirstSwitch)
+	if (bFirstSwitch)
 	{
-		// Bascule du final : flash blanc de clap (GDD), le HUD montre un petit clap.
-		ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.35f, FLinearColor::White, false);
-		PlayLine(ReshootDirector::PickLine(Script->FinaleSwitchLineIds));
+		DoSwitch();
+		return;
 	}
-	if (AWaveSpawner* WaveSpawner = FindSpawner())
+	// Bascule du final : court fondu au noir qui cache le changement de décor, puis retour en douceur
+	// (le HUD montre un petit clap). Plus doux que le flash blanc d'origine.
+	PlayLine(ReshootDirector::PickLine(Script->FinaleSwitchLineIds));
+	ReshootDirector::FadeCamera(GetWorld(), 0.f, 1.f, 0.3f, FLinearColor::Black, true);
+	FTimerHandle SwitchHandle;
+	GetWorld()->GetTimerManager().SetTimer(SwitchHandle, FTimerDelegate::CreateWeakLambda(this, [this, DoSwitch]()
 	{
-		WaveSpawner->ReplaceAllForUniverse(Definition->Universe);
-	}
+		if (Phase != EShootPhase::Finale)
+		{
+			ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.3f, FLinearColor::Black, false);
+			return;
+		}
+		DoSwitch();
+		ReshootDirector::FadeCamera(GetWorld(), 1.f, 0.f, 0.6f, FLinearColor::Black, false);
+	}), 0.35f, false);
 }
 
 void UShootDirectorSubsystem::Wrap()
