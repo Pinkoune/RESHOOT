@@ -520,6 +520,13 @@ MAT_MAILBOX = mi(MD + '/MI_Noir_Mailbox_Real', FLAT, True, {'RoughnessScale': 0.
 MAT_POSTER = mi(MD + '/MI_Noir_Poster_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.36, 0.345, 0.3, 1)})
 MAT_POSTER_2 = mi(MD + '/MI_Noir_Poster2_Real', FLAT, True, {'RoughnessScale': 0.95, 'MetallicScale': 0.0}, {'BaseColorTint': (0.2, 0.19, 0.17, 1)})
 MAT_PAPER = mi(MD + '/MI_Noir_Paper_Real', FLAT, True, {'RoughnessScale': 0.9, 'MetallicScale': 0.0}, {'BaseColorTint': (0.48, 0.48, 0.46, 1)})
+# Textures photo (Poly Haven) sur les objets construits en formes simples : plus de couleurs unies
+MAT_RUST = mi(MD + '/MI_Noir_RustTex_Real', TILED, True, {'Roughness': 0.7, 'Metallic': 0.5}, {'TileSize': (120, 120, 120, 1), 'BaseColorTint': (0.8, 0.8, 0.8, 1)}, {'BaseColorMap': TX + '/T_Noir_Rust_D'})
+MAT_DUMP = mi(MD + '/MI_Noir_DumpsterTex_Real', TILED, True, {'Roughness': 0.6, 'Metallic': 0.4}, {'TileSize': (150, 150, 150, 1), 'BaseColorTint': (0.7, 0.7, 0.7, 1)}, {'BaseColorMap': TX + '/T_Noir_GreenRust_D'})
+MAT_METAL = MAT_RUST
+MAT_WOODTEX = mi(MD + '/MI_Noir_WoodTex_Real', TILED, True, {'Roughness': 0.8, 'Metallic': 0.0}, {'TileSize': (160, 160, 160, 1), 'BaseColorTint': (0.55, 0.5, 0.45, 1)}, {'BaseColorMap': TX + '/T_Noir_Wood_D'})
+MAT_PAINTEDMETAL = mi(MD + '/MI_Noir_PaintedMetalTex_Real', TILED, True, {'Roughness': 0.5, 'Metallic': 0.3}, {'TileSize': (140, 140, 140, 1), 'BaseColorTint': (0.6, 0.6, 0.6, 1)}, {'BaseColorMap': TX + '/T_Noir_PaintedMetal_D'})
+MAT_MAILBOX = MAT_PAINTEDMETAL
 
 AC = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal', 'DressingSwitch'))   # modèles Poly Haven
 AT = dict(folder='Dressing_Real/Accessoires', tags=('DressingReal',))                   # pièces en M_SetDressing
@@ -763,6 +770,7 @@ MAT_STRIPE_L = mi(MD + '/MI_Noir_StripeLight_Real', FLAT, True, {'RoughnessScale
 MAT_BOOTH = mi(MD + '/MI_Noir_Booth_Real', FLAT, True, {'RoughnessScale': 0.45, 'MetallicScale': 0.3}, {'BaseColorTint': (0.08, 0.06, 0.04, 1)})
 MAT_GLASS = mi(MD + '/MI_Noir_BoothGlass_Real', FLAT, True, {'RoughnessScale': 0.05, 'MetallicScale': 0.2},
                {'BaseColorTint': (0.02, 0.02, 0.025, 1), 'EmissiveColor': (0.6, 0.5, 0.3, 1)}, {'EmissiveMap': WHITE})
+MAT_BOOTH = MAT_WOODTEX       # cabines, kiosque, étal : bois patiné
 AT3 = dict(folder='Dressing_Real/Accessoires3', tags=('DressingReal',))
 
 def text(label, loc, yaw, words, size, color=(240, 235, 220)):
