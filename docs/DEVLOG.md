@@ -494,3 +494,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : les cabines, le kiosque, l'étal, les bennes, les parcmètres et les boîtes aux lettres n'ont plus de couleurs unies : bois patiné, métal rouillé, métal vert rouillé et métal peint (textures Poly Haven, CC0). Retour de Jules : « on dirait des assets pour Roblox ».
 - Comment : quatre textures 1k téléchargées sur Poly Haven, importées et appliquées par le MCP, matériaux répétés selon la taille des objets.
 - Capture : aucune
+
+### 2026-11-16 02:25 — DLSS 4.5 et raytracing matériel
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : NVIDIA DLSS 4.5 intégré au projet (plugins `DLSS`, `StreamlineCore`, `StreamlineDLSSG`, `StreamlineReflex`, `StreamlineNGXCommon` dans `Plugins/`) : super résolution en mode Qualité (66,7 %), génération d'images et Reflex sur carte RTX. Lumen passe en raytracing matériel (éclairage global et reflets, éclairage des reflets au point touché). Vérifié en jeu sur RTX 5070 Ti : DLSS supporté et actif, mode Qualité, DLSS-RR supporté.
+- Comment : NVIDIA ne publie le plugin que pour UE 5.8 (version 8.9.0) : sources recompilées pour la 5.9. Seul souci : la 5.9 vérifie les chaînes de format à la compilation et le plugin passe des enums à `%d` ; contrôle désactivé dans les 20 modules NVIDIA (`bValidateFormatStrings = false`). Sans carte RTX, le moteur garde son upscaler. Les DLL NVIDIA sont en Git LFS ; `.gitignore` ne masque plus `Plugins/*/Binaries/ThirdParty`.
+- Capture : aucune

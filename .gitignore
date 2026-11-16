@@ -1,10 +1,11 @@
 # Unreal Engine
-Binaries/
-Intermediate/
+/Binaries/
+/Intermediate/
 Saved/
 DerivedDataCache/
 Build/
-Plugins/*/Binaries/
+Plugins/*/Binaries/*
+!Plugins/*/Binaries/ThirdParty/
 Plugins/*/Intermediate/
 
 # IDE / solutions (régénérées depuis le .uproject)
