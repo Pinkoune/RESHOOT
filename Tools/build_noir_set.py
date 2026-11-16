@@ -896,6 +896,106 @@ for k, (x, y, words, yaw) in enumerate([(-2700, 2300, 'STOP', -45.0), (2400, 270
     for s in (-1, 1):
         text(f'Panneau_{k}_Texte_{s}', (x + ux * s * 1.6, y + uy * s * 1.6, 230), yaw if s > 0 else yaw + 180, words, 9.0, (15, 15, 15))
 
+# =====================================================================================
+# Quatrième passe : meubler la place elle-même (obstacles avec collision, qui servent de couverts au joueur).
+# Les couverts des gangsters sont à l'est (x 1000 à 1700, |y| < 800) et la navigation est figée : on laisse ce couloir libre.
+# =====================================================================================
+GANG_ZONE = (750.0, 2000.0, -1150.0, 1150.0)      # x min, x max, y min, y max
+def place_ok(x, y, r):
+    if GANG_ZONE[0] - r < x < GANG_ZONE[1] + r and GANG_ZONE[2] - r < y < GANG_ZONE[3] + r:
+        return False
+    return occ_free(x, y, r)
+def blocker(label, x, y, yaw, size):
+    """Boîte de collision invisible (joueur, balles), dans les deux phases."""
+    b = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, size[2] / 2), unreal.Rotator(pitch=0, yaw=yaw, roll=0))
+    b.static_mesh_component.set_static_mesh(CUBE)
+    b.set_actor_scale3d(unreal.Vector(size[0] / 100, size[1] / 100, size[2] / 100))
+    b.set_actor_hidden_in_game(True); b.set_actor_label(f'Noir_Bloc_{label}'); b.set_folder_path('Blockout')
+def both(label, mesh, x, y, z=0.0, yaw=0.0, scale=(1, 1, 1)):
+    spawn(label, mesh, (x, y, z), yaw=yaw, scale=scale, folder='Dressing_Real/Place', tags=('DressingReal', 'DressingSwitch'))
+    spawn(label + '_Carton', mesh, (x, y, z), yaw=yaw, scale=scale, mat=MAT_PAINTED, folder='Dressing_Prop/Place', tags=('DressingProp', 'DressingSwitch'))
+PL = dict(folder='Dressing_Real/Place', tags=('DressingReal',))
+PLP = dict(folder='Dressing_Prop/Place', tags=('DressingProp',))
+n_place = 0
+
+# --- Voitures abandonnées en travers de la place ---
+for k, (x, y, yaw) in enumerate([(-300, 1350, 28), (-1500, -1150, -62), (300, -1950, 8), (-2250, 1950, 75), (1500, 1900, -20)]):
+    if not place_ok(x, y, 240):
+        skipped.append(f'Place_Voiture_{k}'); continue
+    occ_add(x, y, 230)
+    both(f'Place_Voiture_{k}', car, x, y, yaw=yaw)
+    blocker(f'Place_Voiture_{k}', x, y, yaw, (180, 440, 140))
+    n_place += 1
+
+# --- Piles de grosses caisses en bois (2 x 2) ---
+for k, (x, y, yaw) in enumerate([(-2050, 250, 10), (-700, -1700, -25), (300, 2000, 40), (2300, 1500, 0), (2300, -1550, 15), (-1200, 2250, 0)]):
+    if not place_ok(x, y, 90):
+        skipped.append(f'Place_Caisses_{k}'); continue
+    occ_add(x, y, 90)
+    uy = unit_y(yaw)
+    for layer in range(2):
+        for s in (-1, 1):
+            if layer == 1 and s == 1 and k % 2:
+                continue                                     # une caisse en moins sur certaines piles
+            both(f'Place_Caisses_{k}_{layer}_{s}', crate, x + uy[0] * s * 28, y + uy[1] * s * 28, z=layer * 46.0, yaw=yaw + rng.uniform(-4, 4))
+    blocker(f'Place_Caisses_{k}', x, y, yaw, (120, 112, 92))
+    n_place += 1
+
+# --- Tonneaux groupés ---
+for k, (x, y) in enumerate([(-100, -950), (-2300, -1700), (600, 1250), (-1300, 1650)]):
+    if not place_ok(x, y, 80):
+        skipped.append(f'Place_Tonneaux_{k}'); continue
+    occ_add(x, y, 80)
+    for j, (dx, dy) in enumerate([(-30, -20), (32, -18), (0, 32)]):
+        both(f'Place_Tonneaux_{k}_{j}', barrel, x + dx, y + dy, yaw=rng.uniform(0, 360))
+    blocker(f'Place_Tonneaux_{k}', x, y, 0, (130, 130, 95))
+    n_place += 1
+
+# --- Étal de marché au milieu : table, auvent rayé sur quatre poteaux, cageots ---
+MX, MY = 50.0, 450.0
+if place_ok(MX, MY, 170):
+    occ_add(MX, MY, 170)
+    for kw, mat, sfx in ((PL, MAT_BOOTH, ''), (PLP, MAT_PAINTED, '_Carton')):
+        box(f'Etal_Table{sfx}', (MX, MY, 45), (300, 110, 90), mat, kw['folder'], kw['tags'])
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                box(f'Etal_Poteau_{sx}_{sy}{sfx}', (MX + sx * 145, MY + sy * 60, 125), (8, 8, 250), mat, kw['folder'], kw['tags'])
+        for j in range(6):                                    # auvent rayé
+            box(f'Etal_Auvent_{j}{sfx}', (MX - 150 + 50 * (j + 0.5), MY, 252), (50, 150, 6),
+                (MAT_STRIPE_D if j % 2 else MAT_STRIPE_L) if not sfx else mat, kw['folder'], kw['tags'])
+    for j in range(4):
+        both(f'Etal_Cageot_{j}', scrate, MX - 110 + j * 72, MY, z=90.0, yaw=90 + rng.uniform(-6, 6), scale=(0.75, 0.75, 0.75))
+    for j in range(3):
+        both(f'Etal_Sac_{j}', sack, MX - 90 + j * 90, MY + 95, yaw=rng.uniform(0, 360))
+    light('Etal_Ampoule', unreal.PointLight, (MX, MY, 235), intensity=40.0, radius=700, temp=2500, shadows=False, volumetric=3.0)
+    blocker('Etal', MX, MY, 0, (310, 120, 95))
+    n_place += 1
+else:
+    skipped.append('Etal')
+
+# --- Barrières de chantier rayées (avec un trou dans la chaussée) ---
+for k, (x, y, yaw) in enumerate([(-1900, -2100, 30), (-50, -400, 90)]):
+    if not place_ok(x, y, 130):
+        skipped.append(f'Chantier_{k}'); continue
+    occ_add(x, y, 130)
+    ux, uy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    for s in (-1, 1):                                          # deux chevalets face à face
+        cx, cy = x - uy * s * 70, y + ux * s * 70
+        for t_ in (-1, 1):
+            box(f'Chantier_{k}_{s}_Pied_{t_}', (cx + ux * t_ * 55, cy + uy * t_ * 55, 45), (5, 5, 90), MAT_STRIPE_L, **PL)
+        for j in range(6):
+            off = -60 + 120 * (j + 0.5) / 6
+            spawn(f'Chantier_{k}_{s}_Barre_{j}', CUBE, (cx + ux * off, cy + uy * off, 88), yaw=yaw, scale=(0.2, 0.04, 0.18),
+                  mat=MAT_STRIPE_D if j % 2 else MAT_STRIPE_L, **PL)
+        spawn(f'Chantier_{k}_{s}_Carton', CUBE, (cx, cy, 60), yaw=yaw, scale=(1.2, 0.05, 1.2), mat=MAT_PAINTED, **PLP)
+    spawn(f'Chantier_{k}_Trou', CYL, (x, y, 1.2), scale=(1.1, 1.1, 0.01), mat=MAT_STRIPE_D, shadow=False, **PL)
+    spawn(f'Chantier_{k}_Lampe', SPHERE, (x - uy * 70 + ux * 60, y + ux * 70 + uy * 60, 98), scale=(0.08, 0.08, 0.08), mat=MAT_NEON, shadow=False, **PL)
+    light(f'Chantier_{k}_Lueur', unreal.PointLight, (x, y, 120), intensity=15.0, radius=400, temp=2000, shadows=False, volumetric=2.0)
+    for s in (-1, 1):
+        blocker(f'Chantier_{k}_{s}', x - uy * s * 70, y + ux * s * 70, yaw, (125, 12, 95))
+    n_place += 1
+
+unreal.log_warning(f'[NOIR SET] place meublée : {n_place} îlots')
 unreal.log_warning(f'[NOIR SET] accessoires : {n_post} affiches, rideau {sh_w:.0f}x{sh_d:.0f}, non posés (place prise) : {skipped}')
 
 # =====================================================================================

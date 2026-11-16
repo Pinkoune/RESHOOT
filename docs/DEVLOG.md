@@ -482,3 +482,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : il pleut sur toute la ruelle (`Noir/FX/NS_Noir_Rain` : 40 000 gouttes par seconde, simulées sur la carte graphique, étirées dans le sens de la chute) et chaque lampadaire projette un cône de lumière dans la brume et la pluie. Avec l'asphalte mouillé et le noir et blanc, c'est l'image du film noir.
 - Comment : système Niagara créé entièrement par le MCP de l'éditeur (outils Niagara : modèle Fountain, forme en boîte de 64 m, vitesse vers le bas, sprites alignés sur la vitesse). Premier essai invisible : 4 000 gouttes par seconde sur 64 m × 64 m faisaient une goutte par mètre carré, trop fines pour être vues. Passé sur GPU, dix fois plus dense, gouttes plus épaisses.
 - Capture : docs/devlog-media/2026-11-16-noir-pluie.png
+
+### 2026-11-16 02:30 — Noir : la place n'est plus vide
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : 16 îlots au milieu de la ruelle, tous avec collision (ils servent de couverts au joueur) et leur version carton : quatre voitures bâchées abandonnées en travers, un étal de marché au centre (auvent rayé, cageots, sacs, ampoule), cinq piles de grosses caisses, quatre groupes de tonneaux, deux chantiers (chevalets rayés, trou dans la chaussée, lampe).
+- Comment : ajouté à `Tools/build_noir_set.py`, reconstruit et vérifié en jeu par le MCP. Les couverts des gangsters sont à l'est et la navigation est figée dans `L_Stage` : leur couloir est laissé libre pour ne pas bloquer leurs déplacements.
+- Capture : docs/devlog-media/2026-11-16-noir-place-meublee.png
