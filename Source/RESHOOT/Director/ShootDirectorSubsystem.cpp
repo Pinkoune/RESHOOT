@@ -726,6 +726,20 @@ void UShootDirectorSubsystem::TickAudience()
 	const double Now = World->GetTimeSeconds();
 	// Public qui s'ennuie : sans élimination depuis AudienceBoredDelay, l'audimat baisse jusqu'à la prochaine.
 	const bool bRolling = Phase == EShootPhase::TakeRunning || Phase == EShootPhase::Finale;
+	// Tant qu'aucun figurant n'est sur le plateau (entre deux vagues, pendant leur arrivée), le public patiente.
+	bool bAnyEnemy = false;
+	for (TActorIterator<AReshootEnemy> It(World); It; ++It)
+	{
+		if (!It->IsDead())
+		{
+			bAnyEnemy = true;
+			break;
+		}
+	}
+	if (!bAnyEnemy)
+	{
+		LastKillTime = FMath::Max(LastKillTime, Now - Script->AudienceBoredDelay * 0.5);
+	}
 	bAudienceBored = bRolling && Script->AudienceBoredRate > 0.f && Now - LastKillTime > Script->AudienceBoredDelay;
 	if (bAudienceBored)
 	{

@@ -92,6 +92,32 @@ void ASpaceDrone::BeginPlay()
 	Move->GravityScale = 0.f;
 	Move->SetMovementMode(MOVE_Flying);
 
+	// Les points d'apparition du plateau sont hors du studio spatial : un drone trop loin se replace devant le
+	// joueur, dans le studio (sinon il reste coincé derrière les murs et le joueur ne le voit jamais).
+	if (const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		const FVector PlayerLocation = Player->GetActorLocation();
+		if (FVector::Dist2D(GetActorLocation(), PlayerLocation) > 1600.f)
+		{
+			const float Yaw = Player->GetControlRotation().Yaw + FMath::FRandRange(-70.f, 70.f);
+			const FVector Dir = FRotator(0.f, Yaw, 0.f).Vector();
+			for (int32 Attempt = 0; Attempt < 6; ++Attempt)
+			{
+				const float Dist = FMath::FRandRange(900.f, 1400.f) * (1.f - Attempt * 0.12f);
+				const FVector Target = PlayerLocation + Dir * Dist + FVector(0.f, 0.f, FMath::FRandRange(150.f, 350.f));
+				FHitResult Hit;
+				FCollisionQueryParams Query(SCENE_QUERY_STAT(DroneRelocate), false, this);
+				Query.AddIgnoredActor(Player);
+				// Ligne de vue depuis le joueur : pas de mur entre lui et le drone.
+				if (!GetWorld()->LineTraceSingleByChannel(Hit, PlayerLocation + FVector(0.f, 0.f, 60.f), Target, ECC_Visibility, Query)
+					&& TeleportTo(Target, (PlayerLocation - Target).Rotation()))
+				{
+					break;
+				}
+			}
+		}
+	}
+
 	if (ShotMaterial)
 	{
 		ShotBeam->SetMaterial(0, ShotMaterial);
