@@ -52,6 +52,7 @@ Licence CC0 : aucune attribution obligatoire, on les cite quand même. Télécha
 | Concrete Pavement 03 (texture) | Charlotte Baglioni | `T_Noir_Sidewalk_D` (trottoirs, corniches) |
 | Red Bricks 02 (texture) | Rob Tuytel | `T_Noir_Brick_*` (façades) |
 | Asphalt 02 (texture) | Rob Tuytel | `T_Noir_Asphalt_*` (sol de la ruelle) |
+| Weathered Planks, Rusty Metal 02, Green Metal Rust, Painted Metal Shutter (textures) | Poly Haven (CC0) | `T_Noir_Wood_D`, `T_Noir_Rust_D`, `T_Noir_GreenRust_D`, `T_Noir_PaintedMetal_D` (cabines, kiosque, étal, bennes, parcmètres) |
 
 ## Contenu Epic Games livré avec le moteur
 
