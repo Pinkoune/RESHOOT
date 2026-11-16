@@ -648,22 +648,20 @@ put('Angle_SE_Pneu', tyre, 2785, -2925, yaw=rng.uniform(0, 360), roll=90.0, r=32
 put('Angle_SE_Bidon', jerry, 2720, -2940, yaw=rng.uniform(0, 360), r=22)
 
 # --- Bennes à ordures (deux phases : peinte en carton), boîte de collision invisible ---
+# Modèles détaillés faits dans Blender (SourceArt/Noir/Models) : version réaliste et version carton peint
+HERO_FRONT = 180.0      # lacet à ajouter pour que la face avant du modèle regarde la rue
+def hero(label, name, x, y, yaw, z=0.0, carton=True):
+    mesh = SM(f'SM_Noir_{name}_Real')
+    spawn(label, mesh, (x, y, z), yaw=yaw + HERO_FRONT, folder='Dressing_Real/Hero', tags=('DressingReal', 'DressingSwitch'))
+    if carton:
+        spawn(label + '_Carton', mesh, (x, y, z), yaw=yaw + HERO_FRONT, mat=MAT_PAINTED, folder='Dressing_Prop/Hero', tags=('DressingProp', 'DressingSwitch'))
+
 def dumpster(k, wall, along, depth):
     x, y = at_wall(wall, along, depth)
     if not occ_free(x, y, 110): skipped.append(f'Benne_{k}'); return
     occ_add(x, y, 110)
-    for kw, mat in ((AT, MAT_DUMP), (PD, MAT_PAINTED)):
-        sfx = '' if kw is AT else '_Carton'
-        box(f'Benne_{k}{sfx}', (x, y, 70), sz(wall, 190, 110, 105), mat, kw['folder'], kw['tags'])
-        box(f'Benne_{k}_Couvercle{sfx}', (x, y, 126), sz(wall, 198, 118, 6), mat, kw['folder'], kw['tags'])
-        for s in (-1, 1):
-            box(f'Benne_{k}_Renfort_{s}{sfx}', wall_point(wall, along + s * 55, depth + 57, 70), sz(wall, 8, 6, 100), mat, kw['folder'], kw['tags'])
-    for sa in (-80, 80):
-        for sp in (-40, 40):
-            p = wall_point(wall, along + sa, depth + sp, 9)
-            box(f'Benne_{k}_Roue_{sa}_{sp}', p, (16, 16, 16), MAT_METAL, **AT)
-            box(f'Benne_{k}_Roue_{sa}_{sp}_Carton', p, (16, 16, 16), MAT_PAINTED, **PD)
-    blk = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 65), unreal.Rotator(0, 0, 0))
+    hero(f'Benne_{k}', 'Dumpster', x, y, wall_yaw(wall))
+    blk =eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, 65), unreal.Rotator(0, 0, 0))
     blk.static_mesh_component.set_static_mesh(CUBE)
     s3 = sz(wall, 198, 118, 130)
     blk.set_actor_scale3d(unreal.Vector(s3[0] / 100, s3[1] / 100, s3[2] / 100))
@@ -703,12 +701,7 @@ def mailbox(label, wall, along, depth):
     x, y = at_wall(wall, along, depth)
     if not occ_free(x, y, 40): skipped.append(label); return
     occ_add(x, y, 40)
-    for sa in (-18, 18):
-        for sp in (-16, 16):
-            box(f'{label}_Pied_{sa}_{sp}', wall_point(wall, along + sa, depth + sp, 15), (6, 6, 30), MAT_MAILBOX, **AT)
-    box(label, (x, y, 65), sz(wall, 50, 46, 70), MAT_MAILBOX, **AT)
-    rot = dict(roll=90.0) if WALLS[wall][0] == 'x' else dict(pitch=90.0)
-    spawn(f'{label}_Dessus', CYL, (x, y, 100), scale=(0.5, 0.5, 0.46), mat=MAT_MAILBOX, **AT, **rot)
+    hero(label, 'Mailbox', x, y, wall_yaw(wall))
 mailbox('BoiteAuxLettres_0', 'Ouest', 250, 55)
 mailbox('BoiteAuxLettres_1', 'Nord', 1080, 60)
 
@@ -813,13 +806,7 @@ if occ_free(CS[0], CS[1], 220):
     for k, (hx, hy) in enumerate(HORSES):
         hyaw = cyaw + (0 if k % 2 == 0 else 90)
         ux, uy = math.cos(math.radians(hyaw)), math.sin(math.radians(hyaw))
-        for s in (-1, 1):
-            for d in (-1, 1):
-                box(f'Crime_Chevalet_{k}_Pied_{s}_{d}', (hx + ux * s * 50 - uy * d * 12, hy + uy * s * 50 + ux * d * 12, 45), (5, 5, 90), MAT_STRIPE_L, **AT3)
-        for j in range(6):                                    # barre rayée noir et blanc
-            off = -50 + 100 * (j + 0.5) / 6
-            spawn(f'Crime_Chevalet_{k}_Barre_{j}', CUBE, (hx + ux * off, hy + uy * off, 92), yaw=hyaw,
-                  scale=(100 / 6 / 100, 0.04, 0.16), mat=MAT_STRIPE_D if j % 2 else MAT_STRIPE_L, **AT3)
+        hero(f'Crime_Chevalet_{k}', 'Sawhorse', hx, hy, hyaw, carton=False)
     for k in range(4):
         a, b = HORSES[k], HORSES[(k + 1) % 4]
         seg(f'Crime_Ruban_{k}', a, b, 95, 0.6, 7, MAT_TAPE)
@@ -849,18 +836,7 @@ def booth(k, wall, along):
     if not occ_free(x, y, 75):
         skipped.append(f'Cabine_{k}'); return
     occ_add(x, y, 75)
-    for sa in (-45, 45):
-        for sp in (-45, 45):
-            box(f'Cabine_{k}_Montant_{sa}_{sp}', wall_point(wall, along + sa, 95 + sp, 115), (10, 10, 230), MAT_BOOTH, **AT3)
-    box(f'Cabine_{k}_Socle', (x, y, 5), sz(wall, 100, 100, 10), MAT_BOOTH, **AT3)
-    box(f'Cabine_{k}_Toit', (x, y, 235), sz(wall, 112, 112, 12), MAT_BOOTH, **AT3)
-    box(f'Cabine_{k}_Fond', wall_point(wall, along, 47, 115), sz(wall, 90, 4, 220), MAT_BOOTH, **AT3)
-    for s in (-1, 1):                                          # côtés vitrés
-        box(f'Cabine_{k}_Vitre_{s}', wall_point(wall, along + s * 45, 95, 130), sz(wall, 3, 80, 150), MAT_GLASS, shadow=False, **AT3)
-    box(f'Cabine_{k}_Porte', wall_point(wall, along, 143, 130), sz(wall, 80, 3, 150), MAT_GLASS, shadow=False, **AT3)
-    box(f'Cabine_{k}_Enseigne', wall_point(wall, along, 146, 214), sz(wall, 90, 3, 22), MAT_NEON, shadow=False, **AT3)
-    text(f'Cabine_{k}_Enseigne_Texte', wall_point(wall, along, 148.5, 214), {'Nord': -90.0, 'Sud': 90.0, 'Est': 180.0, 'Ouest': 0.0}[wall], 'TELEPHONE', 12.0, (15, 15, 15))
-    box(f'Cabine_{k}_Telephone', wall_point(wall, along, 55, 140), sz(wall, 22, 14, 30), MAT_METAL, **AT3)
+    hero(f'Cabine_{k}', 'PhoneBooth', x, y, wall_yaw(wall))
     light(f'Cabine_{k}_Lumiere', unreal.PointLight, wall_point(wall, along, 95, 215), intensity=20.0, radius=450, temp=3000, shadows=False, volumetric=2.0)
 booth(0, 'Est', 1650.0)
 booth(1, 'Ouest', -300.0)
@@ -871,16 +847,7 @@ def kiosk(wall, along):
     if not occ_free(x, y, 120):
         skipped.append('Kiosque'); return
     occ_add(x, y, 120)
-    box('Kiosque_Caisse', wall_point(wall, along, 80, 110), sz(wall, 220, 100, 220), MAT_BOOTH, **AT3)
-    box('Kiosque_Comptoir', wall_point(wall, along, 150, 50), sz(wall, 230, 50, 100), MAT_BOOTH, **AT3)
-    box('Kiosque_Auvent', wall_point(wall, along, 165, 240), sz(wall, 250, 110, 8), MAT_AWNING, **AT3)
-    box('Kiosque_Enseigne', wall_point(wall, along, 132, 262), sz(wall, 200, 4, 36), MAT_SIGN, **AT3)
-    text('Kiosque_Enseigne_Texte', wall_point(wall, along, 135, 262), {'Nord': -90.0, 'Sud': 90.0, 'Est': 180.0, 'Ouest': 0.0}[wall], 'NEWS - DAILY STAR', 20.0)
-    for j in range(7):                                         # piles de journaux sur le comptoir
-        a2 = along - 95 + j * 31
-        box(f'Kiosque_Pile_{j}', wall_point(wall, a2, 150, 100 + 3 * (j % 3) + 4), sz(wall, 26, 34, 8 + 3 * (j % 3)), MAT_PAPER, shadow=False, **AT3)
-    for j in range(4):                                         # magazines accrochés en façade
-        box(f'Kiosque_Revue_{j}', wall_point(wall, along - 75 + j * 50, 131, 170), sz(wall, 34, 2, 44), MAT_POSTER if j % 2 else MAT_POSTER_2, shadow=False, **AT3)
+    hero('Kiosque', 'Newsstand', *at_wall(wall, along, 115), wall_yaw(wall))
     light('Kiosque_Lumiere', unreal.PointLight, wall_point(wall, along, 190, 225), intensity=30.0, radius=600, temp=3200, shadows=False, volumetric=2.0)
 kiosk('Ouest', 1780.0)
 
@@ -963,18 +930,7 @@ for k, (x, y) in enumerate([(-100, -950), (-2300, -1700), (600, 1250), (-1300, 1
 MX, MY = 50.0, 450.0
 if place_ok(MX, MY, 170):
     occ_add(MX, MY, 170)
-    for kw, mat, sfx in ((PL, MAT_BOOTH, ''), (PLP, MAT_PAINTED, '_Carton')):
-        box(f'Etal_Table{sfx}', (MX, MY, 45), (300, 110, 90), mat, kw['folder'], kw['tags'])
-        for sx in (-1, 1):
-            for sy in (-1, 1):
-                box(f'Etal_Poteau_{sx}_{sy}{sfx}', (MX + sx * 145, MY + sy * 60, 125), (8, 8, 250), mat, kw['folder'], kw['tags'])
-        for j in range(6):                                    # auvent rayé
-            box(f'Etal_Auvent_{j}{sfx}', (MX - 150 + 50 * (j + 0.5), MY, 252), (50, 150, 6),
-                (MAT_STRIPE_D if j % 2 else MAT_STRIPE_L) if not sfx else mat, kw['folder'], kw['tags'])
-    for j in range(4):
-        both(f'Etal_Cageot_{j}', scrate, MX - 110 + j * 72, MY, z=90.0, yaw=90 + rng.uniform(-6, 6), scale=(0.75, 0.75, 0.75))
-    for j in range(3):
-        both(f'Etal_Sac_{j}', sack, MX - 90 + j * 90, MY + 95, yaw=rng.uniform(0, 360))
+    hero('Etal', 'MarketStall', MX, MY, 0.0)
     light('Etal_Ampoule', unreal.PointLight, (MX, MY, 235), intensity=40.0, radius=700, temp=2500, shadows=False, volumetric=3.0)
     blocker('Etal', MX, MY, 0, (310, 120, 95))
     n_place += 1
@@ -987,17 +943,9 @@ for k, (x, y, yaw) in enumerate([(-1900, -2100, 30), (-50, -400, 90)]):
         skipped.append(f'Chantier_{k}'); continue
     occ_add(x, y, 130)
     ux, uy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
-    for s in (-1, 1):                                          # deux chevalets face à face
-        cx, cy = x - uy * s * 70, y + ux * s * 70
-        for t_ in (-1, 1):
-            box(f'Chantier_{k}_{s}_Pied_{t_}', (cx + ux * t_ * 55, cy + uy * t_ * 55, 45), (5, 5, 90), MAT_STRIPE_L, **PL)
-        for j in range(6):
-            off = -60 + 120 * (j + 0.5) / 6
-            spawn(f'Chantier_{k}_{s}_Barre_{j}', CUBE, (cx + ux * off, cy + uy * off, 88), yaw=yaw, scale=(0.2, 0.04, 0.18),
-                  mat=MAT_STRIPE_D if j % 2 else MAT_STRIPE_L, **PL)
-        spawn(f'Chantier_{k}_{s}_Carton', CUBE, (cx, cy, 60), yaw=yaw, scale=(1.2, 0.05, 1.2), mat=MAT_PAINTED, **PLP)
+    for s in (-1, 1):                                          # deux chevalets modélisés face à face
+        hero(f'Chantier_{k}_{s}', 'Sawhorse', x - uy * s * 70, y + ux * s * 70, yaw + (0 if s > 0 else 180))
     spawn(f'Chantier_{k}_Trou', CYL, (x, y, 1.2), scale=(1.1, 1.1, 0.01), mat=MAT_STRIPE_D, shadow=False, **PL)
-    spawn(f'Chantier_{k}_Lampe', SPHERE, (x - uy * 70 + ux * 60, y + ux * 70 + uy * 60, 98), scale=(0.08, 0.08, 0.08), mat=MAT_NEON, shadow=False, **PL)
     light(f'Chantier_{k}_Lueur', unreal.PointLight, (x, y, 120), intensity=15.0, radius=400, temp=2000, shadows=False, volumetric=2.0)
     for s in (-1, 1):
         blocker(f'Chantier_{k}_{s}', x - uy * s * 70, y + ux * s * 70, yaw, (125, 12, 95))
