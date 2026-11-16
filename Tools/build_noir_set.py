@@ -911,6 +911,21 @@ fc.set_editor_property('fog_inscattering_luminance', unreal.LinearColor(0.002, 0
 fog.set_actor_label('Ruelle_Brume'); fog.set_folder_path('Dressing_Real/Lighting'); fog.tags = ['DressingReal']
 ppv('PPV_Ruelle', 'Dressing_Real/Lighting', ['DressingReal'], REAL_BIAS, bloom_intensity=0.8, vignette_intensity=0.6, film_grain_intensity=0.35)
 
+# Pluie sur toute la ruelle (NS_Noir_Rain : gouttes étirées dans le sens de la chute, 4000 par seconde)
+rain_sys = unreal.load_asset('/Game/RESHOOT/Noir/FX/NS_Noir_Rain')
+if rain_sys:
+    for k, (rx, ry) in enumerate([(0, 0)]):
+        ra = eas.spawn_actor_from_class(unreal.NiagaraActor, unreal.Vector(rx, ry, 2950), unreal.Rotator(0, 0, 0))
+        ra.niagara_component.set_asset(rain_sys)
+        ra.set_actor_label(f'Ruelle_Pluie_{k}'); ra.set_folder_path('Dressing_Real/Lighting'); ra.tags = ['DressingReal']
+# Cônes de lumière sous chaque lampadaire : visibles dans la brume et la pluie
+for a in list(eas.get_all_level_actors()):
+    lab = a.get_actor_label()
+    if lab.startswith('Lampadaire') and lab.endswith('_Lumiere'):
+        p = a.get_actor_location()
+        light(lab.replace('_Lumiere', '_Cone'), unreal.SpotLight, (p.x, p.y, p.z + 5), rot=(-90, 0, 0), intensity=500.0, radius=700, temp=2900,
+              cones=(18, 34), shadows=False, volumetric=8.0)
+
 # Ciel de nuit : le soleil, le ciel et la lumière d'ambiance de L_Stage restent allumés dans toutes les phases.
 # Une boîte fermée autour de la ville (réaliste seulement) cache le ciel du plateau et fait de l'ombre au soleil ;
 # sa face intérieure est un ciel de ville gris très sombre, pour que les toits et les réservoirs s'y découpent.

@@ -476,3 +476,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : 17 vrais bruitages Epidemic Sound remplacent les sons synthétisés ou absents. Noir : tir du revolver, clic à vide, barillet, tirs des gangsters, coupure et retour du courant. Médiéval : épée (balayage, impact), bouclier, arc, tir des archers, impact des flèches, attaque et mort des chevaliers.
 - Comment : recherche et téléchargement par le MCP Epidemic Sound, import et branchement par le MCP de l'éditeur (`Tools/setup_epidemic_sfx.py`). Le médiéval utilisait ses classes C++ directement : trois Blueprints sans code (`BP_MedievalKnight`, `BP_MedievalArcher`, `BP_MedievalArrow`) portent les sons et remplacent les classes dans `DA_Medieval`. Le convoi garde ses sons (le remplacer par un Blueprint en ferait apparaître un second). Non testé en jeu, faute de temps.
 - Capture : aucune
+
+### 2026-11-16 02:15 — Noir : la pluie et les cônes de lumière
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : il pleut sur toute la ruelle (`Noir/FX/NS_Noir_Rain` : 40 000 gouttes par seconde, simulées sur la carte graphique, étirées dans le sens de la chute) et chaque lampadaire projette un cône de lumière dans la brume et la pluie. Avec l'asphalte mouillé et le noir et blanc, c'est l'image du film noir.
+- Comment : système Niagara créé entièrement par le MCP de l'éditeur (outils Niagara : modèle Fountain, forme en boîte de 64 m, vitesse vers le bas, sprites alignés sur la vitesse). Premier essai invisible : 4 000 gouttes par seconde sur 64 m × 64 m faisaient une goutte par mètre carré, trop fines pour être vues. Passé sur GPU, dix fois plus dense, gouttes plus épaisses.
+- Capture : docs/devlog-media/2026-11-16-noir-pluie.png
