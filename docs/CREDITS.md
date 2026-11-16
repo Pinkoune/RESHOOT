@@ -84,3 +84,7 @@ Texte à reprendre sur la page itch.io : Bebas Neue by Dharma Type, licensed und
 ## Outils
 
 Claude Code (Opus 5.5, Fable 5.2), Codex, Antigravity, Tripo, Rodin (Hyper3D), Meshy, fal, Blender (MCP for Blender), Poly Haven. Musiques des trois univers : Kevin MacLeod (CC-BY 4.0, voir plus haut). Autres sons et musiques : WeLoveIndies (à confirmer).
+
+## Bruitages Epidemic Sound
+
+17 bruitages du film noir et du médiéval (`Content/RESHOOT/Audio/SFX/*_ES`) viennent d'Epidemic Sound (abonnement de la jam). Les WAV d'origine ne sont pas dans le dépôt.

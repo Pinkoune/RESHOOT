@@ -470,3 +470,9 @@ Ce qui rend le journal intéressant : les échecs, les prompts qui ont débloqu�
 - Fait : troisième passe d'accessoires dans la ruelle : une scène de crime (silhouette à la craie, chevalets de police rayés, ruban POLICE LINE, chapeau et arme du mort, marqueurs numérotés), deux cabines téléphoniques éclairées, un kiosque à journaux, six lampadaires et trois panneaux de rue en plus.
 - Comment : ajouté à `Tools/build_noir_set.py`, reconstruit et vérifié en jeu entièrement par le serveur MCP de l'éditeur (script Python + capture du viewport), sans toucher à la souris.
 - Capture : docs/devlog-media/2026-11-16-noir-scene-de-crime.png
+
+### 2026-11-16 01:45 — Bruitages Epidemic Sound pour le film noir et le médiéval
+- Qui : Jules + Claude (Claude Code, Opus 5.5)
+- Fait : 17 vrais bruitages Epidemic Sound remplacent les sons synthétisés ou absents. Noir : tir du revolver, clic à vide, barillet, tirs des gangsters, coupure et retour du courant. Médiéval : épée (balayage, impact), bouclier, arc, tir des archers, impact des flèches, attaque et mort des chevaliers.
+- Comment : recherche et téléchargement par le MCP Epidemic Sound, import et branchement par le MCP de l'éditeur (`Tools/setup_epidemic_sfx.py`). Le médiéval utilisait ses classes C++ directement : trois Blueprints sans code (`BP_MedievalKnight`, `BP_MedievalArcher`, `BP_MedievalArrow`) portent les sons et remplacent les classes dans `DA_Medieval`. Le convoi garde ses sons (le remplacer par un Blueprint en ferait apparaître un second). Non testé en jeu, faute de temps.
+- Capture : aucune
